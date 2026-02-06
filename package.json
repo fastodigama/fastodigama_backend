@@ -1,0 +1,33 @@
+{
+  "name": "fastodigama_backend",
+  "version": "1.0.0",
+  "description": "a website for journaling and AI summaries",
+  "keywords": [
+    "opinion",
+    "articles",
+    "newsletter"
+  ],
+  "homepage": "https://github.com/fastodigama/fastodigama_backend#readme",
+  "bugs": {
+    "url": "https://github.com/fastodigama/fastodigama_backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fastodigama/fastodigama_backend.git"
+  },
+  "license": "ISC",
+  "author": "FADEL MATAR",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon ./index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "pug": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
