@@ -21,9 +21,10 @@ const MenuLink = mongoose.model("MenuLink", MenuLinksSchema);
 
 //get all links from menuLink collection
 async function getLinks() {
-    return await MenuLink.find({}); //return an array for find all
+    return await MenuLink.find({}).sort({ weight: 1}); //return an array for find all
     
 }
+
 
 //Function to initialize the Links collection with some data
 
@@ -47,35 +48,29 @@ async function initializeMenuLinks() {
 }
 
 //function to add a new link
+async function addMenuLink(newLink) {
+    let link = new MenuLink({
+        weight: Number(newLink.weight),
+        name: String(newLink.name),
+        path: String(newLink.path)
+    });
 
-async function addMenuLink(linkWeight, linkName,linkPath) {
-
-    let newLink = new MenuLink(
-        {
-            weight: parseInt(linkWeight),
-            name: String(linkName),
-            path: String(linkPath)
-        }
-    );
-
-    await newLink.save(); //save the new link to the db
-    
+    await link.save();
 }
 
 //Function to update a Link
-async function updateMenuLink(id, weight, name, path) {
+async function updateMenuLink(id,linkData) {
     await MenuLink.updateOne(
         {_id:id},
-        {
-            $set: {
-                weight,
-                name,
-                path
-            }
-        
-        }
-    )
-    
+        { $set: linkData }
+    );
+}
+
+
+//get single link to update
+
+async function getSingleLink(id) {
+ return await MenuLink.findById(id);
 }
 
 //Function to delete a Link
@@ -86,6 +81,7 @@ async function deleteMenuLink(id) {
 
 export default {
     getLinks,
+    getSingleLink,
     initializeMenuLinks,
     addMenuLink,
     updateMenuLink,
