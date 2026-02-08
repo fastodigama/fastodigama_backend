@@ -1,0 +1,14 @@
+if user
+    nav(aria-label="Main-Navigation")
+        ul
+            li: a(href="/") Home 
+            li: a(href="/admin/menu") Admin Menu 
+            li: a(href="/register") user register
+            li: a(href="/user") My Account
+            li: a(href="/logout") Log Out
+
+
+else
+    nav(aria-label="Main-Navigation")
+        ul
+            li: a(href="/login") Login

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const router = express.Router();
 
-import model from "./func.js";
+import model from "./model.js";
 
 //MENU Link admin Pages
 

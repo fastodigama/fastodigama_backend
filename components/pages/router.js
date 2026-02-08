@@ -2,7 +2,7 @@ import express from "express";
 
 const router = express.Router();
 
-import model from "../menuLinks/func.js"
+import model from "../menuLinks/model.js"
 
 router.get("/", async (request, response) =>  {
     let menuLinks = await model.getLinks();

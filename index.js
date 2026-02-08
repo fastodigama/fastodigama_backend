@@ -1,14 +1,19 @@
 //import required modules
-
-import express from "express";
-
-
+import "dotenv/config"
+import express, { response } from "express";
+import sessions from "express-session";
+import { connect } from "./dbConnection.js"
 //the path module has some useful mothods for path/URL manipulation.
 
 import path from "path";
 
-import adminPageRouter from "./modules/menuLinks/router.js";
-import pageRouter from "./modules/pages/router.js"
+import adminPageRouter from "./components/menuLinks/router.js";
+import pageRouter from "./components/pages/router.js"
+import userRouter from "./components/User/routes.js"
+import { request } from "http";
+
+//connect to DB immediatly
+connect();
 
 //to retrieve the absolute path of the current folder
 const __dirname = import.meta.dirname;
@@ -28,10 +33,53 @@ app.set("views", path.join(__dirname, "views"));
 
 app.use(express.static(path.join(__dirname,"public")));
 
+//setup app to use sessions
+//T access a session variable, you just need to access request.session.<variable_name>
+app.use(
+    sessions({
+        secret: process.env.SESSIONSECRET,
+        name: "MyUniqueSEssID",
+        saveUninitialized: false,
+        resave:false,
+        cookie: {}
+    })
+)
+
+//setup middleware function to check if user logged in for user path
+
+//fo admin pages
+
+app.use("/admin", (request,response,next)=>{
+    if (request.session.loggedIn) {
+        app.locals.user = request.session.user;
+        next();
+    }else{
+        response.redirect("/login");
+    }
+});
+
+//for authentication pages
+app.use("/user", (request, response, next) => {
+    //get user from session and go to next middleware finction
+    if(request.session.loggedIn) {
+        app.locals.user = request.session.user;
+        next();
+    }else {
+        response.redirect("/login");
+    }
+});
+
+app.use("/logout", (request,response,next) => {
+    //reset local variable "username"
+    app.locals.user = null;
+    next();
+});
+
 app.set("view engine", "pug"); //set the app to use pug
 
 app.use("/admin/menu", adminPageRouter);
-app.use("/", pageRouter)
+app.use("/", pageRouter);
+app.use("/", userRouter);
 
 app.listen(port, () => {
     console.log(`Listening at http://localhost:${port}`);

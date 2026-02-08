@@ -1,0 +1,17 @@
+extends ../common/layout
+
+block layout-content 
+  .main-content 
+    h1.page-title Register 
+    if err 
+      p #{err}
+    form(method="post", action="/register")
+      div 
+        label(for="u") Username: 
+        input(type="text", id="u", name="u")
+      div 
+        label(for="pw") Password: 
+        input(type="password", id="pw", name="pw")
+      button(type="submit") Register
+    p. 
+      Already have an account? #[a(href="/login") Log in now]

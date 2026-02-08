@@ -1,9 +1,4 @@
-import dbUrl from "../dbConnection.js"
-
-//connect to db
 import mongoose from "mongoose";
-
-await mongoose.connect(dbUrl);
 
 //setup schema and model
 const MenuLinksSchema = new mongoose.Schema({
