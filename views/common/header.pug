@@ -1,7 +1,7 @@
 if user
     nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
-        img(src="/img/apple-touch-icon.png", width="30", height="30").d-inline-block.align-top
-        a.navbar-brand.h1(href="/")
+        img.d-inline-block.align-top.me-2(src="/img/apple-touch-icon.png", width="30", height="30")
+        a.navbar-brand.h1.mb-0(href="/") FASTOADMIN
         button.navbar-toggler(
             type="button",
             data-bs-toggle="collapse",
@@ -12,7 +12,7 @@ if user
         )
             span.navbar-toggler-icon
         div#navbarNav.collapse.navbar-collapse
-            ul.d-flex.gap-3.list-unstyled.navbar-nav
+            ul.navbar-nav.ms-auto.d-flex.gap-3.list-unstyled
                 li.nav-item: a.nav-link(href="/" class=(currentPath === '/' ? 'active' : '')) Home
                 li.nav-item: a.nav-link(href="/admin/menu" class=(currentPath === '/admin/menu' ? 'active' : '')) Admin Menu
                 li.nav-item: a.nav-link(href="/user" class=(currentPath === '/user' ? 'active' : '')) My Account
@@ -20,8 +20,8 @@ if user
 
 else
     nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
-        img(src="/img/apple-touch-icon.png", width="30", height="30").d-inline-block.align-top
-        a.navbar-brand.h1(href="/")
+        img.d-inline-block.align-top.me-2(src="/img/apple-touch-icon.png", width="30", height="30")
+        a.navbar-brand.h1.mb-0(href="/") FASTOADMIN
         button.navbar-toggler(
             type="button",
             data-bs-toggle="collapse",
@@ -32,6 +32,6 @@ else
         )
             span.navbar-toggler-icon
         div#navbarNav.collapse.navbar-collapse
-            ul.d-flex.gap-3.list-unstyled.navbar-nav
+            ul.navbar-nav.ms-auto.d-flex.gap-3.list-unstyled
                 li.nav-item: a.nav-link(href="/login" class=(currentPath === '/login' ? 'active' : '')) Login
                 //- li.nav-item: a.nav-link(href="/register" class=(currentPath === '/register' ? 'active' : '')) Register

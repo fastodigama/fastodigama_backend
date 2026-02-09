@@ -3,13 +3,13 @@ import userModel from "./model.js";
 const getUser = async (request, response) => {
   //console.log(request.session);
   //check for user session variable and render user page
-  response.render("user/user", { currentPath: request.path });
+  response.render("user/user", { currentPath: request.path, title: "My Account" });
 };
 
 //controller function for GET login page
 const loginForm = async (request, response) => {
   //render login page
-  response.render("user/login", { currentPath: request.path });
+  response.render("user/login", { currentPath: request.path , title: "Login"});
 };
 
 //controller function for POST login form

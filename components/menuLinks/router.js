@@ -2,6 +2,7 @@ import express, { request, response } from "express";
 import mongoose from "mongoose";
 
 const router = express.Router();
+import links from "./controller.js";
 
 import model from "./model.js";
 
@@ -16,14 +17,15 @@ router.get("/", async (request, response) => {
   response.render("menu/menu-list", {
     title: "Administer menu links",
     links: menuLinks,
+    currentPath: request.originalUrl 
   });
 });
 
 //CREATE route
 
 router.get("/add", async (request, response) => {
-  let menuLinks = await model.getLinks();
-  response.render("menu/menu-add", { title: "Add menu link", links: menuLinks });
+  
+  response.render("menu/menu-add", { title: "Add menu link", currentPath: request.originalUrl  });
 });
 
 //Add form submission
@@ -46,6 +48,7 @@ router.get("/edit", async (request, response) => {
       title: "Edit menu link",
       links: links,
       editLink: linkToEdit,
+      currentPath: request.originalUrl 
     });
   } else {
     response.redirect("/admin/menu");
@@ -72,5 +75,9 @@ router.get("/delete", async (request, response) => {
   response.redirect("/admin/menu");
 });
 
+
+//API endpoint
+
+router.get("/api/menulinks", links.getMenuLinksApiResponse )
 
 export default router;
