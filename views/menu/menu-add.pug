@@ -1,0 +1,19 @@
+extends ../common/layout
+
+block layout-content
+    .row.justify-content-center
+        .col-md-8.col-lg-6
+            h1.mb-4 Add Menu Link
+            form(action="/admin/menu/add/submit", method="post")
+                .mb-3
+                    label.form-label(for="wgt") Weight
+                    input.form-control(type="number", id="wgt", name="weight", placeholder="0", required)
+                .mb-3
+                    label.form-label(for="link-text") Link Text
+                    input.form-control(type="text", id="link-text", name="name", placeholder="Home", required)
+                .mb-3
+                    label.form-label(for="href") Link Path
+                    input.form-control(type="text", id="href", name="path", placeholder="/", required)
+                .d-flex.gap-2
+                    button.btn.btn-primary(type="submit") Add Link
+                    a.btn.btn-secondary(href="/admin/menu") Cancel

@@ -1,14 +1,37 @@
 if user
-    nav(aria-label="Main-Navigation")
-        ul
-            li: a(href="/") Home 
-            li: a(href="/admin/menu") Admin Menu 
-            li: a(href="/register") user register
-            li: a(href="/user") My Account
-            li: a(href="/logout") Log Out
-
+    nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
+        img(src="/img/apple-touch-icon.png", width="30", height="30").d-inline-block.align-top
+        a.navbar-brand.h1(href="/")
+        button.navbar-toggler(
+            type="button",
+            data-bs-toggle="collapse",
+            data-bs-target="#navbarNav",
+            aria-controls="navbarNav",
+            aria-expanded="false",
+            aria-label="Toggle navigation"
+        )
+            span.navbar-toggler-icon
+        div#navbarNav.collapse.navbar-collapse
+            ul.d-flex.gap-3.list-unstyled.navbar-nav
+                li.nav-item: a.nav-link(href="/" class=(currentPath === '/' ? 'active' : '')) Home
+                li.nav-item: a.nav-link(href="/admin/menu" class=(currentPath === '/admin/menu' ? 'active' : '')) Admin Menu
+                li.nav-item: a.nav-link(href="/user" class=(currentPath === '/user' ? 'active' : '')) My Account
+                li.nav-item: a.nav-link(href="/logout") Log Out
 
 else
-    nav(aria-label="Main-Navigation")
-        ul
-            li: a(href="/login") Login
+    nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
+        img(src="/img/apple-touch-icon.png", width="30", height="30").d-inline-block.align-top
+        a.navbar-brand.h1(href="/")
+        button.navbar-toggler(
+            type="button",
+            data-bs-toggle="collapse",
+            data-bs-target="#navbarNav",
+            aria-controls="navbarNav",
+            aria-expanded="false",
+            aria-label="Toggle navigation"
+        )
+            span.navbar-toggler-icon
+        div#navbarNav.collapse.navbar-collapse
+            ul.d-flex.gap-3.list-unstyled.navbar-nav
+                li.nav-item: a.nav-link(href="/login" class=(currentPath === '/login' ? 'active' : '')) Login
+                //- li.nav-item: a.nav-link(href="/register" class=(currentPath === '/register' ? 'active' : '')) Register

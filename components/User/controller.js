@@ -3,13 +3,13 @@ import userModel from "./model.js";
 const getUser = async (request, response) => {
   //console.log(request.session);
   //check for user session variable and render user page
-  response.render("user/user");
+  response.render("user/user", { currentPath: request.path });
 };
 
 //controller function for GET login page
 const loginForm = async (request, response) => {
   //render login page
-  response.render("user/login");
+  response.render("user/login", { currentPath: request.path });
 };
 
 //controller function for POST login form
@@ -32,7 +32,7 @@ const login = async (request, response) => {
   } else {
     //if not authenticated, re-render login form with error message
 
-    response.render("user/login", { err: "user not found" });
+    response.render("user/login", { err: "user not found", currentPath: request.path });
   }
 };
 
@@ -48,7 +48,7 @@ const logout = async (request, response) => {
 //controller function for GET register page
 
 const registerForm = async (request, response) => {
-  response.render("user/register");
+  response.render("user/register", { currentPath: request.path });
 };
 
 //controller function for POST register form
@@ -62,6 +62,7 @@ const register = async (request, response) => {
   } else {
     response.render("user/register", {
       err: "User already exists with that username",
+      currentPath: request.path,
     });
   }
 };

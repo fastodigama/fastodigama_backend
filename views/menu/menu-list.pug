@@ -1,0 +1,24 @@
+extends ../common/layout
+
+block layout-content
+    .d-flex.justify-content-between.align-items-center.mb-4
+        h1 Menu Links
+        a.btn.btn-success(href="/admin/menu/add") + Add Menu Link
+    
+    .table-responsive
+        table.table.table-striped.table-hover.table-sm
+            thead.table-dark
+                tr
+                    th.text-center Link
+                    th.text-center Actions
+            tbody
+                each link in links
+                    tr
+                        td #{link.name} (#{link.path})
+                        td.text-center
+                            form.d-inline(action="/admin/menu/edit", method="get")
+                                input(type="hidden", name="linkId", value=link._id)
+                                button.btn.btn-sm.btn-primary.me-2(type="submit") Edit
+                            form.d-inline(action="/admin/menu/delete", method="get")
+                                input(type="hidden", name="linkId", value=link._id)
+                                button.btn.btn-sm.btn-danger(type="submit") Delete

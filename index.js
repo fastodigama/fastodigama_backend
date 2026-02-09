@@ -20,8 +20,12 @@ const __dirname = import.meta.dirname;
 
 
 
+
 const app = express(); //create express application
 const port = process.env.PORT || "8888"; //either env variable or default 8888
+
+//add bootstrap
+app.use("/bootstrap", express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
 
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
@@ -32,6 +36,7 @@ app.set("views", path.join(__dirname, "views"));
 //set up Express app to have static file path
 
 app.use(express.static(path.join(__dirname,"public")));
+
 
 //setup app to use sessions
 //T access a session variable, you just need to access request.session.<variable_name>

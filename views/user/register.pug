@@ -1,17 +1,19 @@
 extends ../common/layout
 
-block layout-content 
-  .main-content 
-    h1.page-title Register 
-    if err 
-      p #{err}
-    form(method="post", action="/register")
-      div 
-        label(for="u") Username: 
-        input(type="text", id="u", name="u")
-      div 
-        label(for="pw") Password: 
-        input(type="password", id="pw", name="pw")
-      button(type="submit") Register
-    p. 
-      Already have an account? #[a(href="/login") Log in now]
+block layout-content
+    .row.justify-content-center
+        .col-md-6.col-lg-4
+            h1.mb-4 Register
+            if err
+                .alert.alert-danger(role="alert") #{err}
+            form(action="/register", method="post")
+                .mb-3
+                    label.form-label(for="u") Username
+                    input.form-control(type="text", id="u", name="u", required)
+                .mb-3
+                    label.form-label(for="pw") Password
+                    input.form-control(type="password", id="pw", name="pw", required)
+                button.btn.btn-primary.w-100(type="submit") Register
+            
+            p.mt-3.text-center
+                | Already have an account? #[a(href="/login") Log in now]

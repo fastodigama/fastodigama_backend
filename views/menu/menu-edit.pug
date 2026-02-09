@@ -1,0 +1,21 @@
+extends ../common/layout
+
+block layout-content
+    .row.justify-content-center
+        .col-md-8.col-lg-6
+            h1.mb-4 Edit Menu Link
+            form(action="/admin/menu/edit/submit", method="post")
+                input(type="hidden", name="linkId", value=editLink._id)
+                .mb-3
+                    label.form-label(for="wgt") Weight
+                    input.form-control(type="number", id="wgt", name="weight", value=editLink.weight, required)
+                .mb-3
+                    label.form-label(for="link-text") Link Text
+                    input.form-control(type="text", id="link-text", name="name", value=editLink.name, required)
+                .mb-3
+                    label.form-label(for="link-path") Link Path
+                    input.form-control(type="text", id="link-path", name="path", value=editLink.path, required)
+                .d-flex.gap-2
+                    button.btn.btn-primary(type="submit") Update Link
+                    a.btn.btn-secondary(href="/admin/menu") Cancel  
+

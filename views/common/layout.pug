@@ -1,19 +1,18 @@
-doctype doctype html
+doctype html
 html(lang="en")
     head
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        link(rel="stylesheet", href="/css/styles.css")
+        link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
+        //- link(rel="stylesheet", href="/css/styles.css")
+        link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
         title #{title} | FASTODIGAMA
-    body
-        header#header 
-            h2.site-name
-                //-Home path
-                a(href="/") FASTODIGAMA ADMIN
-                //-include NAV bar into layout
-                include header.pug
-        main#main 
+    body.d-flex.flex-column.min-vh-100
+        include header.pug
+        main.flex-fill.container.my-5
             //- Dynamic main content here
             block layout-content
-        footer#footer
+        footer.mt-auto
             p &copy; Copyright FASTODIGAMA ADMIN
+
+        script(src="/bootstrap/js/bootstrap.bundle.min.js") 

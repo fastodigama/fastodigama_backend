@@ -13,7 +13,7 @@ router.get("/", async (request, response) => {
     await model.initializeMenuLinks();
     menuLinks = await model.getLinks();
   }
-  response.render("menu-list", {
+  response.render("menu/menu-list", {
     title: "Administer menu links",
     links: menuLinks,
   });
@@ -23,7 +23,7 @@ router.get("/", async (request, response) => {
 
 router.get("/add", async (request, response) => {
   let menuLinks = await model.getLinks();
-  response.render("menu-add", { title: "Add menu link", links: menuLinks });
+  response.render("menu/menu-add", { title: "Add menu link", links: menuLinks });
 });
 
 //Add form submission
@@ -42,7 +42,7 @@ router.get("/edit", async (request, response) => {
   if (request.query.linkId) {
     let linkToEdit = await model.getSingleLink(request.query.linkId);
     let links = await model.getLinks();
-    response.render("menu-edit", {
+    response.render("menu/menu-edit", {
       title: "Edit menu link",
       links: links,
       editLink: linkToEdit,
