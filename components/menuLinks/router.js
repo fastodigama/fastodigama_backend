@@ -76,8 +76,6 @@ router.get("/delete", async (request, response) => {
 });
 
 
-//API endpoint
 
-router.get("/api/menulinks", links.getMenuLinksApiResponse )
 
 export default router;
