@@ -1,0 +1,28 @@
+extends ../common/layout
+
+block layout-content
+    .d-flex.justify-content-between.align-items-center.mb-4
+        h1 Article List
+        a.btn.btn-success(href="/admin/article/add") + Add new Article
+    .table-responsive
+        table.table.table-striped.table-hover.table-sm
+            thead.table-dark 
+                tr 
+                    th.text-left Article 
+                    th.text-center Text
+                    th.text-center Actions 
+            tbody 
+                each article in articles
+                    tr 
+                        td #{article.title} (#{article.categoryId})
+                        td.text-center #{article.text}
+                        td.text-center 
+                            form.d-inline(action="/admin/article/edit", method="get") 
+                                input(type="hidden", name="articleId", value=article._id)
+                                button.btn.btn-sm.btn-primary.me-2(type="submit") Edit
+                            form.d-inline(action="/admin/article/delete", method="get") 
+                                input(type="hidden", name="articleId", value=article._id)
+                                button.btn.btn-sm.btn-danger.me-2(type="submit") delete
+
+
+                        

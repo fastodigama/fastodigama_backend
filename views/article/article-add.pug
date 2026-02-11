@@ -1,0 +1,19 @@
+extends ../common/layout
+
+block layout-content 
+    .row.justify-content-center 
+        .col-md-8.col-lg-6 
+            h1.mb-4 Add new article 
+            form(action="/admin/article/add/submit", method="post")  
+                .mb-3 
+                    label.form-label(for="title") Title 
+                    input.form-control(type="text", id="title", name="title",placeholder="Add hook title", required)
+                .mb-3 
+                    label.form-label(for="article-text") Article Text 
+                    input.form-control(type="text", id="article-text", name="text", placeholder="Add meaningfull text", required)
+                .mb-3
+                    label.form-label(for="cat") Select Category
+                    input.form-control(type="text", id="cat", name="category", placeholder="select category")
+                .d-flex.gap-2
+                    button.btn.btn-primary(type="submit") Add Article
+                    a.btn.btn-secondary(href="/admin/article") Cancel

@@ -10,6 +10,7 @@ import path from "path";
 import adminPageRouter from "./components/menuLinks/router.js";
 import pageRouter from "./components/pages/router.js";
 import userRouter from "./components/User/routes.js";
+import articleRouter from "./components/Article/routes.js"
 import { request } from "http";
 import links from "./components/menuLinks/controller.js"; //import the api response function for the menu links
 import cors from "cors";
@@ -95,8 +96,10 @@ app.use("/logout", (request, response, next) => {
 app.set("view engine", "pug"); //set the app to use pug
 
 app.use("/admin/menu", adminPageRouter);
+app.use("/admin/article", articleRouter);
 app.use("/", pageRouter);
 app.use("/", userRouter);
+
 
 app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}`);

@@ -15,7 +15,7 @@ router.get("/", async (request, response) => {
     menuLinks = await model.getLinks();
   }
   response.render("menu/menu-list", {
-    title: "Administer menu links",
+    title: "MENU LINKS",
     links: menuLinks,
     currentPath: request.originalUrl 
   });
