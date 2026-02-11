@@ -25,6 +25,10 @@ async function getArticles() {
   return await ArticleModel.find({}); // return array for find all
 }
 
+async function getArticleById(id) {
+  return await ArticleModel.findById(id);
+}
+
 //Initialize Articles collection with some initial data
 
 async function initializeArticles() {
@@ -66,7 +70,7 @@ async function addArticle(newArticle) {
   }
 
 }
-async function updateArticleTitlebyId(id, articleData) {
+async function editArticleTitlebyId(id, articleData) {
     const result = await ArticleModel.updateOne(
         {_id:id},
         { $set: articleData }
@@ -95,8 +99,9 @@ async function deleteArticleById(id) {
 
 export default {
     getArticles,
+  getArticleById,
     initializeArticles,
     addArticle,
-    updateArticleTitlebyId,
+    editArticleTitlebyId,
     deleteArticleById
 }

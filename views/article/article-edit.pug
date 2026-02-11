@@ -1,0 +1,20 @@
+extends ../common/layout
+
+block layout-content 
+    .row.justify-content-center 
+        .col-md-8.col-lg-6 
+            h1.mb-4 Edit article 
+            form(action="/admin/article/edit/submit", method="post")
+                input(type="hidden", name="articleId", value=editArticle._id)
+                .mb-3 
+                    label.form-label(for="title") Title 
+                    input.form-control(type="text", id="title", name="title", value=editArticle.title, required)
+                .mb-3 
+                    label.form-label(for="article-text") Article Text 
+                    input.form-control(type="text", id="article-text", name="text", value=editArticle.text, required)
+                .mb-3
+                    label.form-label(for="cat") Select Category
+                    input.form-control(type="text", id="cat", name="category", value=editArticle.category)
+                .d-flex.gap-2
+                    button.btn.btn-primary(type="submit") Edit Article
+                    a.btn.btn-secondary(href="/admin/article") Cancel

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import articleModel from "./model.js"
 
 //controller function to GET article page
@@ -15,7 +16,7 @@ const getAllArticles = async (request, response) => {
 }
 
 //controller function for GET add article page
-const articleForm =  (request,response) => {
+const addArticleForm =  (request,response) => {
     response.render("article/article-add");
 }
 
@@ -47,21 +48,53 @@ const deleteArticle = async (request, response) => {
     }
 };
 
-const editArticle = async (request,response) => {
-    let result = await articleModel.deleteArticleById(request.query.articleId);
-    if(result) {
+//Edit article
+
+const editArticleForm = async (request, response) => {
+    const articleId = request.query.articleId;
+    if (!articleId) {
+        return response.redirect("/admin/article");
+    }
+
+    const editArticle = await articleModel.getArticleById(articleId);
+    if (!editArticle) {
+        return response.redirect("/admin/article");
+    }
+
+    response.render("article/article-edit", { editArticle });
+};
+
+const editArticle = async (request, response) => {
+    const articleId = request.body.articleId;
+    const updateData = {
+        title: request.body.title,
+        text: request.body.text,
+    };
+    const categoryId = (request.body.category || "").trim();
+    if (categoryId) {
+        if (!mongoose.isValidObjectId(categoryId)) {
+            return response.render("article/article-edit", {
+                editArticle: { _id: articleId, ...updateData, category: request.body.category },
+                err: "Invalid category id"
+            });
+        }
+        updateData.categoryId = categoryId;
+    }
+    const result = await articleModel.editArticleTitlebyId(articleId, updateData);
+    if (result) {
         response.redirect("/admin/article");
 
-    }else{
+    } else {
         response.render("article/article-list", {
-            err:"error deleting article"
+            err: "error updating article"
         });
     }
-}
+};
 export default {
     getAllArticles,
-    articleForm,
+    addArticleForm,
     addArticle,
+    editArticleForm,
     editArticle,
     deleteArticle
 };;
