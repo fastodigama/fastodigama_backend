@@ -1,0 +1,29 @@
+extends ../common/layout
+
+block layout-content
+    .d-flex.justify-content-between.align-items-center.mb-4
+        h1.mb-0 Category List
+        a.btn.btn-success(href="/admin/category/add") + Add New Category
+
+    .table-responsive
+        table.table.table-striped.table-hover.align-middle
+            thead.table-dark
+                tr
+                    th.text-start(style="width: 35%") Category
+                    
+                    th.text-center(style="width: 20%") Actions
+            tbody
+                each category in categories
+                    tr
+                        td
+                            strong #{category.name}
+                            
+                        
+                        td.text-center
+                            .d-inline-flex.gap-2
+                                form(action="/admin/category/edit", method="get")
+                                    input(type="hidden", name="categoryId", value=category._id)
+                                    button.btn.btn-sm.btn-primary.m(type="submit") Edit
+                                form(action="/admin/category/delete", method="get")
+                                    input(type="hidden", name="categoryId", value=category._id)
+                                    button.btn.btn-sm.btn-danger(type="submit") Delete
