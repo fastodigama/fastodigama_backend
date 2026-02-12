@@ -10,5 +10,17 @@ import categories from "./controller.js"
 
 router.get("/",categories.getAllCategories);
 
+//GET add form
+// /admin/category/add
+router.get("/add", categories.AddCategoryForm);
+
+//POST add category
+// /admin/category/add/submit
+router.post("/add/submit", categories.addNewCategory);
+
+//GET delete category
+
+router.get("/delete", categories.deleteCategory);
+
 
 export default router;

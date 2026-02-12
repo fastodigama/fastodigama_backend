@@ -62,7 +62,7 @@ async function addArticle(newArticle) {
     });
     const result = await article.save();
     console.log("Article saved successfully");
-    console.log(result);
+    
     return result;
   } catch (error) {
     console.error("Error saving article:", error.message);

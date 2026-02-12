@@ -25,5 +25,5 @@ block layout-content
                                     input(type="hidden", name="categoryId", value=category._id)
                                     button.btn.btn-sm.btn-primary.m(type="submit") Edit
                                 form(action="/admin/category/delete", method="get")
-                                    input(type="hidden", name="categoryId", value=category._id)
+                                    input(type="hidden", name="categoryName", value=category.name)
                                     button.btn.btn-sm.btn-danger(type="submit") Delete
