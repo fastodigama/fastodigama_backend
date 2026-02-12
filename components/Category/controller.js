@@ -10,7 +10,7 @@ const getAllCategories = async (request,response) => {
         await categoryModel.initializeCategories();
         categoryList = await categoryModel.getCategories();
     }
-    response.render("category/category-list", {title: "Category List"});
+    response.render("category/category-list", {title: "Category List", categories: categoryList});
 
 }
 
