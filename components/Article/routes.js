@@ -11,6 +11,10 @@ import articles from "./controller.js";
 // GET /admin/article
 router.get("/", articles.getAllArticles);
 
+// View a single article in detail
+// GET /admin/article/view?articleId=123
+router.get("/view", articles.viewArticle);
+
 // Show the form to add a new article
 // GET /admin/article/add
 router.get("/add", articles.addArticleForm);

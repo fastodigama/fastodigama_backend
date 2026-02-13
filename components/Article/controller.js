@@ -7,15 +7,42 @@ import categoryModel from "../Category/model.js"
 
 // GET list of all articles
 const getAllArticles = async (request, response) => {
+    const categories = await categoryModel.getCategories();
     let articleList = await articleModel.getArticles();
-    // if there is nothing in the Article collection , initialize with some content
 
-    /* if(!articleList.length) {
-        await articleModel.initializeArticles();
-        articleList = await articleModel.getArticles();
-    } */
-    response.render("article/article-list", {title: "Article List",  articles: articleList});
+    // Category filter: check if user selected a specific category from dropdown
+   const selectedCategoryId = request.query.categoryId; // Gets categoryId from URL (?categoryId=123)
+   
+   // Only filter if a category was selected (empty string = show all)
+   if(selectedCategoryId) {
+    // Keep only articles that match the selected category
+    // .filter() creates a new array with only matching items
+    articleList = articleList.filter(article =>
+        article.categoryId && article.categoryId._id.toString() === selectedCategoryId
+    );
+   }
+   // If no category selected, articleList remains unchanged (shows all articles)
+    response.render("article/article-list", 
+        {title: "Article List",
+              articles: articleList,       // Filtered or all articles
+               categories,                  // All categories for dropdown
+               selectedCategoryId           // Which category is selected (for dropdown highlight)
+            });
     
+}
+
+// Display a single article in detail view
+const viewArticle = async (request, response) => {
+    // Get article ID from URL query (?articleId=123)
+    const articleId = request.query.articleId;
+    const article = await articleModel.getArticleById(articleId);
+    if(!article){
+        // Article not found, redirect to list
+        return response.redirect("/admin/article");
+    }
+    // Load the category name for display
+    await article.populate('categoryId');
+    response.render("article/article-view", { title: "view Article", article })
 }
 
 // Show the form to add a new article
@@ -103,6 +130,7 @@ const editArticle = async (req, res) => {
 
 export default {
     getAllArticles,
+    viewArticle,
     addArticleForm,
     addNewArticle,
     editArticleForm,

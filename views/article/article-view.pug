@@ -1,0 +1,45 @@
+extends ../common/layout
+
+block layout-content
+    //- Article view page: Display full article with action buttons
+    .row.justify-content-center
+        .col-lg-10
+            .card.shadow-sm
+                .card-body.p-4
+                    //- Article header with title
+                    .d-flex.justify-content-between.align-items-start.mb-4
+                        div
+                            h1.h2.mb-2 #{article.title}
+                            p.text-muted.mb-0
+                                small Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
+                                if article.createdAt
+                                    span.ms-3 
+                                        | Created: #{new Date(article.createdAt).toLocaleDateString()}
+                        
+                        //- Action buttons
+                        .d-flex.gap-2
+                            //- Edit button
+                            form(action="/admin/article/edit", method="get")
+                                input(type="hidden", name="articleId", value=article._id)
+                                button.btn.btn-primary.btn-sm(type="submit")
+                                    i.bi.bi-pencil.me-1
+                                    | Edit
+                            //- Delete button
+                            form(action="/admin/article/delete", method="get", onsubmit="return confirm('Are you sure you want to delete this article?')")
+                                input(type="hidden", name="articleId", value=article._id)
+                                button.btn.btn-danger.btn-sm(type="submit")
+                                    i.bi.bi-trash.me-1
+                                    | Delete
+                    
+                    //- Divider
+                    hr
+                    
+                    //- Article content
+                    .article-content.mt-4
+                        p.lead.text-break(style="white-space: pre-wrap;") #{article.text}
+                    
+                    //- Back button at bottom
+                    .mt-5.pt-3.border-top
+                        a.btn.btn-secondary(href="/admin/article")
+                            i.bi.bi-arrow-left.me-1
+                            | Back to Articles

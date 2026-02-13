@@ -2,10 +2,23 @@ extends ../common/layout
 
 block layout-content
     //- Article management page: display all articles with edit/delete options
-    .d-flex.justify-content-between.align-items-center.mb-4
+    .d-flex.justify-content-between.align-items-center.mb-4.flex-wrap.gap-3
         h1.mb-0 Article List
-        //- Button to add new article
-        a.btn.btn-success(href="/admin/article/add") + Add New Article
+        //- Category filter form: submits when user selects a category
+        .d-flex.align-items-center.gap-2
+            form.d-flex.align-items-center.gap-2(action="/admin/article", method="GET") 
+                label.form-label.mb-0(for="categoryFilter") Filter:
+                //- Auto-submit when category changes (onChange triggers form submission)
+                select.form-select.form-select-sm(id="categoryFilter", name="categoryId", onChange="this.form.submit()", style="min-width: 150px") 
+                    //- Empty value shows all articles (selected when no filter active)
+                    option(value="", selected=!selectedCategoryId) All Categories 
+                    each cat in categories 
+                        //- Mark this option as selected if it matches the filtered category
+                        option(value=cat._id, selected=(selectedCategoryId && cat._id.toString() === selectedCategoryId))= cat.name  
+            //- Button to add new article
+            a.btn.btn-success.btn-sm(href="/admin/article/add") 
+                i.bi.bi-plus-circle.me-1
+                | Add Article
 
     //- Table view for desktop/tablet
     .table-responsive.d-none.d-md-block
@@ -20,9 +33,10 @@ block layout-content
             tbody
                 each article in articles
                     tr
-                        //- Article title and category
+                        //- Article title and category (clickable title)
                         td
-                            strong #{article.title}
+                            a.text-decoration-none.link-dark(href=`/admin/article/view?articleId=${article._id}`)
+                                strong #{article.title}
                             br
                             small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
                         //- Article text preview
@@ -45,7 +59,9 @@ block layout-content
         each article in articles
             .card.mb-3
                 .card-body
-                    h5.card-title #{article.title}
+                    //- Clickable article title
+                    a.text-decoration-none(href=`/admin/article/view?articleId=${article._id}`)
+                        h5.card-title #{article.title}
                     p.mb-1
                         small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
                     p.card-text.text-muted #{article.text}

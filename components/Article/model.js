@@ -24,7 +24,7 @@ const ArticleModel = mongoose.model("Article", ArticleSchema);
 // Get all articles with their category information
 async function getArticles() {
   // .populate("categoryId") = fetch category name instead of just ID
-  return await ArticleModel.find({}).populate("categoryId");
+  return await ArticleModel.find({}).populate("categoryId").sort({ createdAt: -1});
 }
 
 // Get one article by ID
