@@ -19,6 +19,14 @@ router.get("/add", categories.AddCategoryForm);
 // POST /admin/category/add/submit
 router.post("/add/submit", categories.addNewCategory);
 
+// Show the category edit form
+// GET /admin/category/edit?categoryId=...
+router.get("/edit", categories.updateCategoryForm);
+
+// Handle category edit form submission
+// POST /admin/category/edit/submit
+router.post("/edit/submit", categories.updateCategory);
+
 // Delete a category
 // GET /admin/category/delete?categoryName=Latest
 router.get("/delete", categories.deleteCategory);

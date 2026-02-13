@@ -1,0 +1,29 @@
+extends ../common/layout
+
+block layout-content
+    //- Add new category form
+    .row.justify-content-center
+        .col-md-8.col-lg-6
+            .card.shadow-sm
+                .card-body.p-4
+                    h1.h3.mb-4.text-center Edit Category
+
+                    //- Form submission sends data to /admin/category/edit/submit
+                    form(action="/admin/category/edit/submit", method="post")
+                        //- Hidden field: send the category ID to the controller
+                        input(type="hidden", name="categoryId", value=oldCategoryId._id)
+                        
+                        //- Display current category (read-only, disabled so it doesn't submit)
+                        .mb-3
+                            label.form-label(for="name") Current Category Name
+                            input.form-control(type="text", value=oldCategoryId.name, disabled)
+                        
+                        //- Input for new category name
+                        .mb-3
+                            label.form-label(for="name") New Category Name
+                            input.form-control(type="text", id="name", name="name", placeholder="Enter new category name", required)
+                       
+                        //- Submit and cancel buttons
+                        .d-flex.justify-content-end.gap-2.mt-4
+                            a.btn.btn-secondary(href="/admin/category") Cancel
+                            button.btn.btn-primary(type="submit") Update Category

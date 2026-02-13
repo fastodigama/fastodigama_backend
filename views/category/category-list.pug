@@ -28,7 +28,7 @@ block layout-content
                         //- Edit and delete buttons
                         td.text-center
                             .d-inline-flex.gap-2
-                                //- Edit button
+                                //- Edit button: sends category ID to the edit form
                                 form(action="/admin/category/edit", method="get")
                                     input(type="hidden", name="categoryId", value=category._id)
                                     button.btn.btn-sm.btn-primary.m(type="submit") Edit

@@ -58,20 +58,24 @@ async function addCategory(newCategory) {
     }
 }
 
-// Update a category name (not used yet but available)
-async function updateCategorybyName(oldName, newName) {
-    // Find category by old name and update with new name
-    let result = await CategoryModel.updateOne(
-        {name: oldName},
-        {name: newName}
-    );
-    if(result.modifiedCount === 1) {
-        console.log("Category name changed successfully");
-    } else {
-        console.log("Error updating category");
+// Update a category name by finding it with its ID
+// Parameters: id (MongoDB _id), newName (new category name)
+
+async function updateCategoryById(id, newName) {
+    // Find the category by ID and update the name field
+    let result = await CategoryModel.findByIdAndUpdate(id,
+        {
+        name: newName
+        });
+    // Log success or error to console (for debugging)
+    if (result){
+        console.log("Category updated successfully");
+    }else{
+        console.error("error updating category");
     }
 
-    return result;
+    return result; // Return the result to the controller
+    
 }
 
 // Delete a category by name
@@ -92,7 +96,7 @@ export default {
     getCategoryById,
     initializeCategories,
     addCategory,
-    updateCategorybyName,
+    updateCategoryById,
     deleteCategoryByName
 }
 
