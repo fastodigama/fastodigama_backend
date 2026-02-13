@@ -7,9 +7,9 @@ block layout-content
         //- Button to add new article
         a.btn.btn-success(href="/admin/article/add") + Add New Article
 
-    //- Table of all articles
-    .table-responsive
-        table.table.table-striped.table-hover.align-middle.table-sm
+    //- Table view for desktop/tablet
+    .table-responsive.d-none.d-md-block
+        table.table.table-striped.table-hover.align-middle
             //- Table headers
             thead.table-dark
                 tr
@@ -39,3 +39,20 @@ block layout-content
                                 form(action="/admin/article/delete", method="get")
                                     input(type="hidden", name="articleId", value=article._id)
                                     button.btn.btn-sm.btn-danger(type="submit") Delete
+
+    //- Card view for mobile
+    .d-block.d-md-none
+        each article in articles
+            .card.mb-3
+                .card-body
+                    h5.card-title #{article.title}
+                    p.mb-1
+                        small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
+                    p.card-text.text-muted #{article.text}
+                    .d-flex.gap-2
+                        form(action="/admin/article/edit", method="get")
+                            input(type="hidden", name="articleId", value=article._id)
+                            button.btn.btn-sm.btn-primary(type="submit") Edit
+                        form(action="/admin/article/delete", method="get")
+                            input(type="hidden", name="articleId", value=article._id)
+                            button.btn.btn-sm.btn-danger(type="submit") Delete
