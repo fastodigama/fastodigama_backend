@@ -60,7 +60,7 @@ block layout-content
             .card.mb-3
                 .card-body
                     //- Clickable article title
-                    a.text-decoration-none(href=`/admin/article/view?articleId=${article._id}`)
+                    a.text-decoration-none.text-dark(href=`/admin/article/view?articleId=${article._id}`)
                         h5.card-title #{article.title}
                     p.mb-1
                         small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
