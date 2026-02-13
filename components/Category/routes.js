@@ -1,25 +1,26 @@
 import express from "express";
 
+// ===== CATEGORY ROUTES =====
+// Defines all URL paths related to categories (/admin/category)
+
 const router = express.Router();
 
 import categories from "./controller.js"
 
-//GET list all current categories
+// Display all categories
+// GET /admin/category
+router.get("/", categories.getAllCategories);
 
-// /admin/category
-
-router.get("/",categories.getAllCategories);
-
-//GET add form
-// /admin/category/add
+// Show the form to add a new category
+// GET /admin/category/add
 router.get("/add", categories.AddCategoryForm);
 
-//POST add category
-// /admin/category/add/submit
+// Handle form submission to create new category
+// POST /admin/category/add/submit
 router.post("/add/submit", categories.addNewCategory);
 
-//GET delete category
-
+// Delete a category
+// GET /admin/category/delete?categoryName=Latest
 router.get("/delete", categories.deleteCategory);
 
 

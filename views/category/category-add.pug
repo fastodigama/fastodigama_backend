@@ -1,0 +1,21 @@
+extends ../common/layout
+
+block layout-content
+    //- Add new category form
+    .row.justify-content-center
+        .col-md-8.col-lg-6
+            .card.shadow-sm
+                .card-body.p-4
+                    h1.h3.mb-4.text-center Add New Category
+
+                    //- Form submission sends data to /admin/category/add/submit
+                    form(action="/admin/category/add/submit", method="post")
+                        //- Category name field
+                        .mb-3
+                            label.form-label(for="name") Category Name
+                            input.form-control(type="text", id="name", name="name", placeholder="Category Name", required)                       
+                       
+                        //- Submit and cancel buttons
+                        .d-flex.justify-content-end.gap-2.mt-4
+                            a.btn.btn-secondary(href="/admin/category") Cancel
+                            button.btn.btn-primary(type="submit") Add Category

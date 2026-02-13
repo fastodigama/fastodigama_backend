@@ -1,19 +1,26 @@
 import mongoose from "mongoose";
 import { scryptSync } from "crypto";
 
+// ===== USER MODEL =====
+// Defines the database schema and functions to manage user accounts
+
+// Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
     user: String,
     password: String
 });
 
+// Create the User model for database operations
 const User = mongoose.model("User", UserSchema);
 
-//Function to match a user and hashed pw in the DB
-//Returns true if user match is found or false
+// ===== DATABASE FUNCTIONS =====
 
+// Check if username and password combination exists in database
+// Returns true if user found and password matches, false otherwise
 async function authenticateUser(username, pw) {
+    // Encrypt the password using SALT from environment
     let key = scryptSync(pw, process.env.SALT, 64);
-    //check for existing user with matching hashed password
+    // Search database for user with matching username and encrypted password
     let resault = await User.findOne({
         user: username,
         password: key.toString("base64")
@@ -22,33 +29,35 @@ async function authenticateUser(username, pw) {
     return (resault) ? true : false;
 };
 
-// Function to return user by username, return false if not found in collection
-
+// Find a user by username
+// Returns the user object if found, false if not found
 async function getUser(username) {
-        //check if username exist
-        let resault = await User.findOne({user: username});
-
-        return (resault) ? resault : false;
+    // Search database for user by username
+    let resault = await User.findOne({user: username});
+    return (resault) ? resault : false;
 }
 
-//ADD USER
-
+// Create a new user account
+// Returns true if successful, false if user already exists
 async function addUser(username, pw) {
-
-    //add user if username doesn't exist
+    // Check if username already exists
     let user = await getUser(username);
     console.log(user);
     if(!user){
-        let key = scryptSync (pw, process.env.SALT, 64);
+        // Encrypt password using SALT
+        let key = scryptSync(pw, process.env.SALT, 64);
+        // Create new user object
         let newUser = new User({
             user: username,
             password: key.toString("base64")
         });
 
-        let resault = await newUser.save(); // save user to DB
-
-        return (resault === newUser) ? true : false; //if the resault is equal to the newUser i created return true
+        // Save user to database
+        let resault = await newUser.save();
+        // Return true if save was successful
+        return (resault === newUser) ? true : false;
     }else {
+        // Username already taken
         return false;
     }
     

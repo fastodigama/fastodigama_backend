@@ -1,31 +1,41 @@
 extends ../common/layout
 
 block layout-content
+    //- Article management page: display all articles with edit/delete options
     .d-flex.justify-content-between.align-items-center.mb-4
         h1.mb-0 Article List
+        //- Button to add new article
         a.btn.btn-success(href="/admin/article/add") + Add New Article
 
+    //- Table of all articles
     .table-responsive
         table.table.table-striped.table-hover.align-middle
+            //- Table headers
             thead.table-dark
                 tr
                     th.text-start(style="width: 35%") Article
                     th.text-center(style="width: 45%") Text
                     th.text-center(style="width: 20%") Actions
+            //- Table body: Loop through each article
             tbody
                 each article in articles
                     tr
+                        //- Article title and category
                         td
                             strong #{article.title}
                             br
-                            small.text-muted Category: #{article.categoryId}
+                            small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
+                        //- Article text preview
                         td.text-center
                             span.d-inline-block.text-truncate(style="max-width: 350px") #{article.text}
+                        //- Edit and delete buttons
                         td.text-center
                             .d-inline-flex.gap-2
+                                //- Edit button
                                 form(action="/admin/article/edit", method="get")
                                     input(type="hidden", name="articleId", value=article._id)
                                     button.btn.btn-sm.btn-primary.m(type="submit") Edit
+                                //- Delete button
                                 form(action="/admin/article/delete", method="get")
                                     input(type="hidden", name="articleId", value=article._id)
                                     button.btn.btn-sm.btn-danger(type="submit") Delete

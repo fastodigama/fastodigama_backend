@@ -1,20 +1,27 @@
 extends ../common/layout
 
 block layout-content
+    //- Edit existing menu link form
     .row.justify-content-center
         .col-md-8.col-lg-6
             h1.mb-4 Edit Menu Link
+            //- Form sends data to /admin/menu/edit/submit
             form(action="/admin/menu/edit/submit", method="post")
+                //- Hidden field: store the link ID
                 input(type="hidden", name="linkId", value=editLink._id)
+                //- Weight: order of link in menu
                 .mb-3
                     label.form-label(for="wgt") Weight
                     input.form-control(type="number", id="wgt", name="weight", value=editLink.weight, required)
+                //- Link text: what users see in the menu
                 .mb-3
                     label.form-label(for="link-text") Link Text
                     input.form-control(type="text", id="link-text", name="name", value=editLink.name, required)
+                //- Link path: URL the link points to
                 .mb-3
                     label.form-label(for="link-path") Link Path
                     input.form-control(type="text", id="link-path", name="path", value=editLink.path, required)
+                //- Submit and cancel buttons
                 .d-flex.gap-2
                     button.btn.btn-primary(type="submit") Update Link
                     a.btn.btn-secondary(href="/admin/menu") Cancel  

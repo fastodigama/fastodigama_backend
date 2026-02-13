@@ -1,4 +1,6 @@
+//- Navigation bar: Shows different menus based on login status
 if user
+    //- Logged-in user: Shows admin links and logout
     nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
         img.d-inline-block.align-top.me-2(src="/img/apple-touch-icon.png", width="30", height="30")
         a.navbar-brand.h1.mb-0(href="/") FASTOADMIN
@@ -20,6 +22,7 @@ if user
                 li.nav-item: a.nav-link(href="/user" class=(currentPath === '/user' ? 'active' : '')) My Account
                 li.nav-item: a.nav-link(href="/logout") Log Out
 
+//- Guest user: Shows home and login/register links
 else
     nav.navbar.navbar-dark.navbar-expand-md.bg-dark.px-4(aria-label="Main-Navigation")
         img.d-inline-block.align-top.me-2(src="/img/apple-touch-icon.png", width="30", height="30")

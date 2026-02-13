@@ -1,43 +1,35 @@
 import mongoose from "mongoose";
 
-//setup schema and model
-const MenuLinksSchema = new mongoose.Schema({
-    weight:{type: Number, required: true },
-    name: {type: String, required:true},
-    path: {type: String, required:true}
+// ===== MENU LINKS MODEL =====
+// Defines the database schema and functions to manage navigation menu links
 
+// Define menu link structure: weight (order), name (display text), path (URL)
+const MenuLinksSchema = new mongoose.Schema({
+    weight:{type: Number, required: true },  // Order in menu (lower = first)
+    name: {type: String, required:true},      // Display text
+    path: {type: String, required:true}       // URL path
 });
 
+// Create the MenuLink model for database operations
 const MenuLink = mongoose.model("MenuLink", MenuLinksSchema);
 
+// ===== DATABASE FUNCTIONS =====
 
-
-//MONGODB FUNCTIONS
-
-//get all links from menuLink collection
+// Get all menu links sorted by weight (order)
 async function getLinks() {
-    return await MenuLink.find({}).sort({ weight: 1}); //return an array for find all
+    // .sort({ weight: 1 }) = sort from lowest to highest weight
+    return await MenuLink.find({}).sort({ weight: 1});
     
 }
 
 
-//Function to initialize the Links collection with some data
-
+// Add sample menu links to database on first run
 async function initializeMenuLinks() {
-
-    let links = [ 
-        {
-        weight: 1,
-        name:"Home",
-        path:"/"
-        },
-        {
-        weight:2,
-        name:"Articles Admin",
-        path:"/articles"
-        }
+    const links = [ 
+        { weight: 1, name:"Home", path:"/" },
+        { weight: 2, name:"Articles Admin", path:"/articles" }
     ];
-
+    // Insert all sample links
     await MenuLink.insertMany(links);
     
 }
@@ -53,25 +45,24 @@ async function addMenuLink(newLink) {
     await link.save();
 }
 
-//Function to update a Link
-async function updateMenuLink(id,linkData) {
+// Update a menu link by ID
+async function updateMenuLink(id, linkData) {
+    // Find link by ID and update with new data
     await MenuLink.updateOne(
         {_id:id},
         { $set: linkData }
     );
 }
 
-
-//get single link to update
-
+// Get one menu link by ID
 async function getSingleLink(id) {
  return await MenuLink.findById(id);
 }
 
-//Function to delete a Link
-
+// Delete a menu link by ID
 async function deleteMenuLink(id) {
-        await MenuLink.deleteOne({ _id: id});
+    // Remove the link from database
+    await MenuLink.deleteOne({ _id: id});
 }
 
 export default {

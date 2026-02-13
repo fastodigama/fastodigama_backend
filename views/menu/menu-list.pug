@@ -1,24 +1,33 @@
 extends ../common/layout
 
 block layout-content
+    //- Menu links management page: display all navigation menu items
     .d-flex.justify-content-between.align-items-center.mb-4
         h1 Menu Links
+        //- Button to add new menu link
         a.btn.btn-success(href="/admin/menu/add") + Add Menu Link
     
+    //- Table of all menu links
     .table-responsive
         table.table.table-striped.table-hover.table-sm
+            //- Table headers
             thead.table-dark
                 tr
                     th.text-left Link
                     th.text-center Actions
+            //- Table body: Loop through each menu link
             tbody
                 each link in links
                     tr
+                        //- Menu link name and path (URL)
                         td #{link.name} (#{link.path})
+                        //- Edit and delete buttons
                         td.text-center
+                            //- Edit button
                             form.d-inline(action="/admin/menu/edit", method="get")
                                 input(type="hidden", name="linkId", value=link._id)
                                 button.btn.btn-sm.btn-primary.me-2(type="submit") Edit
+                            //- Delete button
                             form.d-inline(action="/admin/menu/delete", method="get")
                                 input(type="hidden", name="linkId", value=link._id)
                                 button.btn.btn-sm.btn-danger(type="submit") Delete

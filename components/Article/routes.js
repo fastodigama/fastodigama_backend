@@ -1,31 +1,34 @@
 import express from "express";
 
+// ===== ARTICLE ROUTES =====
+// Defines all URL paths related to articles (/admin/article)
+
 const router = express.Router();
 
 import articles from "./controller.js";
 
-// GET list
-// /admin/article
+// Display all articles
+// GET /admin/article
 router.get("/", articles.getAllArticles);
 
-//GET add form
-// /admin/article/add
+// Show the form to add a new article
+// GET /admin/article/add
 router.get("/add", articles.addArticleForm);
 
-// POST add article
-// /admin/article/add/submit
-router.post("/add/submit", articles.addArticle);
+// Handle form submission to create new article
+// POST /admin/article/add/submit
+router.post("/add/submit", articles.addNewArticle);
 
-// GET delete article
+// Delete an article
+// GET /admin/article/delete?articleId=123
 router.get("/delete", articles.deleteArticle);
 
-//GET Edit form
-// /admin/article/edit
-
+// Show the form to edit an article
+// GET /admin/article/edit?articleId=123
 router.get("/edit", articles.editArticleForm);
 
-// POST Edit article
-// /admin/article/edit/submit
+// Handle form submission to update article
+// POST /admin/article/edit/submit
 router.post("/edit/submit", articles.editArticle);
 
 

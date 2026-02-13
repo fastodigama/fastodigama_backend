@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 
-//setup Schema and model
+// ===== ARTICLE MODEL =====
+// Defines the database schema and functions to interact with Articles collection
 
+// Define article structure: title, text content, and link to category
 const ArticleSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -14,23 +16,23 @@ const ArticleSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-// Compile the schema into a model to perform CRUD operations on the "articles" collection
+// Create the Article model for database operations
 const ArticleModel = mongoose.model("Article", ArticleSchema);
 
-//MONGODB FUNCTIONS
+// ===== DATABASE FUNCTIONS =====
 
-//Get all articles from the article collection
-
+// Get all articles with their category information
 async function getArticles() {
-  return await ArticleModel.find({}); // return array for find all
+  // .populate("categoryId") = fetch category name instead of just ID
+  return await ArticleModel.find({}).populate("categoryId");
 }
 
+// Get one article by ID
 async function getArticleById(id) {
   return await ArticleModel.findById(id);
 }
 
-//Initialize Articles collection with some initial data
-
+// Add sample articles to database on first run
 async function initializeArticles() {
   const articleList = [
     {
@@ -55,53 +57,58 @@ async function initializeArticles() {
 
 async function addArticle(newArticle) {
    try {
+    // Create new article object with form data
     let article = new ArticleModel({
       title: String(newArticle.title),
       text: String(newArticle.text),
-      categoryId: new mongoose.Types.ObjectId(newArticle.articleCategoryId)
+      categoryId: newArticle.categoryId
     });
+    // Save to database
     const result = await article.save();
     console.log("Article saved successfully");
     
     return result;
   } catch (error) {
     console.error("Error saving article:", error.message);
-    return null;
+    return null; // Return null if error
   }
-
 }
-async function editArticleTitlebyId(id, articleData) {
+
+// Update an article by ID
+async function editArticlebyId(id, articleData) {
+    // Find article by ID and update with new data
     const result = await ArticleModel.updateOne(
         {_id:id},
         { $set: articleData }
     );
     if(result.modifiedCount === 1){
-        console.log("Article title modified successfully");
+        console.log("Article modified successfully");
     }else{
-        console.log("Error updating the title");
+        console.log("Error updating the article");
     }
 
     return result;
 }
 
+// Delete an article by ID
 async function deleteArticleById(id) {
+    // Remove the article from database
     let result = await ArticleModel.deleteOne({_id: id});
 
     if(result.deletedCount === 1) {
-    console.log("Article title delete successfully");
+        console.log("Article deleted successfully");
     }else{
-        console.log("Error deleting the title");
+        console.log("Error deleting the article");
     }
 
     return result;
-    
 }
 
 export default {
     getArticles,
-  getArticleById,
+    getArticleById,
     initializeArticles,
     addArticle,
-    editArticleTitlebyId,
+    editArticlebyId,
     deleteArticleById
 }

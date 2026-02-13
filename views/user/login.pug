@@ -1,20 +1,27 @@
 extends ../common/layout
 
 block layout-content
+    //- Login form page
     .row.justify-content-center
         .col-md-6.col-lg-4
             h1.mb-4 Login
+            //- Show error message if login failed
             if err
                 .alert.alert-danger(role="alert") #{err}
+            //- Form submission sends credentials to /login
             form(action="/login", method="post")
+                //- Username field
                 .mb-3
                     label.form-label(for="u") Username
                     input.form-control(type="text", id="u", name="u", required)
+                //- Password field
                 .mb-3
                     label.form-label(for="pw") Password
                     input.form-control(type="password", id="pw", name="pw", required)
+                //- Submit button
                 button.btn.btn-primary.w-100(type="submit") Log in
             
+            //- Link to register page (commented out)
             //- p.mt-3.text-center
             //-     | Don't have an account? #[a(href="/register") Register now] 
 

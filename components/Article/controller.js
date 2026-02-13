@@ -1,100 +1,111 @@
 import mongoose from "mongoose";
 import articleModel from "./model.js"
+import categoryModel from "../Category/model.js"
 
-//controller function to GET article page
+// ===== ARTICLE CONTROLLER =====
+// Handles all article business logic (Create, Read, Update, Delete)
 
+// GET list of all articles
 const getAllArticles = async (request, response) => {
     let articleList = await articleModel.getArticles();
     // if there is nothing in the Article collection , initialize with some content
 
-    if(!articleList.length) {
+    /* if(!articleList.length) {
         await articleModel.initializeArticles();
         articleList = await articleModel.getArticles();
-    }
+    } */
     response.render("article/article-list", {title: "Article List",  articles: articleList});
     
 }
 
-//controller function for GET add article page
-const addArticleForm =  (request,response) => {
-    response.render("article/article-add");
-}
+// Show the form to add a new article
+const addArticleForm = async (request, response) => {
+    // Fetch all categories for the dropdown menu
+    const categories = await categoryModel.getCategories();
+    response.render("article/article-add", {title: "Article Add",categories});
+};
 
-//controller function to POST article
+// Save a new article to the database
+const addNewArticle = async (request, response) => {
+    // Get the form data: title, article text, and category
+    const { title, text, categoryId } = request.body;
 
-const addArticle = async (request, response) => {
-    let result = await articleModel.addArticle(request.body);
-    if(result) {
+    // Try to save the article
+    let result = await articleModel.addArticle({ title, text, categoryId });
+
+    if (result) {
+        // Success: go back to article list
         response.redirect("/admin/article");
-
-    }else{
+    } else {
+        // Error: show form again with error message and categories dropdown
+        const categories = await categoryModel.getCategories();
         response.render("article/article-add", {
-            err:"error adding article"
+            err: "error adding article",
+            categories,
+            formData: { title, text }
         });
     }
 };
 
-//DELETE 
-
+// Delete an article by ID
 const deleteArticle = async (request, response) => {
+    // Get article ID from URL query string (?articleId=123)
     let result = await articleModel.deleteArticleById(request.query.articleId);
-    if(result) {
+    if (result) {
+        // Success: refresh the article list
         response.redirect("/admin/article");
-
-    }else{
+    } else {
+        // Error: show error message on the list page
         response.render("article/article-list", {
-            err:"error deleting article"
+            err: "error deleting article"
         });
     }
 };
 
-//Edit article
-
+// Show the form to edit an existing article
 const editArticleForm = async (request, response) => {
+    // Get article ID from URL (?articleId=123)
     const articleId = request.query.articleId;
     if (!articleId) {
+        // No ID provided, go back to list
         return response.redirect("/admin/article");
     }
 
+    // Fetch the article to edit
     const editArticle = await articleModel.getArticleById(articleId);
     if (!editArticle) {
+        // Article not found, go back to list
         return response.redirect("/admin/article");
     }
-
-    response.render("article/article-edit", { editArticle });
+    
+    // Get all categories for the dropdown
+    const categories = await categoryModel.getCategories();
+    response.render("article/article-edit", { title: "Article Edit", editArticle, categories });
 };
 
-const editArticle = async (request, response) => {
-    const articleId = request.body.articleId;
-    const updateData = {
-        title: request.body.title,
-        text: request.body.text,
-    };
-    const categoryId = (request.body.category || "").trim();
-    if (categoryId) {
-        if (!mongoose.isValidObjectId(categoryId)) {
-            return response.render("article/article-edit", {
-                editArticle: { _id: articleId, ...updateData, category: request.body.category },
-                err: "Invalid category id"
-            });
-        }
-        updateData.categoryId = categoryId;
-    }
-    const result = await articleModel.editArticleTitlebyId(articleId, updateData);
-    if (result) {
-        response.redirect("/admin/article");
+// Update an article in the database
+const editArticle = async (req, res) => {
+    // Get the form data
+    const { articleId, title, text, categoryId } = req.body;
 
-    } else {
-        response.render("article/article-list", {
-            err: "error updating article"
-        });
-    }
+    // Update the article with new values
+    const result = await articleModel.editArticlebyId(articleId, {
+        title,
+        text,
+        categoryId
+    });
+
+    // Success: go back to list, Error: show error on list
+    return result
+        ? res.redirect("/admin/article")
+        : res.render("article/article-list", { err: "Error updating article" });
 };
+
 export default {
     getAllArticles,
     addArticleForm,
-    addArticle,
+    addNewArticle,
     editArticleForm,
     editArticle,
     deleteArticle
-};;
+};

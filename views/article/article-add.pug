@@ -1,25 +1,35 @@
 extends ../common/layout
 
 block layout-content
+    //- Add new article form
     .row.justify-content-center
         .col-md-8.col-lg-6
             .card.shadow-sm
                 .card-body.p-4
                     h1.h3.mb-4.text-center Add New Article
 
+                    //- Form submission sends data to /admin/article/add/submit
                     form(action="/admin/article/add/submit", method="post")
+                        //- Article title field
                         .mb-3
                             label.form-label(for="title") Title
                             input.form-control(type="text", id="title", name="title", placeholder="Add hook title", required)
 
+                        //- Article text/content field
                         .mb-3
                             label.form-label(for="article-text") Article Text
                             textarea.form-control(id="article-text", name="text", rows="4", placeholder="Add meaningful text", required)
 
+                        //- Category dropdown selection
                         .mb-3
                             label.form-label(for="cat") Select Category
-                            input.form-control(type="text", id="cat", name="category", placeholder="Select category")
+                            select.form-select(id="cat", name="categoryId", required)
+                                option(value="") Select a category 
+                                each cat in categories 
+                                    option(value=cat._id)= cat.name 
+                                 
 
+                        //- Submit and cancel buttons
                         .d-flex.justify-content-end.gap-2.mt-4
                             a.btn.btn-secondary(href="/admin/article") Cancel
                             button.btn.btn-primary(type="submit") Add Article

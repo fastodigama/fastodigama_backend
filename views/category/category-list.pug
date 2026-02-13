@@ -1,29 +1,38 @@
 extends ../common/layout
 
 block layout-content
+    //- Category management page: display all categories with edit/delete options
     .d-flex.justify-content-between.align-items-center.mb-4
         h1.mb-0 Category List
+        //- Button to add new category
         a.btn.btn-success(href="/admin/category/add") + Add New Category
 
+    //- Table of all categories
     .table-responsive
         table.table.table-striped.table-hover.align-middle
+            //- Table headers
             thead.table-dark
                 tr
                     th.text-start(style="width: 35%") Category
                     
                     th.text-center(style="width: 20%") Actions
+            //- Table body: Loop through each category
             tbody
                 each category in categories
                     tr
+                        //- Category name
                         td
                             strong #{category.name}
                             
                         
+                        //- Edit and delete buttons
                         td.text-center
                             .d-inline-flex.gap-2
+                                //- Edit button
                                 form(action="/admin/category/edit", method="get")
                                     input(type="hidden", name="categoryId", value=category._id)
                                     button.btn.btn-sm.btn-primary.m(type="submit") Edit
+                                //- Delete button
                                 form(action="/admin/category/delete", method="get")
                                     input(type="hidden", name="categoryName", value=category.name)
                                     button.btn.btn-sm.btn-danger(type="submit") Delete

@@ -1,18 +1,25 @@
 doctype html
+//- Base layout template for all pages
 html(lang="en")
     head
+        //- Page metadata and styling setup
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
         //- link(rel="stylesheet", href="/css/styles.css")
+        //- Load Bootstrap CSS for styling
         link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
         title #{title} | FASTOADMIN
+    //- Main page structure: header, content, footer
     body.d-flex.flex-column.min-vh-100
+        //- Include navigation bar from header.pug
         include header.pug
+        //- Content area - filled by each page
         main.flex-fill.container.my-5
-            //- Dynamic main content here
+            //- Dynamic main content here (replaced by specific page content)
             block layout-content
+        //- Footer at the bottom
         footer.mt-auto
             p &copy; Copyright FASTODIGAMA ADMIN
-
+        //- Bootstrap JavaScript for interactive elements
         script(src="/bootstrap/js/bootstrap.bundle.min.js") 
