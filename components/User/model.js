@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { scryptSync } from "crypto";
+import bcrypt from "bcryptjs";
 
 // ===== USER MODEL =====
 // Defines the database schema and functions to manage user accounts
@@ -18,15 +18,17 @@ const User = mongoose.model("User", UserSchema);
 // Check if username and password combination exists in database
 // Returns true if user found and password matches, false otherwise
 async function authenticateUser(username, pw) {
-    // Encrypt the password using SALT from environment
-    let key = scryptSync(pw, process.env.SALT, 64);
-    // Search database for user with matching username and encrypted password
-    let resault = await User.findOne({
-        user: username,
-        password: key.toString("base64")
-    });
-
-    return (resault) ? true : false;
+    // Find the user by username
+    let user = await User.findOne({ user: username });
+    
+    // If user doesn't exist, return false
+    if (!user) return false;
+    
+    // Compare the provided password with the stored hashed password
+    // bcrypt.compare() returns true if passwords match, false otherwise
+    let isPasswordValid = await bcrypt.compare(pw, user.password);
+    
+    return isPasswordValid;
 };
 
 // Find a user by username
@@ -43,24 +45,25 @@ async function addUser(username, pw) {
     // Check if username already exists
     let user = await getUser(username);
     console.log(user);
-    if(!user){
-        // Encrypt password using SALT
-        let key = scryptSync(pw, process.env.SALT, 64);
+    if (!user) {
+        // Hash the password using bcryptjs (generates salt automatically)
+        // The number 10 is the "cost factor" - higher = slower but more secure (10 is recommended)
+        let hashedPassword = await bcrypt.hash(pw, 10);
+        
         // Create new user object
         let newUser = new User({
             user: username,
-            password: key.toString("base64")
+            password: hashedPassword
         });
 
         // Save user to database
         let resault = await newUser.save();
         // Return true if save was successful
         return (resault === newUser) ? true : false;
-    }else {
+    } else {
         // Username already taken
         return false;
     }
-    
 }
 
 export default {

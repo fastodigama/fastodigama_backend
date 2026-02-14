@@ -23,6 +23,7 @@
     "dev": "nodemon ./index.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",

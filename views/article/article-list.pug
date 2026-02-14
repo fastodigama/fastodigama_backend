@@ -11,10 +11,16 @@ block layout-content
                 //- Auto-submit when category changes (onChange triggers form submission)
                 select.form-select.form-select-sm(id="categoryFilter", name="categoryId", onChange="this.form.submit()", style="min-width: 150px") 
                     //- Empty value shows all articles (selected when no filter active)
-                    option(value="", selected=!selectedCategoryId) All Categories 
+                    if !selectedCategoryId || selectedCategoryId === ''
+                        option(value="", selected) All Categories
+                    else
+                        option(value="") All Categories
                     each cat in categories 
                         //- Mark this option as selected if it matches the filtered category
-                        option(value=cat._id, selected=(selectedCategoryId && cat._id.toString() === selectedCategoryId))= cat.name  
+                        if selectedCategoryId && selectedCategoryId === cat._id.toString()
+                            option(value=cat._id, selected)= cat.name
+                        else
+                            option(value=cat._id)= cat.name  
             //- Button to add new article
             a.btn.btn-success.btn-sm(href="/admin/article/add") 
                 i.bi.bi-plus-circle.me-1
