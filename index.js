@@ -20,6 +20,7 @@ import categoryRouter from "./components/Category/routes.js";
 // Utilities
 import { request } from "http";
 import links from "./components/menuLinks/controller.js"; // API response for menu links
+import articles from "./components/Article/controller.js"; // API response for Articles
 import cors from "cors"; // Allow cross-origin requests
 import helmet from "helmet"; // Security headers protection
 
@@ -82,6 +83,8 @@ app.use(
 // ===== API ROUTES =====
 // Public API: Get all menu links as JSON
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
+// Public API: Get all articles links as JSON
+app.get("/api/articles", articles.getArticlesApiResponse);
 
 // ===== AUTHENTICATION & AUTHORIZATION MIDDLEWARE =====
 // Protect admin pages: require login

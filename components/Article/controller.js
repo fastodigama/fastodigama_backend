@@ -5,6 +5,16 @@ import categoryModel from "../Category/model.js"
 // ===== ARTICLE CONTROLLER =====
 // Handles all article business logic (Create, Read, Update, Delete)
 
+// Get all Articles and return as JSON (for frontend API)
+
+const getArticlesApiResponse = async (request, response) => {
+        // Fetch all articles from database
+        let articles = await articleModel.getArticles();
+         // Return as JSON for frontend consumption
+        response.json(articles);
+}
+
+
 // GET list of all articles
 const getAllArticles = async (request, response) => {
     const page = parseInt(request.query.page) || 1;
@@ -159,5 +169,6 @@ export default {
     addNewArticle,
     editArticleForm,
     editArticle,
-    deleteArticle
+    deleteArticle,
+    getArticlesApiResponse
 };
