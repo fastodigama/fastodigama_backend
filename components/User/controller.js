@@ -66,18 +66,6 @@ const register = async (request, response) => {
   }
 };
 
-export default {
-  getUser,
-  loginForm,
-  login,
-  register,
-  registerForm,
-  logout,
-  getAllUsers,
-  resetPasswordForm,
-  resetPassword,
-};
-
 // Show all users (admin only)
 const getAllUsers = async (request, response) => {
   let users = await userModel.getAllUsers();
@@ -143,4 +131,16 @@ const resetPassword = async (request, response) => {
       title: "Reset Password"
     });
   }
+};
+
+export default {
+  getUser,
+  loginForm,
+  login,
+  register,
+  registerForm,
+  logout,
+  getAllUsers,
+  resetPasswordForm,
+  resetPassword,
 };

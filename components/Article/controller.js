@@ -8,26 +8,38 @@ import categoryModel from "../Category/model.js"
 // GET list of all articles
 const getAllArticles = async (request, response) => {
     const categories = await categoryModel.getCategories();
-    let articleList = await articleModel.getArticles();
-
-    // Category filter: check if user selected a specific category from dropdown
-   const selectedCategoryId = request.query.categoryId; // Gets categoryId from URL (?categoryId=123)
-   
-   // Only filter if a category was selected (empty string = show all)
-   if(selectedCategoryId) {
-    // Keep only articles that match the selected category
-    // .filter() creates a new array with only matching items
-    articleList = articleList.filter(article =>
-        article.categoryId && article.categoryId._id.toString() === selectedCategoryId
+    
+    // Get page number from URL (?page=1), default to 1
+    const page = parseInt(request.query.page) || 1;
+    const itemsPerPage = 10;
+    
+    // Get selected category for filter
+    const selectedCategoryId = request.query.categoryId;
+    
+    // Get paginated articles (with or without category filter)
+    const paginationData = await articleModel.getPaginatedArticles(
+        page,
+        itemsPerPage,
+        selectedCategoryId || null
     );
-   }
-   // If no category selected, articleList remains unchanged (shows all articles)
-    response.render("article/article-list", 
-        {title: "Article List",
-              articles: articleList,       // Filtered or all articles
-               categories,                  // All categories for dropdown
-               selectedCategoryId           // Which category is selected (for dropdown highlight)
-            });
+    
+    // Generate array of page numbers for pagination display
+    const pageNumbers = [];
+    for (let i = 1; i <= paginationData.totalPages; i++) {
+        pageNumbers.push(i);
+    }
+    
+    // Render template with pagination data
+    response.render("article/article-list", {
+        title: "Article List",
+        articles: paginationData.articles,
+        categories,
+        selectedCategoryId,
+        currentPage: paginationData.currentPage,
+        totalPages: paginationData.totalPages,
+        pageNumbers,
+        totalArticles: paginationData.totalArticles
+    });
     
 }
 

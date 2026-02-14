@@ -44,7 +44,7 @@ block layout-content
                             a.text-decoration-none.link-dark(href=`/admin/article/view?articleId=${article._id}`)
                                 strong #{article.title}
                             br
-                            small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
+                            small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} | Created: #{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : 'N/A'}
                         //- Article text preview
                         td.text-center
                             span.d-inline-block.text-truncate(style="max-width: 350px") #{article.text}
@@ -69,8 +69,8 @@ block layout-content
                     a.text-decoration-none.text-dark(href=`/admin/article/view?articleId=${article._id}`)
                         h5.card-title #{article.title}
                     p.mb-1
-                        small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
-                    p.card-text.text-muted #{article.text}
+                        small.text-muted Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} | Created: #{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : 'N/A'}
+                    p.card-text.text-muted.text-truncate #{article.text}
                     .d-flex.gap-2
                         form(action="/admin/article/edit", method="get")
                             input(type="hidden", name="articleId", value=article._id)
@@ -78,3 +78,25 @@ block layout-content
                         form(action="/admin/article/delete", method="get")
                             input(type="hidden", name="articleId", value=article._id)
                             button.btn.btn-sm.btn-danger(type="submit") Delete
+
+    //- Pagination
+    if totalPages > 1
+        nav(aria-label="Page navigation")
+            ul.pagination.justify-content-center.mt-4
+                //- Previous button
+                li.page-item(class=(currentPage === 1 ? 'disabled' : ''))
+                    a.page-link(href=`/admin/article?page=${currentPage - 1}&categoryId=${selectedCategoryId || ''}`, aria-disabled=(currentPage === 1), tabindex=(currentPage === 1 ? '-1' : '0')) Previous
+                
+                //- Page numbers
+                each pageNum in pageNumbers
+                    li.page-item(class=(currentPage === pageNum ? 'active' : ''))
+                        if currentPage === pageNum
+                            span.page-link 
+                                | #{pageNum}
+                                span.visually-hidden (current)
+                        else
+                            a.page-link(href=`/admin/article?page=${pageNum}&categoryId=${selectedCategoryId || ''}`) #{pageNum}
+                
+                //- Next button
+                li.page-item(class=(currentPage === totalPages ? 'disabled' : ''))
+                    a.page-link(href=`/admin/article?page=${currentPage + 1}&categoryId=${selectedCategoryId || ''}`, aria-disabled=(currentPage === totalPages), tabindex=(currentPage === totalPages ? '-1' : '0')) Next

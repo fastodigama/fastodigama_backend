@@ -104,11 +104,41 @@ async function deleteArticleById(id) {
     return result;
 }
 
+// Get paginated articles
+async function getPaginatedArticles(page = 1, itemsPerPage = 10, categoryId = null) {
+    const skip = (page - 1) * itemsPerPage;
+    
+    // Build filter object
+    const filter = categoryId ? { categoryId: categoryId } : {};
+    
+    // Get total count of articles
+    const total = await ArticleModel.countDocuments(filter);
+    
+    // Get articles for current page
+    const articles = await ArticleModel.find(filter)
+        .populate("categoryId")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(itemsPerPage);
+    
+    // Calculate total pages
+    const totalPages = Math.ceil(total / itemsPerPage);
+    
+    return {
+        articles,
+        currentPage: page,
+        totalPages,
+        totalArticles: total,
+        itemsPerPage
+    };
+}
+
 export default {
     getArticles,
     getArticleById,
     initializeArticles,
     addArticle,
     editArticlebyId,
-    deleteArticleById
+    deleteArticleById,
+    getPaginatedArticles
 }
