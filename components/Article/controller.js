@@ -12,21 +12,29 @@ const getAllArticles = async (request, response) => {
     const skip = (page - 1) * limit;
 
     const search = request.query.search || "";
+    const category = request.query.category || "";
 
     let totalArticles;
     let articles;
 
-    if (search) {
-        // Count matching articles
+    // CASE 1 — Category + Search
+    if (category && search) {
+        totalArticles = await articleModel.countByCategoryAndSearch(category, search);
+        articles = await articleModel.getByCategoryAndSearchPaginated(category, search, skip, limit);
+    }
+    // CASE 2 — Category only
+    else if (category) {
+        totalArticles = await articleModel.countByCategory(category);
+        articles = await articleModel.getByCategoryPaginated(category, skip, limit);
+    }
+    // CASE 3 — Search only
+    else if (search) {
         totalArticles = await articleModel.countSearchArticles(search);
-
-        // Get paginated search results
         articles = await articleModel.searchArticlesPaginated(search, skip, limit);
-    } else {
-        // Count all articles
+    }
+    // CASE 4 — No filters
+    else {
         totalArticles = await articleModel.countArticles();
-
-        // Get paginated articles
         articles = await articleModel.getArticlesPaginated(skip, limit);
     }
 
@@ -40,9 +48,11 @@ const getAllArticles = async (request, response) => {
         currentPage: page,
         totalPages,
         totalArticles,
-        search
+        search,
+        category
     });
 };
+
 
 
 // Display a single article in detail view

@@ -69,6 +69,46 @@ const searchArticlesPaginated = (search, skip, limit) => {
     .skip(skip)
     .limit(limit);
 };
+// Count by category only
+const countByCategory = (categoryId) => {
+    return ArticleModel.countDocuments({ categoryId });
+};
+
+// Get paginated articles by category
+const getByCategoryPaginated = (categoryId, skip, limit) => {
+    return ArticleModel.find({ categoryId })
+        .populate("categoryId")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+};
+
+// Count by category + search
+const countByCategoryAndSearch = (categoryId, search) => {
+    return ArticleModel.countDocuments({
+        categoryId,
+        $or: [
+            { title: { $regex: search, $options: "i" } },
+            { text: { $regex: search, $options: "i" } }
+        ]
+    });
+};
+
+// Get paginated articles by category + search
+const getByCategoryAndSearchPaginated = (categoryId, search, skip, limit) => {
+    return ArticleModel.find({
+        categoryId,
+        $or: [
+            { title: { $regex: search, $options: "i" } },
+            { text: { $regex: search, $options: "i" } }
+        ]
+    })
+    .populate("categoryId")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+};
+
 
 
 // Add sample articles to database on first run
@@ -155,5 +195,9 @@ export default {
     countArticles,
     getArticlesPaginated,
     countSearchArticles,
-    searchArticlesPaginated
+    searchArticlesPaginated,
+    countByCategory,
+    getByCategoryPaginated,
+    countByCategoryAndSearch,
+    getByCategoryAndSearchPaginated
 }

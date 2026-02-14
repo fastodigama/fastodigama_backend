@@ -8,15 +8,21 @@ block layout-content
         a.btn.btn-success.btn-sm(href="/admin/article/add") Add Article
 
     // Small search bar directly under the title
-    .input-group.input-group-sm.mb-4(style="max-width: 400px")
-        input.form-control(
-            type="text",
-            name="search",
-            placeholder="Search articles...",
-            value=search || ""
-        )
-        .ms-2
+    form(method="get", action="/admin/article", class="mb-4")
+        .input-group.input-group-sm.gap-2(style="max-width: 400px")
+            input.form-control(
+                type="text",
+                name="search",
+                placeholder="Search articles...",
+                value=search || ""
+            )
             button.btn.btn-primary(type="submit") Search
+
+        // Category filter (inside the same form)
+        select.form-select.form-select-sm.mt-2(name="category", onchange="this.form.submit()", style="max-width: 400px")
+            option(value="") All Categories
+            each cat in categories
+                option(value=cat._id selected=(category == cat._id)) #{cat.name}
 
 
     // Desktop Table
