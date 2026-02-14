@@ -18,7 +18,15 @@ block layout-content
                         //- Article text/content field
                         .mb-3
                             label.form-label(for="article-text") Article Text
-                            textarea.form-control(id="article-text", name="text", rows="4", placeholder="Add meaningful text", required)
+                            textarea.form-control(
+                                id="article-text",
+                                name="text",
+                                rows="10",
+                                placeholder="Write your full article here...",
+                                style="min-height: 200px"
+                                required
+                            )
+
 
                         //- Category dropdown selection
                         .mb-3
