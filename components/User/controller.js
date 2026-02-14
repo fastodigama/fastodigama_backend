@@ -73,4 +73,74 @@ export default {
   register,
   registerForm,
   logout,
+  getAllUsers,
+  resetPasswordForm,
+  resetPassword,
+};
+
+// Show all users (admin only)
+const getAllUsers = async (request, response) => {
+  let users = await userModel.getAllUsers();
+  response.render("user/users-list", { 
+    title: "Manage Users", 
+    users, 
+    currentPath: request.path 
+  });
+};
+
+// Show password reset form (admin only)
+const resetPasswordForm = async (request, response) => {
+  const username = request.query.username;
+  if (!username) {
+    return response.redirect("/admin/users");
+  }
+  
+  let user = await userModel.getUser(username);
+  if (!user) {
+    return response.redirect("/admin/users");
+  }
+  
+  response.render("user/reset-password", { 
+    title: "Reset Password", 
+    username,
+    currentPath: request.path 
+  });
+};
+
+// Handle password reset (admin only)
+const resetPassword = async (request, response) => {
+  const { username, newPassword, confirmPassword } = request.body;
+  
+  // Validate passwords match
+  if (newPassword !== confirmPassword) {
+    return response.render("user/reset-password", {
+      err: "Passwords do not match",
+      username,
+      title: "Reset Password"
+    });
+  }
+  
+  // Validate password length
+  if (newPassword.length < 4) {
+    return response.render("user/reset-password", {
+      err: "Password must be at least 4 characters",
+      username,
+      title: "Reset Password"
+    });
+  }
+  
+  // Reset the password
+  let result = await userModel.resetPassword(username, newPassword);
+  
+  if (result) {
+    // Success: redirect to users list
+    response.redirect("/admin/users");
+  } else {
+    // Error: show error message
+    response.render("user/reset-password", {
+      err: "Error resetting password",
+      username,
+      title: "Reset Password"
+    });
+  }
 };

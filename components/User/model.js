@@ -69,5 +69,30 @@ async function addUser(username, pw) {
 export default {
     authenticateUser,
     getUser,
-    addUser
+    addUser,
+    getAllUsers,
+    resetPassword
 };
+
+// Get all users
+// Returns an array of all users (password hashes are not exposed)
+async function getAllUsers() {
+    let users = await User.find({}, { password: 0 }); // Exclude password field from result
+    return users;
+}
+
+// Reset a user's password (admin only)
+// Returns true if successful, false if user not found
+async function resetPassword(username, newPassword) {
+    // Hash the new password
+    let hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update the user's password in database
+    let result = await User.updateOne(
+        { user: username },
+        { password: hashedPassword }
+    );
+    
+    // Return true if one user was updated, false if no user found
+    return result.modifiedCount === 1;
+}

@@ -21,6 +21,7 @@ import categoryRouter from "./components/Category/routes.js";
 import { request } from "http";
 import links from "./components/menuLinks/controller.js"; // API response for menu links
 import cors from "cors"; // Allow cross-origin requests
+import helmet from "helmet"; // Security headers protection
 
 // ===== DATABASE CONNECTION =====
 // Connect to MongoDB immediately when app starts
@@ -37,6 +38,9 @@ const app = express();
 const port = process.env.PORT || "8888";
 
 // ===== MIDDLEWARE CONFIGURATION =====
+// Add security headers (protection against XSS, clickjacking, MIME sniffing, etc.)
+app.use(helmet());
+
 // Enable Cross-Origin Resource Sharing (allow requests from any domain)
 app.use(
   cors({

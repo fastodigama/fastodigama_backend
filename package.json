@@ -29,6 +29,7 @@
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "helmet": "^8.1.0",
     "mongoose": "^9.1.6",
     "pug": "^3.0.3"
   },

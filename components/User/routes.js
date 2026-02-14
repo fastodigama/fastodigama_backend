@@ -31,5 +31,17 @@ router.post("/register", userController.register);
 // GET /logout
 router.get("/logout", userController.logout);
 
+// Admin: Show all users
+// GET /admin/users
+router.get("/admin/users", userController.getAllUsers);
+
+// Admin: Show password reset form
+// GET /admin/users/reset?username=...
+router.get("/admin/users/reset", userController.resetPasswordForm);
+
+// Admin: Handle password reset
+// POST /admin/users/reset
+router.post("/admin/users/reset", userController.resetPassword);
+
 export default router;
 
