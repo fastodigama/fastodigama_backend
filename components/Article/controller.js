@@ -7,29 +7,43 @@ import categoryModel from "../Category/model.js"
 
 // GET list of all articles
 const getAllArticles = async (request, response) => {
-    
-    const page = parseInt(request.query.page) || 1; //current page
+    const page = parseInt(request.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    //count total articles
-    const totalArticles = await articleModel.countArticles();
+    const search = request.query.search || "";
+
+    let totalArticles;
+    let articles;
+
+    if (search) {
+        // Count matching articles
+        totalArticles = await articleModel.countSearchArticles(search);
+
+        // Get paginated search results
+        articles = await articleModel.searchArticlesPaginated(search, skip, limit);
+    } else {
+        // Count all articles
+        totalArticles = await articleModel.countArticles();
+
+        // Get paginated articles
+        articles = await articleModel.getArticlesPaginated(skip, limit);
+    }
+
     const totalPages = Math.ceil(totalArticles / limit);
-
-    const articles = await articleModel.getArticlesPaginated(skip, limit);
-
     const categories = await categoryModel.getCategories();
-    
-    
+
     response.render("article/article-list", {
         title: "Article List",
         articles,
         categories,
         currentPage: page,
         totalPages,
-        totalArticles
+        totalArticles,
+        search
     });
-}
+};
+
 
 // Display a single article in detail view
 const viewArticle = async (request, response) => {

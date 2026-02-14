@@ -45,7 +45,31 @@ const getArticlesPaginated = (skip, limit) => {
       .skip(skip)
       .limit(limit)
 }
-  
+
+// Count search results
+const countSearchArticles = (search) => {
+    return ArticleModel.countDocuments({
+        $or: [
+            { title: { $regex: search, $options: "i" } },
+            { text: { $regex: search, $options: "i" } }
+        ]
+    });
+};
+
+// Get paginated search results
+const searchArticlesPaginated = (search, skip, limit) => {
+    return ArticleModel.find({
+        $or: [
+            { title: { $regex: search, $options: "i" } },
+            { text: { $regex: search, $options: "i" } }
+        ]
+    })
+    .populate("categoryId")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+};
+
 
 // Add sample articles to database on first run
 async function initializeArticles() {
@@ -129,5 +153,7 @@ export default {
     editArticlebyId,
     deleteArticleById,
     countArticles,
-    getArticlesPaginated
+    getArticlesPaginated,
+    countSearchArticles,
+    searchArticlesPaginated
 }
