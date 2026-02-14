@@ -25,12 +25,27 @@ const ArticleModel = mongoose.model("Article", ArticleSchema);
 async function getArticles() {
   // .populate("categoryId") = fetch category name instead of just ID
   return await ArticleModel.find({}).populate("categoryId").sort({ createdAt: -1});
-}
+};
 
 // Get one article by ID
 async function getArticleById(id) {
   return await ArticleModel.findById(id);
+};
+
+// Count all Articles
+const countArticles = () => {
+  return ArticleModel.countDocuments();
 }
+
+// Get paginated articles
+const getArticlesPaginated = (skip, limit) => {
+  return ArticleModel.find()
+      .populate("categoryId")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+}
+  
 
 // Add sample articles to database on first run
 async function initializeArticles() {
@@ -104,34 +119,7 @@ async function deleteArticleById(id) {
     return result;
 }
 
-// Get paginated articles
-async function getPaginatedArticles(page = 1, itemsPerPage = 10, categoryId = null) {
-    const skip = (page - 1) * itemsPerPage;
-    
-    // Build filter object
-    const filter = categoryId ? { categoryId: categoryId } : {};
-    
-    // Get total count of articles
-    const total = await ArticleModel.countDocuments(filter);
-    
-    // Get articles for current page
-    const articles = await ArticleModel.find(filter)
-        .populate("categoryId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(itemsPerPage);
-    
-    // Calculate total pages
-    const totalPages = Math.ceil(total / itemsPerPage);
-    
-    return {
-        articles,
-        currentPage: page,
-        totalPages,
-        totalArticles: total,
-        itemsPerPage
-    };
-}
+
 
 export default {
     getArticles,
@@ -140,5 +128,6 @@ export default {
     addArticle,
     editArticlebyId,
     deleteArticleById,
-    getPaginatedArticles
+    countArticles,
+    getArticlesPaginated
 }

@@ -7,40 +7,28 @@ import categoryModel from "../Category/model.js"
 
 // GET list of all articles
 const getAllArticles = async (request, response) => {
+    
+    const page = parseInt(request.query.page) || 1; //current page
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    //count total articles
+    const totalArticles = await articleModel.countArticles();
+    const totalPages = Math.ceil(totalArticles / limit);
+
+    const articles = await articleModel.getArticlesPaginated(skip, limit);
+
     const categories = await categoryModel.getCategories();
     
-    // Get page number from URL (?page=1), default to 1
-    const page = parseInt(request.query.page) || 1;
-    const itemsPerPage = 10;
     
-    // Get selected category for filter
-    const selectedCategoryId = request.query.categoryId;
-    
-    // Get paginated articles (with or without category filter)
-    const paginationData = await articleModel.getPaginatedArticles(
-        page,
-        itemsPerPage,
-        selectedCategoryId || null
-    );
-    
-    // Generate array of page numbers for pagination display
-    const pageNumbers = [];
-    for (let i = 1; i <= paginationData.totalPages; i++) {
-        pageNumbers.push(i);
-    }
-    
-    // Render template with pagination data
     response.render("article/article-list", {
         title: "Article List",
-        articles: paginationData.articles,
+        articles,
         categories,
-        selectedCategoryId,
-        currentPage: paginationData.currentPage,
-        totalPages: paginationData.totalPages,
-        pageNumbers,
-        totalArticles: paginationData.totalArticles
+        currentPage: page,
+        totalPages,
+        totalArticles
     });
-    
 }
 
 // Display a single article in detail view
