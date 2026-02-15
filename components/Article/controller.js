@@ -42,17 +42,19 @@ const getArticlesApiResponse = async (request, response) => {
     const totalPages = Math.ceil(totalArticles / limit);
 
     // Return JSON to frontend
-    res.json({
+    response.json({
       articles,
       page,
       totalPages,
       totalArticles,
     });
   } catch (error) {
-    console.error(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error(error);
+    response.status(500).json({ message: "Server Error" });
   }
 };
+
+
 // GET list of all articles // FOR BACKED ONLY
 const getAllArticles = async (request, response) => {
   const page = parseInt(request.query.page) || 1;
