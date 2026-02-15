@@ -20,8 +20,9 @@ const getArticlesApiResponse = async (request, response) => {
     //build query object
     let query = {};
     if (category) {
-      query["categoryId.name"] = category; //Find articles where the category’s name matches the selected category.
+        query.categoryId = category;
     }
+
     //search both titles and texts of the article
     if (search) {
       query.$or = [
