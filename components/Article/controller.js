@@ -9,51 +9,55 @@ import categoryModel from "../Category/model.js";
 //THIS FIR FRONTEND ONLY
 const getArticlesApiResponse = async (request, response) => {
   try {
-    //Read Query Parameters
-    const page = parseInt(request.query.page) || 1; //default page 1
-    const limit = parseInt(request.query.limit) || 10; //default 10 articles per page
-    const category = request.query.category || "";
+    const page = parseInt(request.query.page) || 1;
+    const limit = parseInt(request.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const search = request.query.search || "";
+    const category = request.query.category || "";
 
-    const skip = (page - 1) * limit; //how many to skip
+    let totalArticles;
+    let articles;
 
-    //build query object
-    let query = {};
-    if (category) {
-        query.categoryId = category;
+    // CASE 1 — Category + Search
+    if (category && search) {
+      totalArticles = await articleModel.countByCategoryAndSearch(category, search);
+      articles = await articleModel.getByCategoryAndSearchPaginated(category, search, skip, limit);
+    }
+    // CASE 2 — Category only
+    else if (category) {
+      totalArticles = await articleModel.countByCategory(category);
+      articles = await articleModel.getByCategoryPaginated(category, skip, limit);
+    }
+    // CASE 3 — Search only
+    else if (search) {
+      totalArticles = await articleModel.countSearchArticles(search);
+      articles = await articleModel.searchArticlesPaginated(search, skip, limit);
+    }
+    // CASE 4 — No filters
+    else {
+      totalArticles = await articleModel.countArticles();
+      articles = await articleModel.getArticlesPaginated(skip, limit);
     }
 
-    //search both titles and texts of the article
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { text: { $regex: search, $options: "i" } },
-      ];
-    }
-    //  Fetch articles from MongoDB
-    const articles = await articleModel
-      .find(query)
-      .sort({ createdAt: -1 }) // newest first
-      .skip(skip)
-      .limit(limit)
-      .exec();
-
-    //  Count total articles for pagination
-    const totalArticles = await articleModel.countDocuments(query);
     const totalPages = Math.ceil(totalArticles / limit);
 
-    // Return JSON to frontend
+    // Return JSON instead of rendering HTML
     response.json({
       articles,
       page,
       totalPages,
       totalArticles,
+      search,
+      category
     });
+
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // GET list of all articles // FOR BACKED ONLY
