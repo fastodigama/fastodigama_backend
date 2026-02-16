@@ -29,7 +29,7 @@ async function getArticles() {
 
 // Get one article by ID
 async function getArticleById(id) {
-  return await ArticleModel.findById(id);
+  return await ArticleModel.findById(id).populate("categoryId");
 };
 
 // Count all Articles
