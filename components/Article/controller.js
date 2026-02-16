@@ -116,6 +116,22 @@ const getAllArticles = async (request, response) => {
   });
 };
 
+// Get single article by ID
+const getArticleByIdApiResponse = async (request, response) => {
+  try {
+    const id = request.params.id;
+    const article = await articleModel.getArticleById(id).populate('categoryId');
+
+    if (!article) {
+      return response.status(404).json({message: "Article not found"});
+    }
+    response.json({article});
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Server Error"})
+  }
+}
+
 // Display a single article in detail view
 const viewArticle = async (request, response) => {
   // Get article ID from URL query (?articleId=123)
@@ -226,4 +242,5 @@ export default {
   editArticle,
   deleteArticle,
   getArticlesApiResponse,
+  getArticleByIdApiResponse
 };
