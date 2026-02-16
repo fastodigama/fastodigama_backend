@@ -85,7 +85,7 @@ app.use(
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
 // Public API: Get all articles links as JSON
 app.get("/api/articles", articles.getArticlesApiResponse);
-app.get("/api/articles/:id", articles.getArticleByIdApiResponse);
+app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 
 // ===== AUTHENTICATION & AUTHORIZATION MIDDLEWARE =====
 // Protect admin pages: require login
