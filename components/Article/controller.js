@@ -120,7 +120,7 @@ const getAllArticles = async (request, response) => {
 const getArticleByIdApiResponse = async (request, response) => {
   try {
     const id = request.params.id;
-    const article = await articleModel.getArticleById(id).populate('categoryId');
+    const article = await articleModel.getArticleById(id);
 
     if (!article) {
       return response.status(404).json({message: "Article not found"});
