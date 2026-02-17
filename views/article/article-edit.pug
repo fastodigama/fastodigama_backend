@@ -1,19 +1,18 @@
 extends ../common/layout
 
 block layout-content
-    //- Edit existing article form
     .row.justify-content-center
         .col-lg-10
             .card.shadow-sm
                 .card-body.p-4
                     h1.h3.mb-4.text-center Edit Article
 
-                    //- Form sends updated data to /admin/article/edit/submit
+                    // Form sends updated data to /admin/article/edit/submit
                     form(action="/admin/article/edit/submit", method="post")
-                        //- Hidden field: store the article ID
+                        // Hidden field: article ID
                         input(type="hidden", name="articleId", value=editArticle._id)
 
-                        //- Article title field (pre-filled with current value)
+                        // Title field
                         .mb-3
                             label.form-label(for="title") Title
                             input.form-control(
@@ -24,7 +23,7 @@ block layout-content
                                 required
                             )
 
-                        //- Article text field (pre-filled with current content)
+                        //- Article text field
                         .mb-3
                             label.form-label(for="article-text") Article Text
                             textarea.form-control(
@@ -34,16 +33,18 @@ block layout-content
                                 required
                             ) #{editArticle.text}
 
-                        //- Category dropdown (pre-filled with current category)
+                        // Category dropdown (preloaded)
                         .mb-3
                             label.form-label(for="cat") Select Category
                             select.form-select(id="cat", name="categoryId", required)
                                 option(value="") Choose a category
                                 each cat in categories
-                                    option(value=cat._id, selected=cat._id.toString() === editArticle.categoryId.toString())= cat.name                                
-                            
+                                    option(
+                                        value=cat._id,
+                                        selected=cat._id.toString() === editArticle.categoryId._id.toString()
+                                    )= cat.name
 
-                        //- Submit and cancel buttons
+                        // Buttons
                         .d-flex.justify-content-end.gap-2.mt-4
                             a.btn.btn-secondary(href="/admin/article") Cancel
                             button.btn.btn-primary(type="submit") Save Changes

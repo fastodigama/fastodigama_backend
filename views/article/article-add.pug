@@ -42,10 +42,3 @@ block layout-content
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/article") Cancel
               button.btn.btn-primary(type="submit") Add Article
-
-block scripts
-  script.
-    document.querySelector("form").addEventListener("submit", function () {
-      tinymce.triggerSave();
-    });
-  script(src="/js/tinymce-init.js")

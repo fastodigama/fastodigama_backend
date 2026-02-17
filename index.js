@@ -30,39 +30,9 @@ const port = process.env.PORT || "8888";
 // ===== MIDDLEWARE CONFIGURATION =====
 
 // IMPORTANT: Remove the default helmet() call — it blocks TinyMCE
-// app.use(helmet());
 
-// Replace it with a single, correct Helmet configuration:
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://cdn.tiny.cloud"
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tiny.cloud"
-        ],
-        imgSrc: [
-          "'self'",
-          "data:",
-          "blob:",
-          "https://cdn.tiny.cloud",
-          "https://sp.tinymce.com"   // ⭐ Add this
-        ],
-        connectSrc: [
-          "'self'",
-          "https://cdn.tiny.cloud"
-        ]
-      },
-    },
-  })
-);
+app.use(helmet());
+
 
 // Enable CORS
 app.use(

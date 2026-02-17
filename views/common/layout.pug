@@ -6,12 +6,9 @@ html(lang="en")
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
-        //- link(rel="stylesheet", href="/css/styles.css")
         //- Load Bootstrap CSS for styling
         link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
         title #{title} | FASTOADMIN
-        script(src="https://cdn.tiny.cloud/1/98wxlm2ypw73ftafy2ser2g8ur7uczmookm85d6y3xa9yaah/tinymce/6/tinymce.min.js" referrerpolicy="origin")
-        script(src="/js/tinymce-init.js")
 
     //- Main page structure: header, content, footer
     body.d-flex.flex-column.min-vh-100
@@ -21,12 +18,16 @@ html(lang="en")
         main.flex-fill.container.my-5
             //- Dynamic main content here (replaced by specific page content)
             block layout-content
-        //- Footer at the bottom
-        footer.mt-auto
-            p &copy; Copyright FASTODIGAMA ADMIN
+
+        //- Footer matching header style
+        footer.bg-dark.text-white.px-4.py-3.mt-auto
+            .d-flex.flex-column.flex-md-row.align-items-center.justify-content-between.gap-2
+                .d-flex.align-items-center.gap-2
+                    img.d-inline-block.align-top(src="/img/apple-touch-icon.png", width="24", height="24")
+                    span.fw-bold FASTOADMIN
+                p.mb-0.text-white-50.small &copy; #{new Date().getFullYear()} FASTODIGAMA ADMIN. All rights reserved.
+
         //- Bootstrap JavaScript for interactive elements
         script(src="/bootstrap/js/bootstrap.bundle.min.js")
-        script(src="https://cdn.tiny.cloud/1/98wxlm2ypw73ftafy2ser2g8ur7uczmookm85d6y3xa9yaah/tinymce/6/tinymce.min.js" referrerpolicy="origin")
-        script(src="/js/tinymce-init.js")
         //- Block for page-specific scripts
         block scripts
