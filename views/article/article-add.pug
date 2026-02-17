@@ -1,52 +1,52 @@
 extends ../common/layout
 
 block layout-content
-    .row.justify-content-center
-        .col-lg-10
-            .card.shadow-sm
-                .card-body.p-4
-                    h1.h3.mb-4.text-center Add New Article
+  .row.justify-content-center
+    .col-lg-10
+      .card.shadow-sm
+        .card-body.p-4
+          h1.h3.mb-4.text-center Add New Article
 
-                    form(action="/admin/article/add/submit", method="post")
-                        // Title
-                        .mb-3
-                            label.form-label(for="title") Title
-                            input.form-control(
-                                type="text",
-                                id="title",
-                                name="title",
-                                placeholder="Add hook title",
-                                required
-                            )
+          form(action="/admin/article/add/submit", method="post")
+            // Title
+            .mb-3
+              label.form-label(for="title") Title
+              input.form-control(
+                type="text",
+                id="title",
+                name="title",
+                placeholder="Add hook title",
+                required
+              )
 
-                        // Article Text
-                        .mb-3
-                            label.form-label(for="article-text") Article Text
-                            textarea.form-control(
-                                id="article-text",
-                                name="text",
-                                rows="10",
-                                placeholder="Write your full article here...",
-                                style="min-height: 200px"
-                            )
+            // Article Text
+            .mb-3
+              label.form-label(for="article-text") Article Text
+              textarea.form-control(
+                id="article-text",
+                name="text",
+                rows="10",
+                placeholder="Write your full article here...",
+                style="min-height: 200px"
+              )
 
-                        // Category
-                        .mb-3
-                            label.form-label(for="cat") Select Category
-                            select.form-select(id="cat", name="categoryId", required)
-                                option(value="") Select a category
-                                each cat in categories
-                                    option(value=cat._id)= cat.name
+            // Category
+            .mb-3
+              label.form-label(for="cat") Select Category
+              select.form-select(id="cat", name="categoryId", required)
+                option(value="") Select a category
+                each cat in categories
+                  option(value=cat._id)= cat.name
 
-                        // Buttons
-                        .d-flex.justify-content-end.gap-2.mt-4
-                            a.btn.btn-secondary(href="/admin/article") Cancel
-                            button.btn.btn-primary(type="submit") Add Article
+            // Buttons
+            .d-flex.justify-content-end.gap-2.mt-4
+              a.btn.btn-secondary(href="/admin/article") Cancel
+              button.btn.btn-primary(type="submit") Add Article
 
 // Scripts must be OUTSIDE the layout-content block
 block scripts
-    script.
-        document.querySelector("form").addEventListener("submit", function () {
-            tinymce.triggerSave();
-        });
-    script(src="/js/tinymce-init.js")
+  script.
+    document.querySelector("form").addEventListener("submit", function () {
+      tinymce.triggerSave();
+    });
+  script(src="/js/tinymce-init.js")
