@@ -10,6 +10,9 @@ html(lang="en")
         //- Load Bootstrap CSS for styling
         link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
         title #{title} | FASTOADMIN
+        script(src="https://cdn.tiny.cloud/1/98wxlm2ypw73ftafy2ser2g8ur7uczmookm85d6y3xa9yaah/tinymce/6/tinymce.min.js" referrerpolicy="origin")
+        script(src="/js/tinymce-init.js")
+
     //- Main page structure: header, content, footer
     body.d-flex.flex-column.min-vh-100
         //- Include navigation bar from header.pug
@@ -22,4 +25,8 @@ html(lang="en")
         footer.mt-auto
             p &copy; Copyright FASTODIGAMA ADMIN
         //- Bootstrap JavaScript for interactive elements
-        script(src="/bootstrap/js/bootstrap.bundle.min.js") 
+        script(src="/bootstrap/js/bootstrap.bundle.min.js")
+        script(src="https://cdn.tiny.cloud/1/98wxlm2ypw73ftafy2ser2g8ur7uczmookm85d6y3xa9yaah/tinymce/6/tinymce.min.js" referrerpolicy="origin")
+        script(src="/js/tinymce-init.js")
+        //- Block for page-specific scripts
+        block scripts
