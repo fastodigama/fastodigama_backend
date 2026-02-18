@@ -29,8 +29,6 @@ const port = process.env.PORT || "8888";
 
 // ===== MIDDLEWARE CONFIGURATION =====
 
-// IMPORTANT: Remove the default helmet() call — it blocks TinyMCE
-
 app.use(helmet());
 
 

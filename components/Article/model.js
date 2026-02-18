@@ -111,28 +111,7 @@ const getByCategoryAndSearchPaginated = (categoryId, search, skip, limit) => {
 
 
 
-// Add sample articles to database on first run
-async function initializeArticles() {
-  const articleList = [
-    {
-      title: "Getting Started with Node.js",
-      text: "Learn the fundamentals of Node.js and how to build scalable server-side applications. This guide covers npm, modules, and async programming.",
-      categoryId: "65c8f1234567890abcdef001",
-    },
-    {
-      title: "MongoDB Best Practices",
-      text: "Discover the best practices for working with MongoDB including schema design, indexing, and query optimization for better performance.",
-      categoryId: "65c8f1234567890abcdef002",
-    },
-  ];
 
-  try {
-    await ArticleModel.insertMany(articleList);
-    console.log("Articles initialized successfully");
-  } catch (error) {
-    console.error("Error initializing articles:", error);
-  }
-}
 
 async function addArticle(newArticle) {
    try {
@@ -188,7 +167,7 @@ async function deleteArticleById(id) {
 export default {
     getArticles,
     getArticleById,
-    initializeArticles,
+    
     addArticle,
     editArticlebyId,
     deleteArticleById,

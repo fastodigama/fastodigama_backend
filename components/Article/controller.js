@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import articleModel from "./model.js";
 import categoryModel from "../Category/model.js";
+import { marked } from "marked";
 
 // ===== ARTICLE CONTROLLER =====
 // Handles all article business logic (Create, Read, Update, Delete)
@@ -125,7 +126,8 @@ const getArticleByIdApiResponse = async (request, response) => {
     if (!article) {
       return response.status(404).json({message: "Article not found"});
     }
-    response.json({article});
+    const htmlContent = marked(article.text)
+    response.json({article, htmlContent});
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error"})
@@ -143,7 +145,8 @@ const viewArticle = async (request, response) => {
   }
   // Load the category name for display
   await article.populate("categoryId");
-  response.render("article/article-view", { title: "view Article", article });
+  const htmlContent = marked(article.text);
+  response.render("article/article-view", { title: "view Article", article, htmlContent });
 };
 
 // Show the form to add a new article

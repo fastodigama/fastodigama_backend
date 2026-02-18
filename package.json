@@ -30,6 +30,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "helmet": "^8.1.0",
+    "marked": "^17.0.3",
     "mongoose": "^9.1.6",
     "pug": "^3.0.3"
   },
