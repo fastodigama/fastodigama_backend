@@ -126,8 +126,8 @@ const getArticleByIdApiResponse = async (request, response) => {
     if (!article) {
       return response.status(404).json({message: "Article not found"});
     }
-    const htmlContent = marked(article.text)
-    response.json({article, htmlContent});
+   
+    response.json({article});
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error"})
