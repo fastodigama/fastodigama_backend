@@ -13,6 +13,23 @@ const ArticleSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+    // Array of objects to handle multiple images per article
+    images: [
+      {
+        url: { 
+          type: String, 
+          required: true 
+        }, // The .r2.dev URL or your future domain link
+        key: { 
+          type: String, 
+          required: true 
+        }, // The R2 'Object Key' needed if you want to delete the image later
+        alt: { 
+          type: String, 
+          default: "" 
+        }, // Essential for SEO and accessibility
+      }
+    ],
   },
   { timestamps: true },
 );
@@ -119,7 +136,8 @@ async function addArticle(newArticle) {
     let article = new ArticleModel({
       title: String(newArticle.title),
       text: String(newArticle.text),
-      categoryId: newArticle.categoryId
+      categoryId: newArticle.categoryId,
+      images: newArticle.images || [] // Include images array
     });
     // Save to database
     const result = await article.save();

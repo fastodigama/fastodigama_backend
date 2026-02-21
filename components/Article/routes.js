@@ -6,6 +6,7 @@ import express from "express";
 const router = express.Router();
 
 import articles from "./controller.js";
+import { upload } from "./controller.js"; // <-- THIS is the missing line
 
 // Display all articles
 // GET /admin/article
@@ -21,7 +22,7 @@ router.get("/add", articles.addArticleForm);
 
 // Handle form submission to create new article
 // POST /admin/article/add/submit
-router.post("/add/submit", articles.addNewArticle);
+router.post("/add/submit", upload.array("images"), articles.addNewArticle);
 
 // Delete an article
 // GET /admin/article/delete?articleId=123
@@ -33,9 +34,11 @@ router.get("/edit", articles.editArticleForm);
 
 // Handle form submission to update article
 // POST /admin/article/edit/submit
-router.post("/edit/submit", articles.editArticle);
+router.post("/edit/submit", upload.array("images"), articles.editArticle);
 
-
+// Delete an image from an article
+// POST /admin/article/delete-image
+router.post("/delete-image", articles.deleteImage);
 
 
 

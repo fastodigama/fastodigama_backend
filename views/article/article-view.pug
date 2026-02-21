@@ -34,6 +34,19 @@ block layout-content
                     //- Divider
                     hr
                     
+                    //- Article Images
+                    if article.images && article.images.length > 0
+                        .article-images.mt-4.mb-4
+                            h5.mb-3 Images
+                            .row.g-3
+                                each image in article.images
+                                    .col-md-4
+                                        .card
+                                            img.card-img-top(src=image.url, alt=image.alt || article.title, style="height: 200px; object-fit: cover;")
+                                            if image.alt
+                                                .card-body.p-2
+                                                    small.text-muted= image.alt
+                    
                     //- Article content
                     .article-content.mt-4
                          div!= htmlContent

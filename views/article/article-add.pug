@@ -7,7 +7,7 @@ block layout-content
         .card-body.p-4
           h1.h3.mb-4.text-center Add New Article
 
-          form(action="/admin/article/add/submit", method="post")
+          form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
             // Title
             .mb-3
               label.form-label(for="title") Title
@@ -16,6 +16,7 @@ block layout-content
                 id="title",
                 name="title",
                 placeholder="Add hook title",
+                autocomplete="off",
                 required
               )
 
@@ -27,7 +28,8 @@ block layout-content
                 name="text",
                 rows="10",
                 placeholder="Write your full article here...",
-                style="min-height: 200px"
+                style="min-height: 200px",
+                autocomplete="off"
               )
 
             // Category
@@ -37,6 +39,16 @@ block layout-content
                 option(value="") Select a category
                 each cat in categories
                   option(value=cat._id)= cat.name
+
+            // Image Upload
+            .mb-3
+              label.form-label(for="images") Upload Images
+              input.form-control(
+                type="file",
+                id="images",
+                name="images",
+                multiple
+              )
 
             // Buttons
             .d-flex.justify-content-end.gap-2.mt-4

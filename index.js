@@ -29,7 +29,21 @@ const port = process.env.PORT || "8888";
 
 // ===== MIDDLEWARE CONFIGURATION =====
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 
 
 // Enable CORS
@@ -78,7 +92,11 @@ app.use("/admin", (req, res, next) => {
     app.locals.user = req.session.user;
     next();
   } else {
-    req.session.redirectUrl = req.originalUrl;
+    if (req.method === "GET") {
+      req.session.redirectUrl = req.originalUrl;
+    } else {
+      req.session.redirectUrl = req.get("referer") || "/admin/article";
+    }
     res.redirect("/login");
   }
 });
@@ -88,7 +106,11 @@ app.use("/user", (req, res, next) => {
     app.locals.user = req.session.user;
     next();
   } else {
-    req.session.redirectUrl = req.originalUrl;
+    if (req.method === "GET") {
+      req.session.redirectUrl = req.originalUrl;
+    } else {
+      req.session.redirectUrl = req.get("referer") || "/user";
+    }
     res.redirect("/login");
   }
 });

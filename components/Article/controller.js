@@ -2,6 +2,33 @@ import mongoose from "mongoose";
 import articleModel from "./model.js";
 import categoryModel from "../Category/model.js";
 import { marked } from "marked";
+import multer from "multer";
+import multerS3 from "multer-s3";
+import path from "path";
+import { s3 } from "../config/r2.js";
+
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.R2_BUCKET_NAME,
+    // Remove ACL - R2 doesn't support it like S3
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (request, file, cb) {
+      const projectNameSlug = request.body.title
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "-");
+
+      const fileExtension = path.extname(file.originalname);
+      const newFileName = `${projectNameSlug}-${Date.now()}${fileExtension}`;
+
+      console.log("📁 Uploading file:", newFileName);
+      cb(null, newFileName);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
 
 // ===== ARTICLE CONTROLLER =====
 // Handles all article business logic (Create, Read, Update, Delete)
@@ -157,26 +184,54 @@ const addArticleForm = async (request, response) => {
 };
 
 // Save a new article to the database
+
+// Save a new article to the database (with images)
 const addNewArticle = async (request, response) => {
-  // Get the form data: title, article text, and category
-  const { title, text, categoryId } = request.body;
+  try {
+    const { title, text, categoryId } = request.body;
 
-  // Try to save the article
-  let result = await articleModel.addArticle({ title, text, categoryId });
+    // Build images array from multer-s3
+    const images = request.files?.map(file => ({
+      url: `${process.env.R2_PUBLIC_URL}/${file.key}`,   // Cloudflare public URL
+      key: file.key,        // needed if you want to delete later
+      alt: request.body.alt || ""
+    })) || [];
 
-  if (result) {
-    // Success: go back to article list
-    response.redirect("/admin/article");
-  } else {
-    // Error: show form again with error message and categories dropdown
+    console.log("🖼️  Generated image URLs:", images);
+    console.log("🌐 R2_PUBLIC_URL:", process.env.R2_PUBLIC_URL);
+
+    // Save article
+    const result = await articleModel.addArticle({
+      title,
+      text,
+      categoryId,
+      images
+    });
+
+    if (result) {
+      return response.redirect("/admin/article");
+    }
+
+    // If saving failed
     const categories = await categoryModel.getCategories();
-    response.render("article/article-add", {
+    return response.render("article/article-add", {
       err: "error adding article",
       categories,
-      formData: { title, text },
+      formData: { title, text }
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    const categories = await categoryModel.getCategories();
+    return response.render("article/article-add", {
+      err: "Unexpected error",
+      categories,
+      formData: request.body
     });
   }
 };
+
 
 // Delete an article by ID
 const deleteArticle = async (request, response) => {
@@ -219,23 +274,97 @@ const editArticleForm = async (request, response) => {
 };
 
 // Update an article in the database
-const editArticle = async (req, res) => {
-  // Get the form data
-  const { articleId, title, text, categoryId } = req.body;
+const editArticle = async (request, response) => {
+  try {
+    // Get the form data
+    const { articleId, title, text, categoryId } = request.body;
 
-  // Update the article with new values
-  const result = await articleModel.editArticlebyId(articleId, {
-    title,
-    text,
-    categoryId,
-  });
+    // Build update object
+    const updateData = {
+      title,
+      text,
+      categoryId,
+    };
 
-  // Success: go back to list, Error: show error on list
-  return result
-    ? res.redirect("/admin/article")
-    : res.render("article/article-list", { err: "Error updating article" });
+    // If new images were uploaded, add them to the article
+    if (request.files && request.files.length > 0) {
+      const newImages = request.files.map(file => ({
+        url: `${process.env.R2_PUBLIC_URL}/${file.key}`,
+        key: file.key,
+        alt: request.body.alt || ""
+      }));
+
+      // Get existing article to preserve old images
+      const existingArticle = await articleModel.getArticleById(articleId);
+      
+      // Append new images to existing ones
+      updateData.images = [...(existingArticle.images || []), ...newImages];
+    }
+
+    // Update the article with new values
+    const result = await articleModel.editArticlebyId(articleId, updateData);
+
+    // Success: go back to list
+    if (result) {
+      return response.redirect("/admin/article");
+    }
+
+    // Error: show error on list
+    return response.render("article/article-list", { err: "Error updating article" });
+    
+  } catch (error) {
+    console.error("Error editing article:", error);
+    return response.render("article/article-list", { err: "Unexpected error updating article" });
+  }
 };
 
+// Delete an image from an article
+const deleteImage = async (request, response) => {
+  try {
+    const { articleId, imageKey } = request.body;
+
+    if (!articleId || !imageKey) {
+      return response.status(400).json({ error: "Article ID and image key are required" });
+    }
+
+    // Get the article
+    const article = await articleModel.getArticleById(articleId);
+    
+    if (!article) {
+      return response.status(404).json({ error: "Article not found" });
+    }
+
+    // Filter out the image to delete
+    const updatedImages = article.images.filter(img => img.key !== imageKey);
+
+    console.log(`🗑️  Deleting image ${imageKey} from article ${articleId}`);
+    console.log(`📊 Images before: ${article.images.length}, after: ${updatedImages.length}`);
+
+    // Update the article
+    const result = await articleModel.editArticlebyId(articleId, {
+      images: updatedImages
+    });
+
+    if (result) {
+      // Optionally delete from R2 as well
+      // You can add R2 deletion here if needed
+      // await s3.deleteObject({ Bucket: process.env.R2_BUCKET_NAME, Key: imageKey });
+      
+      return response.json({ 
+        success: true, 
+        message: "Image deleted successfully"
+      });
+    }
+
+    return response.status(500).json({ error: "Failed to delete image" });
+
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    return response.status(500).json({ error: "Server error deleting image" });
+  }
+};
+
+export { upload };
 export default {
   getAllArticles,
   viewArticle,
@@ -244,6 +373,8 @@ export default {
   editArticleForm,
   editArticle,
   deleteArticle,
+  deleteImage,
   getArticlesApiResponse,
-  getArticleByIdApiResponse
+  getArticleByIdApiResponse,
+  
 };

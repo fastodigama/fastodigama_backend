@@ -1,24 +1,93 @@
 extends common/layout
 
 block layout-content
-    //- Home page: Simple welcome section
+    //- Home page: Modern welcome section
     .container.py-5
         .row.justify-content-center
-            .col-lg-8.text-center
-                //- Welcome heading
-                h1.display-5.fw-bold.mb-3 Welcome to FASTOADMIN
-                p.lead.text-muted.mb-4 Your professional content management system for fastodigama.com
+            .col-lg-10
+                //- Hero section
+                .text-center.mb-5
+                    h1.display-4.fw-bold.mb-3
+                        span.text-primary FASTO
+                        | ADMIN
+                    p.lead.text-muted Your professional content management system
+                    p.text-muted.small for fastodigama.com
 
-                //- Quick action buttons
+                //- Dashboard cards for logged-in users
                 if user
-                    .btn-group.d-flex.flex-wrap.gap-2.justify-content-center(role="group")
-                        a.btn.btn-primary.btn-lg(href="/admin/article") Articles
-                        a.btn.btn-success.btn-lg(href="/admin/category") Categories
-                        a.btn.btn-warning.btn-lg(href="/admin/menu") Menu
-                        a.btn.btn-secondary.btn-lg(href="/user") My Account
+                    .row.g-4.mb-4
+                        .col-md-6.col-lg-3
+                            .card.h-100.shadow-sm.border-0.hover-shadow
+                                .card-body.text-center.p-4
+                                    .mb-3
+                                        i.bi.bi-file-text.display-4.text-primary
+                                    h5.card-title Articles
+                                    p.card-text.text-muted.small Manage your content
+                                    a.btn.btn-primary.btn-sm.mt-2(href="/admin/article") 
+                                        | Open
+                                        i.bi.bi-arrow-right.ms-1
+                        
+                        .col-md-6.col-lg-3
+                            .card.h-100.shadow-sm.border-0.hover-shadow
+                                .card-body.text-center.p-4
+                                    .mb-3
+                                        i.bi.bi-folder.display-4.text-success
+                                    h5.card-title Categories
+                                    p.card-text.text-muted.small Organize content
+                                    a.btn.btn-success.btn-sm.mt-2(href="/admin/category")
+                                        | Open
+                                        i.bi.bi-arrow-right.ms-1
+                        
+                        .col-md-6.col-lg-3
+                            .card.h-100.shadow-sm.border-0.hover-shadow
+                                .card-body.text-center.p-4
+                                    .mb-3
+                                        i.bi.bi-list.display-4.text-warning
+                                    h5.card-title Menu
+                                    p.card-text.text-muted.small Navigation links
+                                    a.btn.btn-warning.btn-sm.mt-2(href="/admin/menu")
+                                        | Open
+                                        i.bi.bi-arrow-right.ms-1
+                        
+                        .col-md-6.col-lg-3
+                            .card.h-100.shadow-sm.border-0.hover-shadow
+                                .card-body.text-center.p-4
+                                    .mb-3
+                                        i.bi.bi-person-circle.display-4.text-secondary
+                                    h5.card-title My Account
+                                    p.card-text.text-muted.small Profile settings
+                                    a.btn.btn-secondary.btn-sm.mt-2(href="/user")
+                                        | Open
+                                        i.bi.bi-arrow-right.ms-1
+                    
+                    //- Tagline
+                    .text-center.mt-5.pt-4.border-top
+                        p.text-muted.fst-italic.mb-0 "Build boldly. Edit smartly. Publish with purpose."
+                
                 else
-                    .btn-group.d-flex.flex-wrap.gap-2.justify-content-center(role="group")
-                        a.btn.btn-primary.btn-lg(href="/login") Login
-
-                //- Tagline
-                p.mt-5.text-muted.fst-italic "Build boldly. Edit smartly. Publish with purpose."
+                    //- Login card for non-authenticated users
+                    .row.justify-content-center
+                        .col-md-6.col-lg-5
+                            .card.shadow-sm.border-0
+                                .card-body.text-center.p-5
+                                    .mb-4
+                                        i.bi.bi-shield-lock.display-1.text-primary
+                                    h4.card-title.mb-3 Access Required
+                                    p.card-text.text-muted.mb-4 Please sign in to manage your content
+                                    a.btn.btn-primary(href="/login")
+                                        i.bi.bi-box-arrow-in-right.me-2
+                                        | Login
+                    
+                    //- Tagline
+                    .text-center.mt-5.pt-4
+                        p.text-muted.fst-italic.mb-0 "Build boldly. Edit smartly. Publish with purpose."
+    
+    //- Custom styles
+    style.
+        .hover-shadow {
+            transition: all 0.3s ease;
+        }
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
