@@ -43,5 +43,17 @@ router.get("/admin/users/reset", userController.resetPasswordForm);
 // POST /admin/users/reset
 router.post("/admin/users/reset", userController.resetPassword);
 
+// Admin: Show edit user form
+// GET /admin/users/edit?username=...
+router.get("/admin/users/edit", userController.editUserForm);
+
+// Admin: Handle user edit
+// POST /admin/users/edit
+router.post("/admin/users/edit", userController.editUser);
+
+// Admin: Delete user
+// GET /admin/users/delete?username=...
+router.get("/admin/users/delete", userController.deleteUser);
+
 export default router;
 

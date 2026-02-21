@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { s3 } from "../config/r2.js"; // Adjust the path if your folder structure is different
 
 // ===== ARTICLE MODEL =====
 // Defines the database schema and functions to interact with Articles collection
@@ -131,39 +133,77 @@ const getByCategoryAndSearchPaginated = (categoryId, search, skip, limit) => {
 
 
 async function addArticle(newArticle) {
-   try {
-    // Create new article object with form data
+  try {
+    // Process images to ensure they have an 'alt' tag
+    // If no alt is provided by the user, we use the article title
+    const processedImages = (newArticle.images || []).map(img => ({
+      url: img.url,
+      key: img.key,
+      alt: img.alt && img.alt.trim() !== "" ? img.alt : String(newArticle.title)
+    }));
+
     let article = new ArticleModel({
       title: String(newArticle.title),
       text: String(newArticle.text),
       categoryId: newArticle.categoryId,
-      images: newArticle.images || [] // Include images array
+      images: processedImages // Use the processed images with guaranteed alt tags
     });
-    // Save to database
+
     const result = await article.save();
-    console.log("Article saved successfully");
+    console.log("Article saved successfully with alt tags");
     
     return result;
   } catch (error) {
     console.error("Error saving article:", error.message);
-    return null; // Return null if error
+    return null;
   }
 }
 
 // Update an article by ID
-async function editArticlebyId(id, articleData) {
-    // Find article by ID and update with new data
-    const result = await ArticleModel.updateOne(
-        {_id:id},
-        { $set: articleData }
-    );
-    if(result.modifiedCount === 1){
-        console.log("Article modified successfully");
-    }else{
-        console.log("Error updating the article");
-    }
 
-    return result;
+
+async function editArticlebyId(id, articleData) {
+    try {
+        const existingArticle = await ArticleModel.findById(id);
+        if (!existingArticle) return null;
+
+        let keysToDelete = [];
+
+        if (articleData.images && Array.isArray(articleData.images)) {
+            const newKeys = articleData.images.map(img => img.key);
+            
+            // Just identify the keys for now, don't delete yet
+            keysToDelete = existingArticle.images
+                .filter(img => !newKeys.includes(img.key))
+                .map(img => img.key);
+
+            // Apply the Alt Tag logic
+            articleData.images = articleData.images.map(img => ({
+                url: img.url,
+                key: img.key,
+                alt: img.alt && img.alt.trim() !== "" ? img.alt : String(articleData.title || existingArticle.title)
+            }));
+        }
+
+        // 1. Update the Database FIRST
+        const result = await ArticleModel.updateOne({ _id: id }, { $set: articleData });
+
+        // 2. ONLY if the database update worked, clean up R2
+        if (result.modifiedCount === 1 && keysToDelete.length > 0) {
+            for (const key of keysToDelete) {
+                await s3.send(new DeleteObjectCommand({
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: key,
+                }));
+                console.log(`Cleanup: Deleted orphaned image ${key}`);
+            }
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Critical Update Error:", error.message);
+        throw error;
+    }
 }
 
 // Delete an article by ID

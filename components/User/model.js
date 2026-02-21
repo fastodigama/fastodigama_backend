@@ -66,12 +66,45 @@ async function addUser(username, pw) {
     }
 }
 
+// Delete a user from database (admin only)
+// Returns true if successful, false if user not found
+async function deleteUser(username) {
+    // Delete the user from database
+    let result = await User.deleteOne({ user: username });
+    
+    // Return true if one user was deleted, false if no user found
+    return result.deletedCount === 1;
+}
+
+// Update user information (admin only)
+// Returns true if successful, false if user not found
+async function updateUser(username, newUsername) {
+    // Check if new username already exists (only if changing the username)
+    if (newUsername !== username) {
+        let existingUser = await getUser(newUsername);
+        if (existingUser) {
+            return false; // New username already taken
+        }
+    }
+    
+    // Update the user's username in database
+    let result = await User.updateOne(
+        { user: username },
+        { user: newUsername }
+    );
+    
+    // Return true if one user was updated, false if no user found
+    return result.modifiedCount === 1;
+}
+
 export default {
     authenticateUser,
     getUser,
     addUser,
     getAllUsers,
-    resetPassword
+    resetPassword,
+    deleteUser,
+    updateUser
 };
 
 // Get all users

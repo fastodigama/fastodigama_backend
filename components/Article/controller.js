@@ -190,15 +190,19 @@ const addNewArticle = async (request, response) => {
   try {
     const { title, text, categoryId } = request.body;
 
-    // Build images array from multer-s3
-    const images = request.files?.map(file => ({
+    // 🌟 THE FIX: Force 'alt' into an array so we can loop through it reliably
+    const altTexts = request.body.alt 
+      ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
+      : [];
+
+    // Build images array, matching the file index to the alt string index
+    const images = request.files?.map((file, index) => ({
       url: `${process.env.R2_PUBLIC_URL}/${file.key}`,   // Cloudflare public URL
       key: file.key,        // needed if you want to delete later
-      alt: request.body.alt || ""
+      alt: altTexts[index] || "" // Grab the matching caption for this specific photo
     })) || [];
 
-    console.log("🖼️  Generated image URLs:", images);
-    console.log("🌐 R2_PUBLIC_URL:", process.env.R2_PUBLIC_URL);
+    console.log("🖼️  Generated images with captions:", images);
 
     // Save article
     const result = await articleModel.addArticle({
@@ -221,8 +225,7 @@ const addNewArticle = async (request, response) => {
     });
 
   } catch (err) {
-    console.error(err);
-
+    console.error("Error in addNewArticle:", err);
     const categories = await categoryModel.getCategories();
     return response.render("article/article-add", {
       err: "Unexpected error",
@@ -231,7 +234,6 @@ const addNewArticle = async (request, response) => {
     });
   }
 };
-
 
 // Delete an article by ID
 const deleteArticle = async (request, response) => {
@@ -276,40 +278,58 @@ const editArticleForm = async (request, response) => {
 // Update an article in the database
 const editArticle = async (request, response) => {
   try {
-    // Get the form data
-    const { articleId, title, text, categoryId } = request.body;
+    const { articleId, title, text, categoryId, existingImageKeys, existingImageAlts } = request.body;
 
-    // Build update object
     const updateData = {
       title,
       text,
       categoryId,
     };
 
-    // If new images were uploaded, add them to the article
-    if (request.files && request.files.length > 0) {
-      const newImages = request.files.map(file => ({
-        url: `${process.env.R2_PUBLIC_URL}/${file.key}`,
-        key: file.key,
-        alt: request.body.alt || ""
-      }));
+    // 1. Fetch the existing article from DB
+    const existingArticle = await articleModel.getArticleById(articleId);
+    let currentImages = existingArticle.images || [];
 
-      // Get existing article to preserve old images
-      const existingArticle = await articleModel.getArticleById(articleId);
-      
-      // Append new images to existing ones
-      updateData.images = [...(existingArticle.images || []), ...newImages];
+    // 2. 🌟 UPDATE EXISTING CAPTIONS
+    if (existingImageKeys) {
+      // Force them into arrays so we can loop safely
+      const keys = Array.isArray(existingImageKeys) ? existingImageKeys : [existingImageKeys];
+      const alts = Array.isArray(existingImageAlts) ? existingImageAlts : [existingImageAlts];
+
+      // Map through the existing images and update their alt tags if they match the keys
+      currentImages = currentImages.map(img => {
+        const index = keys.indexOf(img.key);
+        if (index !== -1) {
+          return { ...img.toObject(), alt: alts[index] }; // Update the alt text!
+        }
+        return img;
+      });
     }
 
-    // Update the article with new values
+    // 3. IF NEW IMAGES WERE UPLOADED, ADD THEM
+    let newImages = [];
+    if (request.files && request.files.length > 0) {
+      const newAltTexts = request.body.alt 
+        ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
+        : [];
+
+      newImages = request.files.map((file, index) => ({
+        url: `${process.env.R2_PUBLIC_URL}/${file.key}`,
+        key: file.key,
+        alt: newAltTexts[index] || ""
+      }));
+    }
+
+    // Combine updated existing images with brand new ones
+    updateData.images = [...currentImages, ...newImages];
+
+    // Save to database
     const result = await articleModel.editArticlebyId(articleId, updateData);
 
-    // Success: go back to list
     if (result) {
       return response.redirect("/admin/article");
     }
 
-    // Error: show error on list
     return response.render("article/article-list", { err: "Error updating article" });
     
   } catch (error) {
@@ -317,7 +337,6 @@ const editArticle = async (request, response) => {
     return response.render("article/article-list", { err: "Unexpected error updating article" });
   }
 };
-
 // Delete an image from an article
 const deleteImage = async (request, response) => {
   try {

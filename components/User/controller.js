@@ -133,6 +133,76 @@ const resetPassword = async (request, response) => {
   }
 };
 
+// Show edit user form (admin only)
+const editUserForm = async (request, response) => {
+  const username = request.query.username;
+  if (!username) {
+    return response.redirect("/admin/users");
+  }
+  
+  let user = await userModel.getUser(username);
+  if (!user) {
+    return response.redirect("/admin/users");
+  }
+  
+  response.render("user/user-edit", { 
+    title: "Edit User", 
+    user,
+    currentPath: request.path 
+  });
+};
+
+// Handle user edit (admin only)
+const editUser = async (request, response) => {
+  const { oldUsername, newUsername } = request.body;
+  
+  // Validate new username
+  if (!newUsername || newUsername.trim().length === 0) {
+    let user = await userModel.getUser(oldUsername);
+    return response.render("user/user-edit", {
+      err: "Username cannot be empty",
+      user,
+      title: "Edit User"
+    });
+  }
+  
+  // Update the username
+  let result = await userModel.updateUser(oldUsername, newUsername);
+  
+  if (result) {
+    // Success: redirect to users list
+    response.redirect("/admin/users");
+  } else {
+    // Error: show error message
+    let user = await userModel.getUser(oldUsername);
+    response.render("user/user-edit", {
+      err: "Username already exists or user not found",
+      user,
+      title: "Edit User"
+    });
+  }
+};
+
+// Delete user (admin only)
+const deleteUser = async (request, response) => {
+  const username = request.query.username;
+  
+  if (!username) {
+    return response.redirect("/admin/users");
+  }
+  
+  // Delete the user
+  let result = await userModel.deleteUser(username);
+  
+  if (result) {
+    // Success: redirect to users list
+    response.redirect("/admin/users");
+  } else {
+    // Error: redirect to users list with error
+    response.redirect("/admin/users");
+  }
+};
+
 export default {
   getUser,
   loginForm,
@@ -143,4 +213,7 @@ export default {
   getAllUsers,
   resetPasswordForm,
   resetPassword,
+  editUserForm,
+  editUser,
+  deleteUser,
 };

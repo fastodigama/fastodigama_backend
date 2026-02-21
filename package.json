@@ -23,7 +23,7 @@
     "dev": "nodemon ./index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.994.0",
+    "@aws-sdk/client-s3": "^3.995.0",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",

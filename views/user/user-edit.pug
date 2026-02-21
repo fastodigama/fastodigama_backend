@@ -1,0 +1,41 @@
+extends ../common/layout
+
+block layout-content
+    //- Edit user form
+    .container.mt-5
+        .row.justify-content-center
+            .col-md-6
+                .card
+                    .card-header.bg-primary.text-white
+                        h2.card-title.mb-0 Edit User
+
+                    .card-body
+                        if err
+                            .alert.alert-danger= err
+
+                        form(method="POST", action="/admin/users/edit")
+                            .mb-3
+                                label.form-label(for="oldUsername") Current Username
+                                input.form-control(
+                                    type="text",
+                                    id="oldUsername",
+                                    name="oldUsername",
+                                    value=user.user,
+                                    disabled
+                                )
+                                input(type="hidden", name="oldUsername", value=user.user)
+
+                            .mb-3
+                                label.form-label(for="newUsername") New Username
+                                input.form-control(
+                                    type="text",
+                                    id="newUsername",
+                                    name="newUsername",
+                                    placeholder="Enter new username",
+                                    value=user.user,
+                                    required
+                                )
+
+                            .d-flex.gap-2
+                                button.btn.btn-primary(type="submit") Update User
+                                a.btn.btn-secondary(href="/admin/users") Cancel
