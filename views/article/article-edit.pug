@@ -23,6 +23,18 @@ block layout-content
                                 required
                             )
 
+                        //- 🌟 NEW: Author field
+                        .mb-3
+                            label.form-label(for="author") Author
+                            input.form-control(
+                                type="text",
+                                id="author",
+                                name="author",
+                                value=editArticle.author || "Fadel Matar",
+                                placeholder="e.g., Fadel Matar & AI",
+                                required
+                            )
+
                         //- Article text field
                         .mb-3
                             label.form-label(for="article-text") Article Text
@@ -44,7 +56,7 @@ block layout-content
                                         selected=cat._id.toString() === editArticle.categoryId._id.toString()
                                     )= cat.name
 
-                        //- 🌟 UPDATED: Display existing images WITH EDITABLE CAPTIONS
+                        //- Display existing images WITH EDITABLE CAPTIONS
                         if editArticle.images && editArticle.images.length > 0
                             .mb-4
                                 label.form-label.fw-bold Existing Images

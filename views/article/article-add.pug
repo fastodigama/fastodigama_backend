@@ -7,9 +7,10 @@ block layout-content
         .card-body.p-4
           h1.h3.mb-4.text-center Add New Article
 
-          //- Added an ID to the form so we can easily target it in JS
+          //- Form targeting your Express submission route
           form#add-article-form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
-            // Title
+            
+            // 1. Title
             .mb-3
               label.form-label(for="title") Title
               input.form-control(
@@ -21,7 +22,20 @@ block layout-content
                 required
               )
 
-            // Article Text
+            // 2. Author Field (New)
+            .mb-3
+              label.form-label(for="author") Author
+              input.form-control(
+                type="text",
+                id="author",
+                name="author",
+                value="Fadel Matar",
+                placeholder="e.g., Fadel Matar & AI",
+                autocomplete="off",
+                required
+              )
+
+            // 3. Article Text
             .mb-3
               label.form-label(for="article-text") Article Text
               textarea.form-control(
@@ -33,7 +47,7 @@ block layout-content
                 autocomplete="off"
               )
 
-            // Category
+            // 4. Category
             .mb-3
               label.form-label(for="cat") Select Category
               select.form-select(id="cat", name="categoryId", required)
@@ -41,15 +55,17 @@ block layout-content
                 each cat in categories
                   option(value=cat._id)= cat.name
 
-            // IMAGE & CAPTION UPLOAD SECTION
+            // 5. Image & Caption Upload Section
             .mb-4
               label.form-label.fw-bold Article Images
+              p.text-muted.small.mb-2 💡 Note: The first image will be used as the large Hero Image for the article card and header.
+              
               #image-container
-                // The first image block (Required for the Hero image)
+                // The first image block
                 .image-block.border.rounded.p-3.mb-3.bg-light
                   .row
                     .col-md-6.mb-2.mb-md-0
-                      label.form-label.small Upload Image
+                      label.form-label.small.fw-bold.text-primary.image-upload-label Upload Image 1 (Hero Image) *
                       input.form-control(
                         type="file",
                         name="images",
@@ -61,50 +77,57 @@ block layout-content
                       input.form-control(
                         type="text",
                         name="alt",
-                        placeholder="e.g., Photo by Reuters / TSMC Factory"
+                        placeholder="e.g., Photo by Unsplash"
                       )
               
               // Button to dynamically add more image/caption blocks
               button#add-more-images.btn.btn-outline-secondary.btn-sm(type="button")
                 | + Add Another Image
 
-            // Buttons
+            // 6. Buttons
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/article") Cancel
               
-              //- 🌟 NEW: Submit button with hidden spinner
+              // Submit button with hidden spinner
               button#submit-btn.btn.btn-primary(type="submit")
                 span#submit-spinner.spinner-border.spinner-border-sm.d-none.me-2(role="status", aria-hidden="true")
                 span#submit-text Add Article
 
-  // 🌟 SCRIPT TO HANDLE ADDING MORE IMAGES AND LOADING STATE
+  // 🌟 SCRIPT TO HANDLE DYNAMIC IMAGES AND LOADING STATE
   script.
     document.addEventListener('DOMContentLoaded', function() {
       // --- 1. HANDLE ADDING MORE IMAGES ---
       const addBtn = document.getElementById('add-more-images');
       const container = document.getElementById('image-container');
+      let imageCount = 1; // Keep track of the number of images
 
       addBtn.addEventListener('click', function() {
+        imageCount++; 
         const originalBlock = container.querySelector('.image-block');
         const newBlock = originalBlock.cloneNode(true);
 
+        // Reset inputs in the cloned block
         newBlock.querySelector('input[type="file"]').value = '';
         newBlock.querySelector('input[type="text"]').value = '';
         newBlock.querySelector('input[type="file"]').removeAttribute('required');
 
+        // Update the label to signify it's a Body Image, not a Hero Image
+        const label = newBlock.querySelector('.image-upload-label');
+        if (label) {
+          label.textContent = `Upload Image ${imageCount} (Body Image)`;
+          label.classList.remove('text-primary', 'fw-bold'); 
+        }
+
         container.appendChild(newBlock);
       });
 
-      // --- 2. 🌟 HANDLE FORM SUBMISSION & LOADING STATE ---
+      // --- 2. HANDLE FORM SUBMISSION & LOADING STATE ---
       const form = document.getElementById('add-article-form');
       const submitBtn = document.getElementById('submit-btn');
       const submitSpinner = document.getElementById('submit-spinner');
       const submitText = document.getElementById('submit-text');
 
       form.addEventListener('submit', function(e) {
-        // We do NOT use e.preventDefault() here because we want the form to actually submit to the backend.
-        // We only want to change the UI while the browser waits for the server response.
-
         // Disable the button to prevent double-clicks
         submitBtn.disabled = true;
         

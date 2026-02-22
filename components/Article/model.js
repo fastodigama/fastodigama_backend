@@ -10,6 +10,11 @@ const ArticleSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     text: { type: String, required: true },
+    author: {
+        type:String,
+        required:true,
+        default: "Fadel Matar"
+    },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
