@@ -7,7 +7,8 @@ block layout-content
         .card-body.p-4
           h1.h3.mb-4.text-center Add New Article
 
-          form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
+          //- Added an ID to the form so we can easily target it in JS
+          form#add-article-form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
             // Title
             .mb-3
               label.form-label(for="title") Title
@@ -40,7 +41,7 @@ block layout-content
                 each cat in categories
                   option(value=cat._id)= cat.name
 
-            // 🌟 NEW: IMAGE & CAPTION UPLOAD SECTION
+            // IMAGE & CAPTION UPLOAD SECTION
             .mb-4
               label.form-label.fw-bold Article Images
               #image-container
@@ -70,27 +71,45 @@ block layout-content
             // Buttons
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/article") Cancel
-              button.btn.btn-primary(type="submit") Add Article
+              
+              //- 🌟 NEW: Submit button with hidden spinner
+              button#submit-btn.btn.btn-primary(type="submit")
+                span#submit-spinner.spinner-border.spinner-border-sm.d-none.me-2(role="status", aria-hidden="true")
+                span#submit-text Add Article
 
-  // 🌟 SCRIPT TO HANDLE ADDING MORE IMAGES
+  // 🌟 SCRIPT TO HANDLE ADDING MORE IMAGES AND LOADING STATE
   script.
     document.addEventListener('DOMContentLoaded', function() {
+      // --- 1. HANDLE ADDING MORE IMAGES ---
       const addBtn = document.getElementById('add-more-images');
       const container = document.getElementById('image-container');
 
       addBtn.addEventListener('click', function() {
-        // Find the first image block and clone it
         const originalBlock = container.querySelector('.image-block');
         const newBlock = originalBlock.cloneNode(true);
 
-        // Clear the values in the cloned block so it's empty
         newBlock.querySelector('input[type="file"]').value = '';
         newBlock.querySelector('input[type="text"]').value = '';
-        
-        // Remove the 'required' attribute from extra images so they are optional
         newBlock.querySelector('input[type="file"]').removeAttribute('required');
 
-        // Append the new block to the container
         container.appendChild(newBlock);
+      });
+
+      // --- 2. 🌟 HANDLE FORM SUBMISSION & LOADING STATE ---
+      const form = document.getElementById('add-article-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const submitSpinner = document.getElementById('submit-spinner');
+      const submitText = document.getElementById('submit-text');
+
+      form.addEventListener('submit', function(e) {
+        // We do NOT use e.preventDefault() here because we want the form to actually submit to the backend.
+        // We only want to change the UI while the browser waits for the server response.
+
+        // Disable the button to prevent double-clicks
+        submitBtn.disabled = true;
+        
+        // Show the spinner and change the text
+        submitSpinner.classList.remove('d-none');
+        submitText.textContent = 'Optimizing & Uploading...';
       });
     });

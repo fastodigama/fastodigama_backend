@@ -3,30 +3,13 @@ import articleModel from "./model.js";
 import categoryModel from "../Category/model.js";
 import { marked } from "marked";
 import multer from "multer";
-import multerS3 from "multer-s3";
-import path from "path";
 import { s3 } from "../config/r2.js";
+import sharp from "sharp";
+import { PutObjectCommand } from "@aws-sdk/client-s3"; // 🌟 Fixed import!
 
 const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.R2_BUCKET_NAME,
-    // Remove ACL - R2 doesn't support it like S3
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (request, file, cb) {
-      const projectNameSlug = request.body.title
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "-");
-
-      const fileExtension = path.extname(file.originalname);
-      const newFileName = `${projectNameSlug}-${Date.now()}${fileExtension}`;
-
-      console.log("📁 Uploading file:", newFileName);
-      cb(null, newFileName);
-    },
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
 });
 
 
@@ -189,49 +172,48 @@ const addArticleForm = async (request, response) => {
 const addNewArticle = async (request, response) => {
   try {
     const { title, text, categoryId } = request.body;
-
-    // 🌟 THE FIX: Force 'alt' into an array so we can loop through it reliably
+    
+    // Ensure alt texts are in an array format
     const altTexts = request.body.alt 
       ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
       : [];
 
-    // Build images array, matching the file index to the alt string index
-    const images = request.files?.map((file, index) => ({
-      url: `${process.env.R2_PUBLIC_URL}/${file.key}`,   // Cloudflare public URL
-      key: file.key,        // needed if you want to delete later
-      alt: altTexts[index] || "" // Grab the matching caption for this specific photo
-    })) || [];
+    let images = [];
 
-    console.log("🖼️  Generated images with captions:", images);
+    if (request.files && request.files.length > 0) {
+      // Process images in parallel for speed
+      images = await Promise.all(request.files.map(async (file, index) => {
+        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-");
+        const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
 
-    // Save article
-    const result = await articleModel.addArticle({
-      title,
-      text,
-      categoryId,
-      images
-    });
+        // 🌟 SHARP: Resize and Convert
+        const buffer = await sharp(file.buffer)
+          .resize(1200, null, { withoutEnlargement: true }) // Max 1200px wide
+          .webp({ quality: 80 }) // High quality, low file size
+          .toBuffer();
 
-    if (result) {
-      return response.redirect("/admin/article");
+        // Manual upload to R2
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileName,
+          Body: buffer,
+          ContentType: "image/webp",
+        }));
+
+        return {
+          url: `${process.env.R2_PUBLIC_URL}/${fileName}`,
+          key: fileName,
+          alt: altTexts[index] || ""
+        };
+      }));
     }
 
-    // If saving failed
-    const categories = await categoryModel.getCategories();
-    return response.render("article/article-add", {
-      err: "error adding article",
-      categories,
-      formData: { title, text }
-    });
+    const result = await articleModel.addArticle({ title, text, categoryId, images });
+    if (result) return response.redirect("/admin/article");
 
   } catch (err) {
-    console.error("Error in addNewArticle:", err);
-    const categories = await categoryModel.getCategories();
-    return response.render("article/article-add", {
-      err: "Unexpected error",
-      categories,
-      formData: request.body
-    });
+    console.error("Error adding article with Sharp:", err);
+    return response.status(500).send("Failed to process images.");
   }
 };
 
@@ -276,54 +258,68 @@ const editArticleForm = async (request, response) => {
 };
 
 // Update an article in the database
+// Update an article in the database with Sharp optimization
 const editArticle = async (request, response) => {
   try {
     const { articleId, title, text, categoryId, existingImageKeys, existingImageAlts } = request.body;
+    const updateData = { title, text, categoryId };
 
-    const updateData = {
-      title,
-      text,
-      categoryId,
-    };
-
-    // 1. Fetch the existing article from DB
+    // 1. Fetch the existing article to manage current images
     const existingArticle = await articleModel.getArticleById(articleId);
     let currentImages = existingArticle.images || [];
 
-    // 2. 🌟 UPDATE EXISTING CAPTIONS
+    // 2. Sync existing captions (handles updates to old image text)
     if (existingImageKeys) {
-      // Force them into arrays so we can loop safely
       const keys = Array.isArray(existingImageKeys) ? existingImageKeys : [existingImageKeys];
       const alts = Array.isArray(existingImageAlts) ? existingImageAlts : [existingImageAlts];
 
-      // Map through the existing images and update their alt tags if they match the keys
       currentImages = currentImages.map(img => {
         const index = keys.indexOf(img.key);
+        // If the key is found, update the alt text; otherwise keep it as is
         if (index !== -1) {
-          return { ...img.toObject(), alt: alts[index] }; // Update the alt text!
+          return { ...img.toObject(), alt: alts[index] };
         }
         return img;
       });
     }
 
-    // 3. IF NEW IMAGES WERE UPLOADED, ADD THEM
+    // 3. Process NEW images with Sharp (WebP + Resize)
     let newImages = [];
     if (request.files && request.files.length > 0) {
       const newAltTexts = request.body.alt 
         ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
         : [];
 
-      newImages = request.files.map((file, index) => ({
-        url: `${process.env.R2_PUBLIC_URL}/${file.key}`,
-        key: file.key,
-        alt: newAltTexts[index] || ""
+      // Process in parallel for better performance on Railway
+      newImages = await Promise.all(request.files.map(async (file, index) => {
+        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-");
+        const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
+
+        // 🌟 SHARP: Convert to WebP and limit width to 1200px
+        const buffer = await sharp(file.buffer)
+          .resize(1200, null, { withoutEnlargement: true }) 
+          .webp({ quality: 80 }) 
+          .toBuffer();
+
+        // Upload to R2
+        await s3.send(new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileName,
+          Body: buffer,
+          ContentType: "image/webp",
+        }));
+
+        return {
+          url: `${process.env.R2_PUBLIC_URL}/${fileName}`,
+          key: fileName,
+          alt: newAltTexts[index] || ""
+        };
       }));
     }
 
-    // Combine updated existing images with brand new ones
+    // 4. Merge updated existing images with brand new optimized images
     updateData.images = [...currentImages, ...newImages];
 
-    // Save to database
     const result = await articleModel.editArticlebyId(articleId, updateData);
 
     if (result) {
@@ -333,7 +329,7 @@ const editArticle = async (request, response) => {
     return response.render("article/article-list", { err: "Error updating article" });
     
   } catch (error) {
-    console.error("Error editing article:", error);
+    console.error("Error editing article with Sharp:", error);
     return response.render("article/article-list", { err: "Unexpected error updating article" });
   }
 };
