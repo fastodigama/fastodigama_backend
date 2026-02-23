@@ -39,7 +39,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "blob:", "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://fastodigama.up.railway.app"],
       fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -54,6 +54,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || "http://localhost:3000",
   "http://localhost:3000",
   "http://localhost:3001",
+  "https://fastodigama.up.railway.app",
 ];
 
 app.use(
@@ -97,7 +98,7 @@ app.use(
     resave: false,
     cookie: {
       httpOnly: true, // Prevent XSS attacks
-      secure: false, // Set to true only with HTTPS in production
+      secure: process.env.NODE_ENV === 'production', // true on Railway, false locally
       sameSite: 'lax', // CSRF protection - 'lax' allows same-site navigation
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     },
