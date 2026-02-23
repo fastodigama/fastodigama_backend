@@ -16,6 +16,22 @@ const getCategoriesApiResponse = async (request, response) => {
     }
 };
 
+const getCategoryByIdApiResponse = async (request, response) => {
+  try {
+    const { id } = request.params;
+    const category = await categoryModel.getCategoryById(id); // You'll need this method
+    
+    if (!category) {
+      return response.status(404).json({ message: "Category not found" });
+    }
+    
+    response.json(category);
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    response.status(500).json({ message: "Server Error fetching category" });
+  }
+};
+
 // Get and display all categories (FOR ADMIN DASHBOARD)
 const getAllCategories = async (request, response) => {
     // Fetch all categories from database
@@ -91,5 +107,6 @@ export default {
     updateCategory,
     updateCategoryForm,
     deleteCategory,
-    getCategoriesApiResponse // 🌟 NEW: Exported here
+    getCategoriesApiResponse,
+    getCategoryByIdApiResponse 
 }

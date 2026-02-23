@@ -89,6 +89,7 @@ app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/categories", categories.getCategoriesApiResponse );
+app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 
 // ===== VISITOR ROUTES =====
 app.use("/api/reader", readerRouter);
