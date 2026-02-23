@@ -7,28 +7,33 @@ import readerModel from "../Reader/model.js";
 // POST: Create a new comment
 const createComment = async (request, response) => {
     try {
-        const { articleId, content, parentId } = request.body;
+        const { articleId, content, parentId, authorName } = request.body;
         
         // Validate required fields
         if (!articleId || !content) {
             return response.status(400).json({ 
-                error: "Missing required fields" 
+                error: "Missing required fields (articleId, content)" 
             });
         }
         
-        // Check if reader is logged in
-        if (!request.session.readerLoggedIn) {
-            return response.status(401).json({ 
-                error: "Must be logged in to comment" 
+        // Validate content length (min 2 chars)
+        if (content.trim().length < 2) {
+            return response.status(400).json({ 
+                error: "Comment must be at least 2 characters" 
             });
         }
+
+        // Get author info from session (if logged in) or use anonymous
+        const finalAuthorName = authorName && authorName.trim() ? authorName.trim() : "Anonymous";
+        const authorId = request.session.readerId || null;
         
         // Create the comment
         const comment = await commentModel.createComment(
             articleId,
-            request.session.readerId,
             content,
-            parentId || null
+            parentId || null,
+            authorId,
+            finalAuthorName
         );
         
         response.status(201).json({

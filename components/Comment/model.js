@@ -12,7 +12,11 @@ const CommentSchema = new mongoose.Schema({
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Reader",
-        required: true
+        default: null  // Allow anonymous comments (no author)
+    },
+    authorName: {
+        type: String,
+        default: "Anonymous"  // Display name for anonymous comments
     },
     content: {
         type: String,
@@ -47,10 +51,11 @@ const Comment = mongoose.model("Comment", CommentSchema);
 
 // Create a new comment
 // Returns the created comment with author info populated
-async function createComment(articleId, authorId, content, parentId = null) {
+async function createComment(articleId, content, parentId = null, authorId = null, authorName = "Anonymous") {
     const comment = new Comment({
         articleId,
-        author: authorId,
+        author: authorId || null,
+        authorName: authorName || "Anonymous",
         content,
         parentId
     });
