@@ -12,6 +12,8 @@ import pageRouter from "./components/pages/router.js";
 import userRouter from "./components/User/routes.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
+import readerRouter from "./components/Reader/routes.js";
+import commentRouter from "./components/Comment/routes.js";
 
 import links from "./components/menuLinks/controller.js";
 import articles from "./components/Article/controller.js";
@@ -87,6 +89,10 @@ app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/categories", categories.getCategoriesApiResponse );
+
+// ===== VISITOR ROUTES =====
+app.use("/api/reader", readerRouter);
+app.use("/api/comments", commentRouter);
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
