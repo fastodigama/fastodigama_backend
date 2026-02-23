@@ -86,7 +86,7 @@ app.use(
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
-app.get("api/categories", categories.getCategoriesApiResponse );
+app.get("/api/categories", categories.getCategoriesApiResponse );
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
