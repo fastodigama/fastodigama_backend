@@ -49,10 +49,25 @@ app.use(helmet({
 }));
 
 
-// Enable CORS
+// Enable CORS with credentials for TikTok OAuth
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
 app.use(
   cors({
-    origin: "*",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(null, true); // For development - be more restrictive in production
+      }
+    },
+    credentials: true, // Allow cookies for session management
   })
 );
 
@@ -80,7 +95,12 @@ app.use(
     name: "MyUniqueSEssID",
     saveUninitialized: false,
     resave: false,
-    cookie: {},
+    cookie: {
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // CSRF protection
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    },
   })
 );
 
