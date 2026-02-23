@@ -4,8 +4,20 @@ import categoryModel from "./model.js";
 // ===== CATEGORY CONTROLLER =====
 // Handles all category business logic (Create, Read, Update, Delete)
 
-// Get and display all categories
-const getAllCategories = async (request,response) => {
+// 🌟 NEW: Get all Categories and return as JSON (FOR FRONTEND API)
+const getCategoriesApiResponse = async (request, response) => {
+    try {
+        const categoryList = await categoryModel.getCategories();
+        // Return as a JSON object so Next.js can parse it cleanly
+        response.json({ categories: categoryList });
+    } catch (error) {
+        console.error("Error fetching categories API:", error);
+        response.status(500).json({ message: "Server Error fetching categories" });
+    }
+};
+
+// Get and display all categories (FOR ADMIN DASHBOARD)
+const getAllCategories = async (request, response) => {
     // Fetch all categories from database
     let categoryList = await categoryModel.getCategories();
 
@@ -16,7 +28,6 @@ const getAllCategories = async (request,response) => {
     }
     // Show the categories list page
     response.render("category/category-list", {title: "Category List", categories: categoryList});
-
 };
 
 // Show the form to add a new category
@@ -56,7 +67,6 @@ const updateCategory = async (request, response) => {
             // Error: show error message on edit form
             response.render("category/category-edit", {err: "error updating category"});
         }
-        
 }
 
 // Delete a category by name
@@ -80,5 +90,6 @@ export default {
     AddCategoryForm,
     updateCategory,
     updateCategoryForm,
-    deleteCategory
+    deleteCategory,
+    getCategoriesApiResponse // 🌟 NEW: Exported here
 }

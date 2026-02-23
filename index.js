@@ -15,6 +15,7 @@ import categoryRouter from "./components/Category/routes.js";
 
 import links from "./components/menuLinks/controller.js";
 import articles from "./components/Article/controller.js";
+import categories from "./components/Category/controller.js";
 
 import cors from "cors";
 import helmet from "helmet";
@@ -85,6 +86,7 @@ app.use(
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
+app.get("api/categories", categories.getCategoriesApiResponse );
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
