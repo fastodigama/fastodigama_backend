@@ -38,7 +38,7 @@ const createComment = async (request, response) => {
         
         response.status(201).json({
             success: true,
-            message: "Comment submitted for moderation",
+            message: "Comment posted",
             comment: comment
         });
     } catch (error) {

@@ -41,7 +41,7 @@ const CommentSchema = new mongoose.Schema({
     },
     approved: {
         type: Boolean,
-        default: false  // Comments need admin approval before showing
+        default: true  // Comments show immediately
     }
 });
 
