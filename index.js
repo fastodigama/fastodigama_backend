@@ -97,8 +97,8 @@ app.use(
     resave: false,
     cookie: {
       httpOnly: true, // Prevent XSS attacks
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // CSRF protection
+      secure: false, // Set to true only with HTTPS in production
+      sameSite: 'lax', // CSRF protection - 'lax' allows same-site navigation
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     },
   })
