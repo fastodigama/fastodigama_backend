@@ -1,56 +1,29 @@
-// ===== TIKTOK OAUTH CONTROLLER =====
-// Handles server-side TikTok OAuth flow (secure PKCE + CSRF)
-
+// ===== TIKTOK OAUTH CONTROLLER (Fixed for Web) =====
 import axios from "axios";
 import crypto from "crypto";
 import readerModel from "./model.js";
 
 // ==============================
-// PKCE HELPERS
-// ==============================
-
-// Generate code verifier (43–128 chars)
-const generateCodeVerifier = () => {
-    return crypto.randomBytes(64).toString("base64url");
-};
-
-// Generate code challenge (Base64URL SHA256)
-const generateCodeChallenge = (verifier) => {
-    const hash = crypto
-        .createHash("sha256")
-        .update(verifier)
-        .digest();
-
-    return hash
-        .toString("base64")
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-};
-
-// ==============================
 // STEP 1: Generate Auth URL
 // ==============================
 const getAuthUrl = (request, response) => {
+    // Generate a secure random state for CSRF protection
     const csrfState = crypto.randomBytes(16).toString("hex");
+    
+    // Store in session (Better than a cookie for server-side verification)
     request.session.tiktokCsrfState = csrfState;
-
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = generateCodeChallenge(codeVerifier);
-
-    request.session.tiktokCodeVerifier = codeVerifier;
 
     const params = new URLSearchParams({
         client_key: process.env.TIKTOK_CLIENT_KEY,
-        scope: "user.info.basic,user.info.profile",
+        // Match the comma-separated format from docs
+        scope: "user.info.basic", 
         response_type: "code",
         redirect_uri: process.env.TIKTOK_REDIRECT_URI,
         state: csrfState,
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
     });
 
-    const authUrl = `https://www.tiktok.com/v2/auth/authorize?${params.toString()}`;
+    // Added trailing slash after 'authorize' to match documentation exactly
+    const authUrl = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
 
     response.json({ authUrl });
 };
@@ -61,42 +34,27 @@ const getAuthUrl = (request, response) => {
 const handleCallback = async (request, response) => {
     try {
         const { code, state, error, error_description } = request.query;
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-        console.log("=== TikTok Callback Debug ===");
-        console.log("Code:", code);
-        console.log("State:", state);
-        console.log("Error:", error);
-        console.log("Error Description:", error_description);
-        console.log("Session State:", request.session.tiktokCsrfState);
-        console.log("============================");
-
+        // Handle TikTok Errors (e.g., user denied permission)
         if (error) {
-            const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-            return response.redirect(
-                `${frontendUrl}/auth/tiktok/error?error=${error}`
-            );
+            return response.redirect(`${frontendUrl}/auth/tiktok/error?error=${error}`);
         }
+
+        // 1. Verify CSRF State
+        if (!state || state !== request.session.tiktokCsrfState) {
+            return response.status(400).json({ error: "Invalid state parameter" });
+        }
+
+        // 2. Clean up session state immediately after use
+        delete request.session.tiktokCsrfState;
 
         if (!code) {
             return response.status(400).json({ error: "Missing authorization code" });
         }
 
-        if (state !== request.session.tiktokCsrfState) {
-            return response.status(400).json({ error: "Invalid state parameter" });
-        }
-
-        const codeVerifier = request.session.tiktokCodeVerifier;
-
-        delete request.session.tiktokCsrfState;
-        delete request.session.tiktokCodeVerifier;
-
-        if (!codeVerifier) {
-            return response.status(400).json({ error: "Missing code verifier" });
-        }
-
-        // ==============================
-        // Exchange code for access token
-        // ==============================
+        // 3. Exchange code for access token
+        // Documentation uses application/x-www-form-urlencoded
         const tokenResponse = await axios.post(
             "https://open.tiktokapis.com/v2/oauth/token/",
             new URLSearchParams({
@@ -105,96 +63,50 @@ const handleCallback = async (request, response) => {
                 code: code,
                 grant_type: "authorization_code",
                 redirect_uri: process.env.TIKTOK_REDIRECT_URI,
-                code_verifier: codeVerifier,
             }),
             {
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
             }
         );
 
-        const { access_token } = tokenResponse.data;
+        const { access_token, open_id } = tokenResponse.data;
 
         if (!access_token) {
             return response.status(400).json({ error: "Failed to get access token" });
         }
 
-        // ==============================
-        // Get user info
-        // ==============================
+        // 4. Get user info (Using the V2 User Info endpoint)
         const userResponse = await axios.get(
-            "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,bio_description",
+            "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",
             {
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                },
+                headers: { Authorization: `Bearer ${access_token}` },
             }
         );
 
         const user = userResponse.data?.data?.user;
 
         if (!user) {
-            return response.status(400).json({ error: "Failed to get user info" });
+            throw new Error("User data not found in TikTok response");
         }
 
-        // ==============================
-        // Find or create user
-        // ==============================
+        // 5. Database Logic
         const reader = await readerModel.findOrCreateReader(
             user.open_id,
             user.display_name,
-            user.avatar_url,
-            user.bio_description
+            user.avatar_url
         );
 
-        // ==============================
-        // Save session
-        // ==============================
+        // 6. Set Local Session
         request.session.readerLoggedIn = true;
         request.session.readerId = reader._id.toString();
-        request.session.tiktokId = reader.tiktokId;
-        request.session.displayName = reader.displayName;
-        request.session.avatarUrl = reader.avatarUrl;
 
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
         response.redirect(`${frontendUrl}/auth/tiktok/success`);
-    } catch (error) {
-        console.error("OAuth callback error:", error.response?.data || error.message);
 
+    } catch (error) {
+        console.error("TikTok OAuth Error:", error.response?.data || error.message);
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
         response.redirect(`${frontendUrl}/auth/tiktok/error`);
     }
 };
 
-// ==============================
-// Get current reader
-// ==============================
-const getCurrentReader = (request, response) => {
-    if (!request.session.readerLoggedIn) {
-        return response.status(401).json({ error: "Not logged in" });
-    }
-
-    response.json({
-        id: request.session.readerId,
-        tiktokId: request.session.tiktokId,
-        displayName: request.session.displayName,
-        avatarUrl: request.session.avatarUrl,
-    });
-};
-
-// ==============================
-// Logout
-// ==============================
-const logoutReader = (request, response) => {
-    request.session.destroy(() => {
-        response.json({ success: true });
-    });
-};
-
-export default {
-    getAuthUrl,
-    handleCallback,
-    getCurrentReader,
-    logoutReader,
-};
+export default { getAuthUrl, handleCallback };
