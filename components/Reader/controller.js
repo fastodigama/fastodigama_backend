@@ -1,73 +1,98 @@
-// ===== READER CONTROLLER =====
-// Handles TikTok visitor authentication and session
-
+// ===== TIKTOK VISITOR CONTROLLER (Master Version) =====
+import axios from "axios";
+import crypto from "crypto";
 import readerModel from "./model.js";
 
-// Handle TikTok login callback
-// This is called after TikTok OAuth redirect
-const tiktokCallback = async (request, response) => {
+// 1. Redirect user to TikTok
+const getAuthUrl = (request, response) => {
+    const csrfState = crypto.randomBytes(16).toString("hex");
+    request.session.tiktokCsrfState = csrfState;
+
+    request.session.save((err) => {
+        if (err) return response.status(500).json({ error: "Session error" });
+
+        const params = new URLSearchParams({
+            client_key: process.env.TIKTOK_CLIENT_KEY,
+            scope: "user.info.basic",
+            response_type: "code",
+            redirect_uri: process.env.TIKTOK_REDIRECT_URI,
+            state: csrfState,
+        });
+
+        response.redirect(`https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`);
+    });
+};
+
+// 2. Handle the redirect back from TikTok
+const handleCallback = async (request, response) => {
+    const frontendUrl = process.env.FRONTEND_URL || "https://fastodigama.up.railway.app";
     try {
-        // In a real app, you'd get this from TikTok's OAuth response
-        const { tiktokId, displayName, avatarUrl, bio } = request.body;
-        
-        // Validate required fields
-        if (!tiktokId || !displayName) {
-            return response.status(400).json({ 
-                error: "Missing required TikTok fields" 
-            });
+        const { code, state, error } = request.query;
+
+        if (error) return response.redirect(`${frontendUrl}/auth/tiktok/error?error=${error}`);
+
+        // Verify State
+        if (!state || state !== request.session.tiktokCsrfState) {
+            return response.redirect(`${frontendUrl}/auth/tiktok/error?error=invalid_state`);
         }
-        
-        // Find or create the reader
-        const reader = await readerModel.findOrCreateReader(
-            tiktokId,
-            displayName,
-            avatarUrl,
-            bio
+        delete request.session.tiktokCsrfState;
+
+        // Exchange code for token
+        const tokenRes = await axios.post("https://open.tiktokapis.com/v2/oauth/token/",
+            new URLSearchParams({
+                client_key: process.env.TIKTOK_CLIENT_KEY,
+                client_secret: process.env.TIKTOK_CLIENT_SECRET,
+                code,
+                grant_type: "authorization_code",
+                redirect_uri: process.env.TIKTOK_REDIRECT_URI,
+            }),
+            { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
         );
-        
-        // Store reader info in session
+
+        // Get User Info
+        const userRes = await axios.get("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url", {
+            headers: { Authorization: `Bearer ${tokenRes.data.access_token}` }
+        });
+
+        const user = userRes.data?.data?.user;
+
+        // DB Logic
+        const reader = await readerModel.findOrCreateReader(user.open_id, user.display_name, user.avatar_url);
+
+        // Set Session
         request.session.readerLoggedIn = true;
         request.session.readerId = reader._id.toString();
-        request.session.tiktokId = reader.tiktokId;
         request.session.displayName = reader.displayName;
-        
-        response.json({
-            success: true,
-            reader: {
-                id: reader._id,
-                tiktokId: reader.tiktokId,
-                displayName: reader.displayName,
-                avatarUrl: reader.avatarUrl
-            }
+        request.session.avatarUrl = reader.avatarUrl;
+
+        request.session.save(() => {
+            response.redirect(`${frontendUrl}/auth/tiktok/success`);
         });
+
     } catch (error) {
-        console.error("TikTok callback error:", error);
-        response.status(500).json({ error: "Login failed" });
+        console.error("Auth Error:", error.message);
+        response.redirect(`${frontendUrl}/auth/tiktok/error`);
     }
 };
 
-// Logout reader
-const logoutReader = (request, response) => {
-    request.session.readerLoggedIn = false;
-    request.session.readerId = null;
-    response.json({ success: true });
-};
-
-// Get current reader info
+// 3. Status Check (For the Frontend Header)
 const getCurrentReader = (request, response) => {
     if (!request.session.readerLoggedIn) {
         return response.status(401).json({ error: "Not logged in" });
     }
-    
     response.json({
         id: request.session.readerId,
-        tiktokId: request.session.tiktokId,
-        displayName: request.session.displayName
+        displayName: request.session.displayName,
+        avatarUrl: request.session.avatarUrl,
     });
 };
 
-export default {
-    tiktokCallback,
-    logoutReader,
-    getCurrentReader
+// 4. Logout
+const logoutReader = (request, response) => {
+    request.session.destroy(() => {
+        response.clearCookie("FastodigamaSession");
+        response.json({ success: true });
+    });
 };
+
+export default { getAuthUrl, handleCallback, getCurrentReader, logoutReader };
