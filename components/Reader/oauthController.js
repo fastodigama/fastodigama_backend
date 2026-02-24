@@ -2,19 +2,39 @@
 // Handles server-side TikTok OAuth flow (more secure)
 
 import axios from "axios";
+import crypto from "crypto";
 import readerModel from "./model.js";
+
+// Generate code verifier for PKCE (43-128 characters)
+const generateCodeVerifier = () => {
+    return crypto.randomBytes(64).toString('hex').substring(0, 128);
+};
+
+// Generate code challenge from verifier (SHA256 hex)
+const generateCodeChallenge = (verifier) => {
+    return crypto.createHash('sha256').update(verifier).digest('hex');
+};
 
 // Generate authorization URL
 const getAuthUrl = (request, response) => {
     const csrfState = Math.random().toString(36).substring(2);
     request.session.tiktokCsrfState = csrfState;
     
+    // Generate PKCE parameters
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+    
+    // Store code verifier in session for later use
+    request.session.tiktokCodeVerifier = codeVerifier;
+    
     const params = new URLSearchParams({
         client_key: process.env.TIKTOK_CLIENT_KEY,
-        scope: 'user.info.basic',
+        scope: 'user.info.profile',
         response_type: 'code',
         redirect_uri: process.env.TIKTOK_REDIRECT_URI,
         state: csrfState,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
     });
     
     const authUrl = `https://www.tiktok.com/v2/auth/authorize?${params.toString()}`;
@@ -32,8 +52,16 @@ const handleCallback = async (request, response) => {
             return response.status(400).json({ error: "Invalid state parameter" });
         }
         
-        // Clear CSRF state
+        // Get code verifier from session
+        const codeVerifier = request.session.tiktokCodeVerifier;
+        
+        // Clear CSRF state and code verifier
         delete request.session.tiktokCsrfState;
+        delete request.session.tiktokCodeVerifier;
+        
+        if (!codeVerifier) {
+            return response.status(400).json({ error: "Missing code verifier" });
+        }
         
         // Exchange authorization code for access token
         const tokenResponse = await axios.post(
@@ -44,6 +72,7 @@ const handleCallback = async (request, response) => {
                 code: code,
                 grant_type: 'authorization_code',
                 redirect_uri: process.env.TIKTOK_REDIRECT_URI,
+                code_verifier: codeVerifier,
             }),
             {
                 headers: {
