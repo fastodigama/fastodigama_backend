@@ -99,6 +99,9 @@ const handleCallback = async (request, response) => {
         // 6. Set Local Session
         request.session.readerLoggedIn = true;
         request.session.readerId = reader._id.toString();
+        request.session.tiktokId = reader.tiktokId;
+        request.session.displayName = reader.displayName;
+        request.session.avatarUrl = reader.avatarUrl;
 
         response.redirect(`${frontendUrl}/auth/tiktok/success`);
 
