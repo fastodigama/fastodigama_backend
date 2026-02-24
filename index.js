@@ -90,6 +90,9 @@ app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
 // ===== SESSION CONFIGURATION =====
+// Trust the reverse proxy on Railway so secure cookies work
+app.set("trust proxy", 1); 
+
 app.use(
   sessions({
     secret: process.env.SESSIONSECRET,
@@ -99,7 +102,7 @@ app.use(
     cookie: {
       httpOnly: true, // Prevent XSS attacks
       secure: process.env.NODE_ENV === 'production', // true on Railway, false locally
-      sameSite: 'lax', // CSRF protection - 'lax' allows same-site navigation
+      sameSite: 'none', // MUST be 'none' to allow third-party redirects like TikTok
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     },
   })

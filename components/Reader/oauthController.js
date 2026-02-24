@@ -39,13 +39,7 @@ const getAuthUrl = (request, response) => {
     
     const authUrl = `https://www.tiktok.com/v2/auth/authorize?${params.toString()}`;
     
-    // Debug logging
-    console.log('=== TikTok OAuth Debug ===');
-    console.log('Client Key:', process.env.TIKTOK_CLIENT_KEY);
-    console.log('Redirect URI:', process.env.TIKTOK_REDIRECT_URI);
-    console.log('Code Challenge:', codeChallenge);
-    console.log('Full Auth URL:', authUrl);
-    console.log('========================');
+    
     
     response.json({ authUrl });
 };
