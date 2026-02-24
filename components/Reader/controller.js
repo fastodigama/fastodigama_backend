@@ -65,9 +65,17 @@ const handleCallback = async (request, response) => {
         request.session.displayName = reader.displayName;
         request.session.avatarUrl = reader.avatarUrl;
 
-        request.session.save(() => {
-            response.redirect(`${frontendUrl}/auth/tiktok/success`);
-        });
+                request.session.save(() => {
+                        response.send(`
+                            <html>
+                                <body>
+                                    <script>
+                                        window.location.href = "${frontendUrl}/auth/tiktok/success";
+                                    </script>
+                                </body>
+                            </html>
+                        `);
+                });
 
     } catch (error) {
         console.error("Auth Error:", error.message);

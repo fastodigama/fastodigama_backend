@@ -34,22 +34,29 @@ const port = process.env.PORT || "8888";
 
 // ===== MIDDLEWARE CONFIGURATION =====
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev", "https:"],
-      connectSrc: ["'self'", "https://fastodigama.up.railway.app"],
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev",
+          "https:",
+        ],
+        connectSrc: ["'self'", "https://fastodigama.up.railway.app"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
     },
-  },
-}));
-
+  }),
+);
 
 // Enable CORS with credentials for TikTok OAuth
 const allowedOrigins = [
@@ -71,13 +78,13 @@ app.use(
       }
     },
     credentials: true, // Allow cookies for session management
-  })
+  }),
 );
 
 // Serve Bootstrap
 app.use(
   "/bootstrap",
-  express.static(path.join(__dirname, "node_modules/bootstrap/dist"))
+  express.static(path.join(__dirname, "node_modules/bootstrap/dist")),
 );
 
 // Body parsers
@@ -93,7 +100,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ===== SESSION CONFIGURATION =====
 // Trust the reverse proxy on Railway so secure cookies work
-app.set("trust proxy", 1); 
+app.set("trust proxy", 1);
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -108,10 +115,15 @@ if (process.env.REDIS_URL) {
     sessionStore = new RedisStore({ client: redisClient });
     console.log("✓ Redis session store connected");
   } catch (error) {
-    console.warn("⚠ Redis connection failed, using MemoryStore:", error.message);
+    console.warn(
+      "⚠ Redis connection failed, using MemoryStore:",
+      error.message,
+    );
   }
 } else {
-  console.warn("⚠ REDIS_URL not set, using MemoryStore (sessions won't persist across restarts)");
+  console.warn(
+    "⚠ REDIS_URL not set, using MemoryStore (sessions won't persist across restarts)",
+  );
 }
 
 app.use(
@@ -124,19 +136,18 @@ app.use(
     proxy: true,
     cookie: {
       httpOnly: true,
-      secure: isProduction, 
-      sameSite: isProduction ? "none" : "lax", 
-      domain: isProduction ? ".railway.app" : "localhost", 
+      secure: true,
+      sameSite: "none",
       maxAge: 1000 * 60 * 60 * 24,
     },
-  })
+  }),
 );
 
 // ===== API ROUTES =====
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
-app.get("/api/categories", categories.getCategoriesApiResponse );
+app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 
 // ===== VISITOR ROUTES =====
