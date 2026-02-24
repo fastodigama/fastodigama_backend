@@ -39,16 +39,41 @@ const getAuthUrl = (request, response) => {
     
     const authUrl = `https://www.tiktok.com/v2/auth/authorize?${params.toString()}`;
     
+    // Debug logging
+    console.log('=== TikTok OAuth Debug ===');
+    console.log('Client Key:', process.env.TIKTOK_CLIENT_KEY);
+    console.log('Redirect URI:', process.env.TIKTOK_REDIRECT_URI);
+    console.log('Code Challenge:', codeChallenge);
+    console.log('Full Auth URL:', authUrl);
+    console.log('========================');
+    
     response.json({ authUrl });
 };
 
 // Handle OAuth callback (server-side token exchange)
 const handleCallback = async (request, response) => {
     try {
-        const { code, state } = request.query;
+        const { code, state, error, error_description } = request.query;
+        
+        // Debug logging
+        console.log('=== TikTok Callback Debug ===');
+        console.log('Code:', code);
+        console.log('State:', state);
+        console.log('Error:', error);
+        console.log('Error Description:', error_description);
+        console.log('Session State:', request.session.tiktokCsrfState);
+        console.log('============================');
+        
+        // Check for TikTok errors
+        if (error) {
+            console.error('TikTok OAuth Error:', error, error_description);
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            return response.redirect(`${frontendUrl}/auth/tiktok/error?error=${error}`);
+        }
         
         // Verify CSRF state
         if (state !== request.session.tiktokCsrfState) {
+            console.error('State mismatch:', state, 'vs', request.session.tiktokCsrfState);
             return response.status(400).json({ error: "Invalid state parameter" });
         }
         
