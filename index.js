@@ -126,6 +126,7 @@ app.use(
       httpOnly: true,
       secure: isProduction, 
       sameSite: isProduction ? "none" : "lax", 
+      domain: isProduction ? ".railway.app" : "localhost", 
       maxAge: 1000 * 60 * 60 * 24,
     },
   })
