@@ -4,6 +4,8 @@
 import "dotenv/config";
 import express from "express";
 import sessions from "express-session";
+import { createClient } from "redis";
+import { RedisStore } from "connect-redis";
 import { connect } from "./dbConnection.js";
 import path from "path";
 
@@ -93,17 +95,38 @@ app.use(express.static(path.join(__dirname, "public")));
 // Trust the reverse proxy on Railway so secure cookies work
 app.set("trust proxy", 1); 
 
+const isProduction = process.env.NODE_ENV === "production";
+
+// ===== REDIS SESSION STORE (Fixes mobile session loss) =====
+let sessionStore = undefined; // Falls back to MemoryStore if Redis is not available
+
+if (process.env.REDIS_URL) {
+  try {
+    const redisClient = createClient({ url: process.env.REDIS_URL });
+    redisClient.on("error", (err) => console.error("Redis Client Error:", err));
+    await redisClient.connect();
+    sessionStore = new RedisStore({ client: redisClient });
+    console.log("✓ Redis session store connected");
+  } catch (error) {
+    console.warn("⚠ Redis connection failed, using MemoryStore:", error.message);
+  }
+} else {
+  console.warn("⚠ REDIS_URL not set, using MemoryStore (sessions won't persist across restarts)");
+}
+
 app.use(
   sessions({
+    store: sessionStore,
     secret: process.env.SESSIONSECRET,
-    name: "MyUniqueSEssID",
+    name: "FastodigamaSession",
     saveUninitialized: false,
     resave: false,
+    proxy: true,
     cookie: {
-      httpOnly: true, // Prevent XSS attacks
-      secure: process.env.NODE_ENV === 'production', // true on Railway, false locally
-      sameSite: 'none', // MUST be 'none' to allow third-party redirects like TikTok
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      httpOnly: true,
+      secure: isProduction, 
+      sameSite: isProduction ? "none" : "lax", 
+      maxAge: 1000 * 60 * 60 * 24,
     },
   })
 );
