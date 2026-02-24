@@ -109,4 +109,29 @@ const handleCallback = async (request, response) => {
     }
 };
 
-export default { getAuthUrl, handleCallback };
+// ==============================
+// Get current reader
+// ==============================
+const getCurrentReader = (request, response) => {
+    if (!request.session.readerLoggedIn) {
+        return response.status(401).json({ error: "Not logged in" });
+    }
+
+    response.json({
+        id: request.session.readerId,
+        tiktokId: request.session.tiktokId,
+        displayName: request.session.displayName,
+        avatarUrl: request.session.avatarUrl,
+    });
+};
+
+// ==============================
+// Logout
+// ==============================
+const logoutReader = (request, response) => {
+    request.session.destroy(() => {
+        response.json({ success: true });
+    });
+};
+
+export default { getAuthUrl, handleCallback, getCurrentReader, logoutReader };
