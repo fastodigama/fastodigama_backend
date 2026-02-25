@@ -4,6 +4,8 @@
 import "dotenv/config";
 import express from "express";
 import sessions from "express-session";
+import { createClient } from "redis";
+import { RedisStore } from "connect-redis";
 import { connect } from "./dbConnection.js";
 import path from "path";
 
@@ -12,6 +14,8 @@ import pageRouter from "./components/pages/router.js";
 import userRouter from "./components/User/routes.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
+import readerRouter from "./components/Reader/routes.js";
+import commentRouter from "./components/Comment/routes.js";
 
 import links from "./components/menuLinks/controller.js";
 import articles from "./components/Article/controller.js";
@@ -30,34 +34,57 @@ const port = process.env.PORT || "8888";
 
 // ===== MIDDLEWARE CONFIGURATION =====
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev",
+          "https:",
+        ],
+        connectSrc: ["'self'", "https://fastodigama.up.railway.app"],
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
     },
-  },
-}));
+  }),
+);
 
+// Enable CORS with credentials for TikTok OAuth
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://fastodigama.up.railway.app",
+];
 
-// Enable CORS
 app.use(
   cors({
-    origin: "*",
-  })
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(null, true); // For development - be more restrictive in production
+      }
+    },
+    credentials: true, // Allow cookies for session management
+  }),
 );
 
 // Serve Bootstrap
 app.use(
   "/bootstrap",
-  express.static(path.join(__dirname, "node_modules/bootstrap/dist"))
+  express.static(path.join(__dirname, "node_modules/bootstrap/dist")),
 );
 
 // Body parsers
@@ -72,21 +99,60 @@ app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
 // ===== SESSION CONFIGURATION =====
+// Trust the reverse proxy on Railway so secure cookies work
+app.set("trust proxy", 1);
+
+const isProduction = process.env.NODE_ENV === "production";
+
+// ===== REDIS SESSION STORE (Fixes mobile session loss) =====
+let sessionStore = undefined; // Falls back to MemoryStore if Redis is not available
+
+if (process.env.REDIS_URL) {
+  try {
+    const redisClient = createClient({ url: process.env.REDIS_URL });
+    redisClient.on("error", (err) => console.error("Redis Client Error:", err));
+    await redisClient.connect();
+    sessionStore = new RedisStore({ client: redisClient });
+    console.log("✓ Redis session store connected");
+  } catch (error) {
+    console.warn(
+      "⚠ Redis connection failed, using MemoryStore:",
+      error.message,
+    );
+  }
+} else {
+  console.warn(
+    "⚠ REDIS_URL not set, using MemoryStore (sessions won't persist across restarts)",
+  );
+}
+
 app.use(
   sessions({
+    store: sessionStore,
     secret: process.env.SESSIONSECRET,
-    name: "MyUniqueSEssID",
+    name: "FastodigamaSession",
     saveUninitialized: false,
     resave: false,
-    cookie: {},
-  })
+    proxy: true,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  }),
 );
 
 // ===== API ROUTES =====
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
-app.get("/api/categories", categories.getCategoriesApiResponse );
+app.get("/api/categories", categories.getCategoriesApiResponse);
+app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
+
+// ===== VISITOR ROUTES =====
+app.use("/api/reader", readerRouter);
+app.use("/api/comments", commentRouter);
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
