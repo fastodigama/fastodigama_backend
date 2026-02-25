@@ -10,9 +10,17 @@ block layout-content
                 .alert.alert-danger(role="alert") #{err}
             //- Form submission sends credentials to /register
             form(action="/register", method="post")
+                //- First Name field
+                .mb-3
+                    label.form-label(for="firstName") First Name
+                    input.form-control(type="text", id="firstName", name="firstName", required)
+                //- Last Name field
+                .mb-3
+                    label.form-label(for="lastName") Last Name
+                    input.form-control(type="text", id="lastName", name="lastName", required)
                 //- Username field
                 .mb-3
-                    label.form-label(for="u") Username
+                    label.form-label(for="u") Username (Email)
                     input.form-control(type="text", id="u", name="u", required)
                 //- Password field
                 .mb-3
