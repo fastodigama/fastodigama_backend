@@ -126,6 +126,8 @@ if (process.env.REDIS_URL) {
   );
 }
 
+
+
 app.use(
   sessions({
     store: sessionStore,
@@ -133,15 +135,16 @@ app.use(
     name: "FastodigamaSession",
     saveUninitialized: false,
     resave: false,
-    proxy: true,
+    proxy: isProduction,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProduction,        // ❗ only secure in production
+      sameSite: isProduction ? "none" : "lax", // ❗ lax for local dev
       maxAge: 1000 * 60 * 60 * 24,
     },
   }),
 );
+
 
 // ===== API ROUTES =====
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
