@@ -53,7 +53,11 @@ const registerForm = async (request, response) => {
 // Handle registration form submission
 const register = async (request, response) => {
   // Try to create a new user account
-  let result = await userModel.addUser(request.body.u, request.body.pw);
+  let result = await userModel.addUser(
+    request.body.u,
+     request.body.pw,
+      request.body.firstName,
+       request.body.lastName);
   if (result) {
     // Success: redirect to login page
     response.redirect("/login");

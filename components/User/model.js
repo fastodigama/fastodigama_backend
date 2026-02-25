@@ -55,7 +55,9 @@ async function addUser(username, pw) {
         // Create new user object
         let newUser = new User({
             user: username,
-            password: hashedPassword
+            password: hashedPassword,
+            firstName: firstName,
+            lastName: lastName
         });
 
         // Save user to database
