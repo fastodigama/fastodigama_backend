@@ -35,6 +35,16 @@ block layout-content
                                     value=user.user,
                                     required
                                 )
+                            .mb-3
+                                label.form-label(for="newName") Name
+                                input.form-control(
+                                    type="text",
+                                    id="newName",
+                                    name="newName",
+                                    placeholder="Enter new name",
+                                    value=user.user,
+                                    required
+                                )
 
                             .d-flex.gap-2
                                 button.btn.btn-primary(type="submit") Update User

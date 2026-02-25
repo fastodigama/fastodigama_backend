@@ -17,11 +17,14 @@ const loginForm = async (request, response) => {
 
 // Handle login form submission
 const login = async (request, response) => {
-  // Check if username and password are correct
+  console.log("Login attempt:", request.body); // Log incoming data
+
   let authStatus = await userModel.authenticateUser(
     request.body.u,
     request.body.pw,
   );
+
+  console.log("Authentication result:", authStatus); // Log result
 
   if (authStatus) {
     // Login successful: store user in session
@@ -52,23 +55,47 @@ const registerForm = async (request, response) => {
 
 // Handle registration form submission
 const register = async (request, response) => {
-  // Try to create a new user account
-  let result = await userModel.addUser(
-    request.body.u,
-     request.body.pw,
-      request.body.firstName,
-       request.body.lastName);
+  const { u, pw, firstName, lastName } = request.body;
+
+  // ===== SERVER-SIDE VALIDATION =====
+  if (!firstName || firstName.trim().length === 0) {
+    return response.render("user/register", { err: "First name is required" });
+  }
+
+  if (!lastName || lastName.trim().length === 0) {
+    return response.render("user/register", { err: "Last name is required" });
+  }
+
+  if (!u || u.trim().length === 0) {
+    return response.render("user/register", { err: "Email is required" });
+  }
+
+  // Basic email format check
+  if (!/^\S+@\S+\.\S+$/.test(u)) {
+    return response.render("user/register", { err: "Invalid email format" });
+  }
+
+  if (!pw || pw.length < 8) {
+    return response.render("user/register", { err: "Password must be at least 8 characters" });
+  }
+
+  if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+    return response.render("user/register", { err: "Password must contain letters and numbers" });
+  }
+
+  // ===== CREATE USER =====
+  let result = await userModel.addUser(u, pw, firstName, lastName);
+
   if (result) {
-    // Success: redirect to login page
     response.redirect("/login");
   } else {
-    // Error: username already exists, show error
     response.render("user/register", {
       err: "User already exists with that username",
       currentPath: request.path,
     });
   }
 };
+
 
 // Show all users (admin only)
 const getAllUsers = async (request, response) => {

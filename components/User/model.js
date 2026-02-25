@@ -43,7 +43,7 @@ async function getUser(username) {
 
 // Create a new user account
 // Returns true if successful, false if user already exists
-async function addUser(username, pw) {
+async function addUser(username, pw, f_Name, l_name) {
     // Check if username already exists
     let user = await getUser(username);
     console.log(user);
@@ -56,8 +56,8 @@ async function addUser(username, pw) {
         let newUser = new User({
             user: username,
             password: hashedPassword,
-            firstName: firstName,
-            lastName: lastName
+            firstName: f_Name,
+            lastName: l_name
         });
 
         // Save user to database
