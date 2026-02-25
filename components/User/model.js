@@ -7,7 +7,9 @@ import bcrypt from "bcryptjs";
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
     user: String,
-    password: String
+    password: String,
+    firstName:String,
+    lastName:String
 });
 
 // Create the User model for database operations
