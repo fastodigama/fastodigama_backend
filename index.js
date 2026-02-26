@@ -64,11 +64,13 @@ app.use(
 );
 
 // ===== CORS FIXED =====
+
 const allowedOrigins = [
-  "http://localhost:3000",
-  "https://fastodigama.up.railway.app",  // frontend
-  "https://fastodigama.com",
-  "https://fastoadmin.up.railway.app"    // backend
+  "http://localhost:3000",                 // local frontend
+  "http://192.168.2.103:3000",            // local frontend via LAN
+  "https://fastodigama.up.railway.app",   // deployed frontend
+  "https://fastodigama.com",              // custom domain frontend
+  "https://fastoadmin.up.railway.app"     // backend (for admin panel, if needed)
 ];
 
 app.use(
