@@ -42,15 +42,14 @@ async function resetPasswordById(id, newPassword) {
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-// ===== USER MODEL =====
-// Defines the database schema and functions to manage user accounts
-
+// ===== USER MODEL & SCHEMA =====
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
     user: { type: String, unique: true },
     password: String,
     firstName: String,
-    lastName: String
+    lastName: String,
+    profilePicture: { type: String, default: '' } // URL or path to profile picture
 });
 
 // Create the User model for database operations
