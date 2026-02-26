@@ -58,10 +58,14 @@ const apiLogin = async (req, res) => {
     req.session.loggedIn = true;
     req.session.user = email;
 
+    // Fetch user details
+    const user = await userModel.getUserByEmail(email);
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: email
+      user: email,
+      firstName: user.firstName
     });
 
   } catch (err) {

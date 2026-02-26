@@ -141,21 +141,6 @@ async function updateUser(username, newUsername) {
     // Return true if one user was updated, false if no user found
     return result.modifiedCount === 1;
 }
-
-export default {
-    authenticateUser,
-    getUser,
-    getUserById,
-    addUser,
-    getAllUsers,
-    resetPassword,
-    resetPasswordById,
-    deleteUser,
-    deleteUserById,
-    updateUser,
-    updateUserById
-};
-
 // Get all users
 // Returns an array of all users (password hashes are not exposed)
 async function getAllUsers() {
@@ -178,3 +163,24 @@ async function resetPassword(username, newPassword) {
     // Return true if one user was updated, false if no user found
     return result.modifiedCount === 1;
 }
+
+//GET User firstname, last name after login
+const getUserByEmail = async (email) => {
+    return await User.findOne({user: email});
+};
+
+export default {
+    authenticateUser,
+    getUser,
+    getUserById,
+    addUser,
+    getAllUsers,
+    resetPassword,
+    resetPasswordById,
+    deleteUser,
+    deleteUserById,
+    updateUser,
+    updateUserById,
+    getUserByEmail
+};
+
