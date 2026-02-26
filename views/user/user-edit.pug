@@ -13,7 +13,7 @@ block layout-content
                         if err
                             .alert.alert-danger= err
 
-                        form(method="POST", action="/admin/users/edit")
+                        form(method="POST", action=`/admin/users/edit/${user._id}`)
                             .mb-3
                                 label.form-label(for="oldUsername") Current Username
                                 input.form-control(
@@ -36,13 +36,23 @@ block layout-content
                                     required
                                 )
                             .mb-3
-                                label.form-label(for="newName") Name
+                                label.form-label(for="firstName") First Name
                                 input.form-control(
                                     type="text",
-                                    id="newName",
-                                    name="newName",
-                                    placeholder="Enter new name",
-                                    value=user.user,
+                                    id="firstName",
+                                    name="firstName",
+                                    placeholder="Enter first name",
+                                    value=user.firstName,
+                                    required
+                                )
+                            .mb-3
+                                label.form-label(for="lastName") Last Name
+                                input.form-control(
+                                    type="text",
+                                    id="lastName",
+                                    name="lastName",
+                                    placeholder="Enter last name",
+                                    value=user.lastName,
                                     required
                                 )
 

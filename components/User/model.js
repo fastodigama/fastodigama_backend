@@ -1,3 +1,44 @@
+// Find a user by ID
+// Returns the user object if found, false if not found
+async function getUserById(id) {
+    let result = await User.findById(id);
+    return result ? result : false;
+}
+
+// Update user information by ID (admin only)
+// Returns true if successful, false if user not found or username taken
+async function updateUserById(id, newUsername, firstName, lastName) {
+    // Check if new username already exists (only if changing the username)
+    let user = await User.findById(id);
+    if (!user) return false;
+    if (user.user !== newUsername) {
+        let existingUser = await User.findOne({ user: newUsername });
+        if (existingUser) return false;
+    }
+    let result = await User.updateOne(
+        { _id: id },
+        { user: newUsername, firstName, lastName }
+    );
+    return result.modifiedCount === 1;
+}
+
+// Delete a user by ID (admin only)
+// Returns true if successful, false if user not found
+async function deleteUserById(id) {
+    let result = await User.deleteOne({ _id: id });
+    return result.deletedCount === 1;
+}
+
+// Reset a user's password by ID (admin only)
+// Returns true if successful, false if user not found
+async function resetPasswordById(id, newPassword) {
+    let hashedPassword = await bcrypt.hash(newPassword, 10);
+    let result = await User.updateOne(
+        { _id: id },
+        { password: hashedPassword }
+    );
+    return result.modifiedCount === 1;
+}
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -6,10 +47,10 @@ import bcrypt from "bcryptjs";
 
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
-    user: String,
+    user: { type: String, unique: true },
     password: String,
-    firstName:String,
-    lastName:String
+    firstName: String,
+    lastName: String
 });
 
 // Create the User model for database operations
@@ -104,11 +145,15 @@ async function updateUser(username, newUsername) {
 export default {
     authenticateUser,
     getUser,
+    getUserById,
     addUser,
     getAllUsers,
     resetPassword,
+    resetPasswordById,
     deleteUser,
-    updateUser
+    deleteUserById,
+    updateUser,
+    updateUserById
 };
 
 // Get all users

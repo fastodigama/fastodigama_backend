@@ -2,7 +2,7 @@
 // Handles comment CRUD operations for visitors
 
 import commentModel from "./model.js";
-import readerModel from "../Reader/model.js";
+// Reader model import removed
 
 // POST: Create a new comment
 const createComment = async (request, response) => {
@@ -23,9 +23,9 @@ const createComment = async (request, response) => {
             });
         }
 
-        // Get author info from session (if logged in) or use anonymous
+        // Only anonymous comments supported (no reader session)
         const finalAuthorName = authorName && authorName.trim() ? authorName.trim() : "Anonymous";
-        const authorId = request.session.readerId || null;
+        const authorId = null;
         
         // Create the comment
         const comment = await commentModel.createComment(

@@ -36,24 +36,24 @@ router.get("/logout", userController.logout);
 router.get("/admin/users", userController.getAllUsers);
 
 // Admin: Show password reset form
-// GET /admin/users/reset?username=...
-router.get("/admin/users/reset", userController.resetPasswordForm);
+// GET /admin/users/reset/:id
+router.get("/admin/users/reset/:id", userController.resetPasswordForm);
 
 // Admin: Handle password reset
-// POST /admin/users/reset
-router.post("/admin/users/reset", userController.resetPassword);
+// POST /admin/users/reset/:id
+router.post("/admin/users/reset/:id", userController.resetPassword);
 
 // Admin: Show edit user form
-// GET /admin/users/edit?username=...
-router.get("/admin/users/edit", userController.editUserForm);
+// GET /admin/users/edit/:id
+router.get("/admin/users/edit/:id", userController.editUserForm);
 
 // Admin: Handle user edit
-// POST /admin/users/edit
-router.post("/admin/users/edit", userController.editUser);
+// POST /admin/users/edit/:id
+router.post("/admin/users/edit/:id", userController.editUser);
 
 // Admin: Delete user
-// GET /admin/users/delete?username=...
-router.get("/admin/users/delete", userController.deleteUser);
+// GET /admin/users/delete/:id
+router.get("/admin/users/delete/:id", userController.deleteUser);
 
 export default router;
 

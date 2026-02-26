@@ -15,8 +15,10 @@ block layout-content
                 //- Table headers
                 thead.table-dark
                     tr
-                        th(style="width: 70%") Username
-                        th.text-center(style="width: 30%") Actions
+                        th(style="width: 35%") Username
+                        th(style="width: 30%") First Name
+                        th(style="width: 30%") Last Name
+                        th.text-center(style="width: 5%") Actions
                 //- Table body: Loop through each user
                 tbody
                     each user in users
@@ -24,11 +26,14 @@ block layout-content
                             //- Username
                             td
                                 strong #{user.user}
-                            //- Action buttons
+                            td
+                                #{user.firstName}
+                            td
+                                #{user.lastName}
                             td.text-center
                                 .d-flex.gap-2.justify-content-center
-                                    a.btn.btn-sm.btn-warning(href=`/admin/users/reset?username=${user.user}`) Reset Password
-                                    a.btn.btn-sm.btn-info(href=`/admin/users/edit?username=${user.user}`) Edit
-                                    a.btn.btn-sm.btn-danger(href=`/admin/users/delete?username=${user.user}`, onclick="return confirm('Are you sure you want to delete this user?')") Delete
+                                    a.btn.btn-sm.btn-warning(href=`/admin/users/reset/${user._id}`) Reset Password
+                                    a.btn.btn-sm.btn-info(href=`/admin/users/edit/${user._id}`) Edit
+                                    a.btn.btn-sm.btn-danger(href=`/admin/users/delete/${user._id}`, onclick="return confirm('Are you sure you want to delete this user?')") Delete
         else
             .alert.alert-info No users found

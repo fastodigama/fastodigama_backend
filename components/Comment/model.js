@@ -11,7 +11,7 @@ const CommentSchema = new mongoose.Schema({
     },
     author: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Reader",
+        ref: "User",
         default: null  // Allow anonymous comments (no author)
     },
     authorName: {

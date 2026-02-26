@@ -14,7 +14,7 @@ import pageRouter from "./components/pages/router.js";
 import userRouter from "./components/User/routes.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
-import readerRouter from "./components/Reader/routes.js";
+// Reader router removed
 import commentRouter from "./components/Comment/routes.js";
 
 import links from "./components/menuLinks/controller.js";
@@ -154,7 +154,7 @@ app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 
 // ===== VISITOR ROUTES =====
-app.use("/api/reader", readerRouter);
+// Reader router removed
 app.use("/api/comments", commentRouter);
 
 // ===== AUTH MIDDLEWARE =====

@@ -17,15 +17,15 @@ const loginForm = async (request, response) => {
 
 // Handle login form submission
 const login = async (request, response) => {
-  console.log("Login attempt:", request.body); // Log incoming data
+  /* console.log("Login attempt:", request.body); // Log incoming data */
 
   let authStatus = await userModel.authenticateUser(
     request.body.u,
     request.body.pw,
   );
 
-  console.log("Authentication result:", authStatus); // Log result
-
+/*   console.log("Authentication result:", authStatus); // Log result
+ */
   if (authStatus) {
     // Login successful: store user in session
     request.session.loggedIn = true;
@@ -109,56 +109,52 @@ const getAllUsers = async (request, response) => {
 
 // Show password reset form (admin only)
 const resetPasswordForm = async (request, response) => {
-  const username = request.query.username;
-  if (!username) {
+  const userId = request.params.id;
+  if (!userId) {
     return response.redirect("/admin/users");
   }
-  
-  let user = await userModel.getUser(username);
+  let user = await userModel.getUserById(userId);
   if (!user) {
     return response.redirect("/admin/users");
   }
-  
-  response.render("user/reset-password", { 
-    title: "Reset Password", 
-    username,
-    currentPath: request.path 
+  response.render("user/reset-password", {
+    title: "Reset Password",
+    user,
+    currentPath: request.path
   });
 };
 
 // Handle password reset (admin only)
 const resetPassword = async (request, response) => {
-  const { username, newPassword, confirmPassword } = request.body;
-  
+  const userId = request.params.id;
+  const { newPassword, confirmPassword } = request.body;
   // Validate passwords match
   if (newPassword !== confirmPassword) {
+    let user = await userModel.getUserById(userId);
     return response.render("user/reset-password", {
       err: "Passwords do not match",
-      username,
+      user,
       title: "Reset Password"
     });
   }
-  
   // Validate password length
   if (newPassword.length < 4) {
+    let user = await userModel.getUserById(userId);
     return response.render("user/reset-password", {
       err: "Password must be at least 4 characters",
-      username,
+      user,
       title: "Reset Password"
     });
   }
-  
   // Reset the password
-  let result = await userModel.resetPassword(username, newPassword);
-  
+  let result = await userModel.resetPasswordById(userId, newPassword);
   if (result) {
-    // Success: redirect to users list
     response.redirect("/admin/users");
   } else {
-    // Error: show error message
+    let user = await userModel.getUserById(userId);
     response.render("user/reset-password", {
       err: "Error resetting password",
-      username,
+      user,
       title: "Reset Password"
     });
   }
@@ -166,46 +162,40 @@ const resetPassword = async (request, response) => {
 
 // Show edit user form (admin only)
 const editUserForm = async (request, response) => {
-  const username = request.query.username;
-  if (!username) {
+  const userId = request.params.id;
+  if (!userId) {
     return response.redirect("/admin/users");
   }
-  
-  let user = await userModel.getUser(username);
+  let user = await userModel.getUserById(userId);
   if (!user) {
     return response.redirect("/admin/users");
   }
-  
-  response.render("user/user-edit", { 
-    title: "Edit User", 
+  response.render("user/user-edit", {
+    title: "Edit User",
     user,
-    currentPath: request.path 
+    currentPath: request.path
   });
 };
 
 // Handle user edit (admin only)
 const editUser = async (request, response) => {
-  const { oldUsername, newUsername } = request.body;
-  
+  const userId = request.params.id;
+  const { newUsername, firstName, lastName } = request.body;
   // Validate new username
   if (!newUsername || newUsername.trim().length === 0) {
-    let user = await userModel.getUser(oldUsername);
+    let user = await userModel.getUserById(userId);
     return response.render("user/user-edit", {
       err: "Username cannot be empty",
       user,
       title: "Edit User"
     });
   }
-  
-  // Update the username
-  let result = await userModel.updateUser(oldUsername, newUsername);
-  
+  // Update the user
+  let result = await userModel.updateUserById(userId, newUsername, firstName, lastName);
   if (result) {
-    // Success: redirect to users list
     response.redirect("/admin/users");
   } else {
-    // Error: show error message
-    let user = await userModel.getUser(oldUsername);
+    let user = await userModel.getUserById(userId);
     response.render("user/user-edit", {
       err: "Username already exists or user not found",
       user,
@@ -216,22 +206,12 @@ const editUser = async (request, response) => {
 
 // Delete user (admin only)
 const deleteUser = async (request, response) => {
-  const username = request.query.username;
-  
-  if (!username) {
+  const userId = request.params.id;
+  if (!userId) {
     return response.redirect("/admin/users");
   }
-  
-  // Delete the user
-  let result = await userModel.deleteUser(username);
-  
-  if (result) {
-    // Success: redirect to users list
-    response.redirect("/admin/users");
-  } else {
-    // Error: redirect to users list with error
-    response.redirect("/admin/users");
-  }
+  let result = await userModel.deleteUserById(userId);
+  response.redirect("/admin/users");
 };
 
 export default {
