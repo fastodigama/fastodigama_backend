@@ -1,5 +1,5 @@
 // ===== APPLICATION SETUP =====
-// This is the main server file for the FASTODIGAMA Admin backend
+// FASTODIGAMA Admin backend
 
 import "dotenv/config";
 import express from "express";
@@ -31,8 +31,7 @@ const __dirname = import.meta.dirname;
 const app = express();
 const port = process.env.PORT || "8888";
 
-// ===== MIDDLEWARE CONFIGURATION =====
-
+// ===== SECURITY: HELMET =====
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -47,7 +46,6 @@ app.use(
           "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev",
           "https:",
         ],
-        // FIXED: allow frontend + backend
         connectSrc: [
           "'self'",
           "https://fastoadmin.up.railway.app",   // backend
@@ -63,14 +61,13 @@ app.use(
   }),
 );
 
-// ===== CORS FIXED =====
-
+// ===== CORS CONFIG =====
 const allowedOrigins = [
-  "http://localhost:3000",                 // local frontend
-  "http://192.168.2.103:3000",            // local frontend via LAN
-  "https://fastodigama.up.railway.app",   // deployed frontend
-  "https://fastodigama.com",              // custom domain frontend
-  "https://fastoadmin.up.railway.app"     // backend (for admin panel, if needed)
+  "http://localhost:3000",
+  "http://192.168.2.103:3000",
+  "https://fastodigama.up.railway.app",
+  "https://fastodigama.com",
+  "https://fastoadmin.up.railway.app"
 ];
 
 app.use(
@@ -87,30 +84,25 @@ app.use(
   }),
 );
 
-// Serve Bootstrap
+// ===== STATIC FILES =====
 app.use(
   "/bootstrap",
   express.static(path.join(__dirname, "node_modules/bootstrap/dist")),
 );
 
-// Body parsers
 app.use(express.urlencoded({ extended: true }));
-// FIX: JSON parser must come BEFORE routes
 app.use(express.json());
 
-// Views
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
-// Static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// ===== SESSION CONFIGURATION =====
+// ===== SESSION CONFIG =====
 app.set("trust proxy", 1);
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// ===== REDIS SESSION STORE =====
 let sessionStore = undefined;
 
 if (process.env.REDIS_URL) {
@@ -144,17 +136,20 @@ app.use(
   }),
 );
 
-// ===== API ROUTES =====
-app.get("/api/menulinks", links.getMenuLinksApiResponse);
-app.get("/api/articles", articles.getArticlesApiResponse);
-app.get("/api/article/:id", articles.getArticleByIdApiResponse);
-app.get("/api/categories", categories.getCategoriesApiResponse);
-app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
+// ======================================================
+// ⭐ IMPORTANT: API ROUTES MUST COME BEFORE AUTH MIDDLEWARE
+// ======================================================
 
-// ===== VISITOR ROUTES =====
+// Public API routes
 app.use("/api/comments", commentRouter);
 
-// ===== AUTH MIDDLEWARE =====
+// User routes (includes /api/login and /api/logout)
+app.use("/", userRouter);
+
+// ======================================================
+// ⭐ ADMIN + USER AUTH MIDDLEWARE (backend only)
+// ======================================================
+
 app.use("/admin", (req, res, next) => {
   if (req.session.loggedIn) {
     app.locals.user = req.session.user;
@@ -183,17 +178,17 @@ app.use("/user", (req, res, next) => {
   }
 });
 
-app.use("/logout", (req, res, next) => {
-  app.locals.user = null;
-  next();
-});
-
-// ===== ROUTES =====
+// ======================================================
+// ⭐ ADMIN PANEL ROUTES
+// ======================================================
 app.use("/admin/menu", adminPageRouter);
 app.use("/admin/article", articleRouter);
 app.use("/admin/category", categoryRouter);
+
+// ======================================================
+// ⭐ FRONTEND PAGES
+// ======================================================
 app.use("/", pageRouter);
-app.use("/", userRouter);
 
 // ===== START SERVER =====
 app.listen(port, () => {

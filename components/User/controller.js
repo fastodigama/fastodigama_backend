@@ -41,12 +41,75 @@ const login = async (request, response) => {
   }
 };
 
+const apiLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    let authStatus = await userModel.authenticateUser(email, password);
+
+    if (!authStatus) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    // Create session
+    req.session.loggedIn = true;
+    req.session.user = email;
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: email
+    });
+
+  } catch (err) {
+    console.error("API LOGIN ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
 // Handle logout (destroy session)
 const logout = async (request, response) => {
   // Clear the session and redirect to home
   request.session.destroy();
   response.redirect("/");
 };
+
+//frontend logout
+const apiLogout = async (req, res) => {
+  try {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("LOGOUT ERROR:", err);
+        return res.status(500).json({
+          success: false,
+          message: "Could not log out"
+        });
+      }
+
+      res.clearCookie("FastodigamaSession");
+
+      return res.status(200).json({
+        success: true,
+        message: "Logged out successfully"
+      });
+    });
+  } catch (err) {
+    console.error("LOGOUT ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
 
 // Show the registration form
 const registerForm = async (request, response) => {
@@ -227,4 +290,6 @@ export default {
   editUserForm,
   editUser,
   deleteUser,
+  apiLogin,
+  apiLogout
 };

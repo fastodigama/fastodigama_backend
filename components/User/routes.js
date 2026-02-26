@@ -55,5 +55,13 @@ router.post("/admin/users/edit/:id", userController.editUser);
 // GET /admin/users/delete/:id
 router.get("/admin/users/delete/:id", userController.deleteUser);
 
+
+//FRONTEND Login
+
+router.post("/api/login", userController.apiLogin);
+
+//frontend logout
+router.post("/api/logout", userController.apiLogout);
+
 export default router;
 
