@@ -1,3 +1,19 @@
+// API: Get current user info as JSON (for frontend session check)
+const apiGetUser = async (req, res) => {
+  if (!req.session.loggedIn || !req.session.user) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+  const user = await userModel.getUserByEmail(req.session.user);
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+  res.json({
+    success: true,
+    email: user.user, // always provide 'email' property
+    firstName: user.firstName,
+    lastName: user.lastName
+  });
+};
 import userModel from "./model.js";
 
 // ===== USER CONTROLLER =====
@@ -54,9 +70,13 @@ const apiLogin = async (req, res) => {
       });
     }
 
+
     // Create session
     req.session.loggedIn = true;
     req.session.user = email;
+
+    // Log login event
+    console.log(`User logged in: ${email}`);
 
     // Fetch user details
     const user = await userModel.getUserByEmail(email);
@@ -64,7 +84,7 @@ const apiLogin = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: email,
+      email: user.user, // always provide 'email' property
       firstName: user.firstName,
       lastName: user.lastName
     });
@@ -89,6 +109,7 @@ const logout = async (request, response) => {
 //frontend logout
 const apiLogout = async (req, res) => {
   try {
+    const userEmail = req.session.user; // Save before destroying session
     req.session.destroy((err) => {
       if (err) {
         console.error("LOGOUT ERROR:", err);
@@ -99,6 +120,9 @@ const apiLogout = async (req, res) => {
       }
 
       res.clearCookie("FastodigamaSession");
+
+      // Log logout event
+      console.log(`User logged out: ${userEmail || "unknown"}`);
 
       return res.status(200).json({
         success: true,
@@ -296,5 +320,6 @@ export default {
   editUser,
   deleteUser,
   apiLogin,
-  apiLogout
+  apiLogout,
+  apiGetUser
 };
