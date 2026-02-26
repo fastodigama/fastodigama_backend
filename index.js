@@ -14,7 +14,6 @@ import pageRouter from "./components/pages/router.js";
 import userRouter from "./components/User/routes.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
-// Reader router removed
 import commentRouter from "./components/Comment/routes.js";
 
 import links from "./components/menuLinks/controller.js";
@@ -48,7 +47,13 @@ app.use(
           "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev",
           "https:",
         ],
-        connectSrc: ["'self'", "https://fastodigama.up.railway.app"],
+        // FIXED: allow frontend + backend
+        connectSrc: [
+          "'self'",
+          "https://fastoadmin.up.railway.app",   // backend
+          "https://fastodigama.up.railway.app",  // frontend
+          "https://fastodigama.com"
+        ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -58,26 +63,25 @@ app.use(
   }),
 );
 
-// Enable CORS with credentials for TikTok OAuth
+// ===== CORS FIXED =====
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
   "http://localhost:3000",
-  "http://localhost:3001",
-  "https://fastodigama.up.railway.app",
+  "https://fastodigama.up.railway.app",  // frontend
+  "https://fastodigama.com",
+  "https://fastoadmin.up.railway.app"    // backend
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(null, true); // For development - be more restrictive in production
+        callback(null, false);
       }
     },
-    credentials: true, // Allow cookies for session management
+    credentials: true,
   }),
 );
 
@@ -89,6 +93,7 @@ app.use(
 
 // Body parsers
 app.use(express.urlencoded({ extended: true }));
+// FIX: JSON parser must come BEFORE routes
 app.use(express.json());
 
 // Views
@@ -99,13 +104,12 @@ app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
 // ===== SESSION CONFIGURATION =====
-// Trust the reverse proxy on Railway so secure cookies work
 app.set("trust proxy", 1);
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// ===== REDIS SESSION STORE (Fixes mobile session loss) =====
-let sessionStore = undefined; // Falls back to MemoryStore if Redis is not available
+// ===== REDIS SESSION STORE =====
+let sessionStore = undefined;
 
 if (process.env.REDIS_URL) {
   try {
@@ -115,18 +119,11 @@ if (process.env.REDIS_URL) {
     sessionStore = new RedisStore({ client: redisClient });
     console.log("✓ Redis session store connected");
   } catch (error) {
-    console.warn(
-      "⚠ Redis connection failed, using MemoryStore:",
-      error.message,
-    );
+    console.warn("⚠ Redis connection failed, using MemoryStore:", error.message);
   }
 } else {
-  console.warn(
-    "⚠ REDIS_URL not set, using MemoryStore (sessions won't persist across restarts)",
-  );
+  console.warn("⚠ REDIS_URL not set, using MemoryStore");
 }
-
-
 
 app.use(
   sessions({
@@ -138,13 +135,12 @@ app.use(
     proxy: isProduction,
     cookie: {
       httpOnly: true,
-      secure: isProduction,        // ❗ only secure in production
-      sameSite: isProduction ? "none" : "lax", // ❗ lax for local dev
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 1000 * 60 * 60 * 24,
     },
   }),
 );
-
 
 // ===== API ROUTES =====
 app.get("/api/menulinks", links.getMenuLinksApiResponse);
@@ -154,7 +150,6 @@ app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 
 // ===== VISITOR ROUTES =====
-// Reader router removed
 app.use("/api/comments", commentRouter);
 
 // ===== AUTH MIDDLEWARE =====
