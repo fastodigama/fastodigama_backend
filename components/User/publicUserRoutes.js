@@ -1,5 +1,6 @@
+
 import express from "express";
-import userController from "./controller.js";
+import * as userController from "./controller.js";
 
 const router = express.Router();
 
@@ -10,6 +11,13 @@ router.post("/login", userController.login);
 router.get("/register", userController.registerForm);
 router.post("/register", userController.register);
 router.get("/logout", userController.logout);
+
+// Proxy: Serve user profile images from R2
+router.get("/user/profile-image/:fileName", userController.streamProfileImage);
+
+// API: Upload user profile picture (authenticated users only)
+router.post("/api/user/profile-picture", userController.uploadProfilePicture);
+
 router.post("/api/login", userController.apiLogin);
 
 // API: Get current user info as JSON (for frontend session check)

@@ -1,3 +1,12 @@
+// Update user's profile picture by user ID
+// Returns true if successful, false if user not found
+async function updateProfilePicture(userId, fileName) {
+    let result = await User.updateOne(
+        { _id: userId },
+        { profilePicture: fileName }
+    );
+    return result.modifiedCount === 1;
+}
 // Find a user by ID
 // Returns the user object if found, false if not found
 async function getUserById(id) {
@@ -181,5 +190,6 @@ export default {
     updateUser,
     updateUserById,
     getUserByEmail
+    ,updateProfilePicture
 };
 

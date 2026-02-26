@@ -11,10 +11,63 @@ const apiGetUser = async (req, res) => {
     success: true,
     email: user.user, // always provide 'email' property
     firstName: user.firstName,
-    lastName: user.lastName
+    lastName: user.lastName,
+    profilePicture: user.profilePicture
+      ? `/user/profile-image/${user.profilePicture}`
+      : null
   });
 };
 import userModel from "./model.js";
+import multer from "multer";
+import sharp from "sharp";
+import { s3 } from "../config/r2.js";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+// Multer setup for profile image upload (memory storage)
+const profileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
+// API: Upload user profile picture
+const uploadProfilePicture = [
+  profileUpload.single("profilePicture"),
+  async (req, res) => {
+    if (!req.session.loggedIn || !req.session.user) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+    try {
+      const email = req.session.user;
+      const user = await userModel.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      // Generate unique file name
+      const fileName = `profile-${user._id}-${Date.now()}.webp`;
+      // Process image
+      const buffer = await sharp(req.file.buffer)
+        .resize(400, 400, { fit: "cover" })
+        .webp({ quality: 80 })
+        .toBuffer();
+      // Upload to R2
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.R2_PROFILE_BUCKET_NAME,
+        Key: fileName,
+        Body: buffer,
+        ContentType: "image/webp",
+      }));
+      // Save URL to user profile
+      const profileUrl = `/user/profile-image/${fileName}`;
+      await userModel.updateProfilePicture(user._id, fileName);
+      res.json({ success: true, message: "Profile picture uploaded", url: profileUrl });
+    } catch (err) {
+      console.error("PROFILE PIC UPLOAD ERROR:", err);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  }
+];
 
 // ===== USER CONTROLLER =====
 // Handles user authentication (login, register, logout)
@@ -76,6 +129,7 @@ const apiLogin = async (req, res) => {
     req.session.user = email;
 
     // Log login event
+    uploadProfilePicture,
     console.log(`User logged in: ${email}`);
 
     // Fetch user details
@@ -306,7 +360,50 @@ const deleteUser = async (request, response) => {
   response.redirect("/admin/users");
 };
 
-export default {
+
+// Proxy route: Stream profile image from R2 by file name
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+
+const streamProfileImage = async (req, res) => {
+  const fileName = req.params.fileName;
+  if (!fileName) {
+    return res.status(400).json({ success: false, message: "No file name provided" });
+  }
+  // Set CORS headers for image requests
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://fastodigama.up.railway.app",
+    "https://fastodigama.com"
+  ];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.R2_PROFILE_BUCKET_NAME,
+      Key: fileName,
+    });
+    const data = await s3.send(command);
+    res.setHeader("Content-Type", data.ContentType || "image/webp");
+    if (data.Body.pipe) {
+      data.Body.pipe(res);
+    } else {
+      // Fallback for non-stream body
+      const chunks = [];
+      for await (const chunk of data.Body) {
+        chunks.push(chunk);
+      }
+      res.end(Buffer.concat(chunks));
+    }
+  } catch (err) {
+    console.error("PROFILE IMAGE STREAM ERROR:", err);
+    return res.status(404).json({ success: false, message: "Image not found" });
+  }
+};
+
+export {
   getUser,
   loginForm,
   login,
@@ -321,5 +418,7 @@ export default {
   deleteUser,
   apiLogin,
   apiLogout,
-  apiGetUser
+  apiGetUser,
+  uploadProfilePicture,
+  streamProfileImage
 };
