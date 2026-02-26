@@ -65,7 +65,8 @@ const apiLogin = async (req, res) => {
       success: true,
       message: "Login successful",
       user: email,
-      firstName: user.firstName
+      firstName: user.firstName,
+      lastName: user.lastName
     });
 
   } catch (err) {
