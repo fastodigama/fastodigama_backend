@@ -56,6 +56,10 @@ app.use(
           "https://admin.fastodigama.com",
           "https://api.fastodigama.com",
           "https://fastodigama-backend.up.railway.app", // keep if you still call it anywhere
+          "https://fastdodigama.com",
+          "https://www.fastdodigama.com",
+          "https://admin.fastdodigama.com",
+          "https://api.fastdodigama.com",
         ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
@@ -75,6 +79,10 @@ const allowedOrigins = [
   "https://www.fastodigama.com",
   "https://admin.fastodigama.com",
   "https://api.fastodigama.com",
+  "https://fastdodigama.com",
+  "https://www.fastdodigama.com",
+  "https://admin.fastdodigama.com",
+  "https://api.fastdodigama.com",
 
   // keep during migration / debugging
   "https://fastodigama-backend.up.railway.app",
