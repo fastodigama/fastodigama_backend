@@ -51,9 +51,11 @@ app.use(
         // FIXED: allow frontend + backend
         connectSrc: [
           "'self'",
-          "https://fastoadmin.up.railway.app",   // backend
-          "https://fastodigama.up.railway.app",  // frontend
-          "https://fastodigama.com"
+          "https://fastodigama.com",
+          "https://www.fastodigama.com",
+          "https://admin.fastodigama.com",
+          "https://api.fastodigama.com",
+          "https://fastodigama-backend.up.railway.app", // keep if you still call it anywhere
         ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
@@ -67,13 +69,17 @@ app.use(
 // ===== CORS FIXED =====
 
 const allowedOrigins = [
-  "http://localhost:3000",                 // local frontend
-  "http://192.168.2.103:3000",            // local frontend via LAN
-  "https://fastodigama.up.railway.app",   // deployed frontend
-  "https://fastodigama.com",              // custom domain frontend
-  "https://fastoadmin.up.railway.app"     // backend (for admin panel, if needed)
-];
+  "http://localhost:3000",
 
+  "https://fastodigama.com",
+  "https://www.fastodigama.com",
+  "https://admin.fastodigama.com",
+  "https://api.fastodigama.com",
+
+  // keep during migration / debugging
+  "https://fastodigama-backend.up.railway.app",
+  "https://fastodigama-frontend.up.railway.app",
+];
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -122,7 +128,10 @@ if (process.env.REDIS_URL) {
     sessionStore = new RedisStore({ client: redisClient });
     console.log("✓ Redis session store connected");
   } catch (error) {
-    console.warn("⚠ Redis connection failed, using MemoryStore:", error.message);
+    console.warn(
+      "⚠ Redis connection failed, using MemoryStore:",
+      error.message,
+    );
   }
 } else {
   console.warn("⚠ REDIS_URL not set, using MemoryStore");
@@ -138,7 +147,7 @@ app.use(
     proxy: isProduction,
     cookie: {
       httpOnly: true,
-      secure: isProduction,
+      secure: isProduction, // ✅ only true on https
       sameSite: isProduction ? "none" : "lax",
       maxAge: 1000 * 60 * 60 * 24,
     },
