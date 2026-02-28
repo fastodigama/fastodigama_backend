@@ -12,8 +12,7 @@ router.get("/register", userController.registerForm);
 router.post("/register", userController.register);
 router.get("/logout", userController.logout);
 
-// Proxy: Serve user profile images from R2
-router.get("/user/profile-image/:fileName", userController.streamProfileImage);
+
 
 // API: Upload user profile picture (authenticated users only)
 router.post("/api/user/profile-picture", userController.uploadProfilePicture);

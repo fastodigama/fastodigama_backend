@@ -45,7 +45,8 @@ app.use(
           "'self'",
           "data:",
           "blob:",
-          "https://pub-976d69c685624aa29841caa3ebec5909.r2.dev",
+          "https://articles.fastodigama.com",
+          "https://images.fastodigama.com",
           "https:",
         ],
         // FIXED: allow frontend + backend
@@ -83,10 +84,6 @@ const allowedOrigins = [
   "https://www.fastodigama.com",
   "https://admin.fastodigama.com",
   "https://api.fastodigama.com",
-
-  // keep during migration / debugging
-  "https://fastodigama-backend.up.railway.app",
-  "https://fastodigama-frontend.up.railway.app",
 ];
 app.use(
   cors({

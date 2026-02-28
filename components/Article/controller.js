@@ -160,7 +160,7 @@ const addNewArticle = async (request, response) => {
         }));
 
         return {
-          url: `${process.env.R2_PUBLIC_URL}/${fileName}`,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${fileName}`,
           key: fileName,
           alt: altTexts[index] || ""
         };
@@ -258,7 +258,7 @@ const editArticle = async (request, response) => {
         }));
 
         return {
-          url: `${process.env.R2_PUBLIC_URL}/${fileName}`,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${fileName}`,
           key: fileName,
           alt: newAltTexts[index] || ""
         };

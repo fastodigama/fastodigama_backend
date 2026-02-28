@@ -1,112 +1,167 @@
-// API: Get current user info as JSON (for frontend session check)
-const apiGetUser = async (req, res) => {
-  if (!req.session.loggedIn || !req.session.user) {
-    return res.status(401).json({ success: false, message: "Not authenticated" });
-  }
-  const user = await userModel.getUserByEmail(req.session.user);
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found" });
-  }
-  res.json({
-    success: true,
-    email: user.user, // always provide 'email' property
-    firstName: user.firstName,
-    lastName: user.lastName,
-    profilePicture: user.profilePicture
-      ? `/user/profile-image/${user.profilePicture}`
-      : null
-  });
-};
 import userModel from "./model.js";
 import multer from "multer";
 import sharp from "sharp";
 import { s3 } from "../config/r2.js";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-// Multer setup for profile image upload (memory storage)
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+
+// ==============================
+// API: Get current user
+// ==============================
+const apiGetUser = async (req, res) => {
+  if (!req.session.loggedIn || !req.session.user) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Not authenticated" });
+  }
+
+  const user = await userModel.getUserByEmail(
+    req.session.user
+  );
+
+  if (!user) {
+    return res
+      .status(404)
+      .json({ success: false, message: "User not found" });
+  }
+
+  res.json({
+    success: true,
+    email: user.user,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    // ✅ SAME AS ARTICLES
+    profilePicture: user.profilePicture || null,
+  });
+};
+
+// ==============================
+// Multer setup
+// ==============================
 const profileUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// API: Upload user profile picture
+// ==============================
+// Upload Profile Picture
+// ==============================
 const uploadProfilePicture = [
   profileUpload.single("profilePicture"),
   async (req, res) => {
     if (!req.session.loggedIn || !req.session.user) {
-      return res.status(401).json({ success: false, message: "Not authenticated" });
+      return res
+        .status(401)
+        .json({ success: false });
     }
+
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false });
     }
+
     try {
       const email = req.session.user;
-      const user = await userModel.getUserByEmail(email);
+      const user =
+        await userModel.getUserByEmail(email);
+
       if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
+        return res
+          .status(404)
+          .json({ success: false });
       }
-      // Generate unique file name
-      const fileName = `profile-${user._id}-${Date.now()}.webp`;
-      // Process image
-      const buffer = await sharp(req.file.buffer)
+
+      const fileName =
+        `profile-${user._id}-${Date.now()}.webp`;
+
+      const buffer = await sharp(
+        req.file.buffer
+      )
         .resize(400, 400, { fit: "cover" })
         .webp({ quality: 80 })
         .toBuffer();
-      // Upload to R2
-      await s3.send(new PutObjectCommand({
-        Bucket: process.env.R2_PROFILE_BUCKET_NAME,
-        Key: fileName,
-        Body: buffer,
-        ContentType: "image/webp",
-      }));
-      // Save URL to user profile
-      const profileUrl = `/user/profile-image/${fileName}`;
-      await userModel.updateProfilePicture(user._id, fileName);
-      res.json({ success: true, message: "Profile picture uploaded", url: profileUrl });
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket:
+            process.env.R2_PROFILE_BUCKET_NAME,
+          Key: fileName,
+          Body: buffer,
+          ContentType: "image/webp",
+        })
+      );
+
+      // ✅ CDN URL (LIKE ARTICLES)
+      const profileUrl =
+        `${process.env.PROFILE_IMAGE_BASE}/${fileName}`;
+
+      await userModel.updateProfilePicture(
+        user._id,
+        profileUrl
+      );
+
+      res.json({
+        success: true,
+        message:
+          "Profile picture uploaded",
+        url: profileUrl,
+      });
+
     } catch (err) {
-      console.error("PROFILE PIC UPLOAD ERROR:", err);
-      res.status(500).json({ success: false, message: "Server error" });
+      console.error(
+        "PROFILE PIC UPLOAD ERROR:",
+        err
+      );
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
     }
-  }
+  },
 ];
 
-// ===== USER CONTROLLER =====
-// Handles user authentication (login, register, logout)
+// ==============================
+// USER PAGES & AUTH
+// ==============================
 
-// Show the user profile page (only for logged-in users)
-const getUser = async (request, response) => {
-  // Display user account page
-  response.render("user/user", { currentPath: request.path, title: "My Account" });
+const getUser = async (req, res) => {
+  res.render("user/user", {
+    currentPath: req.path,
+    title: "My Account",
+  });
 };
 
-// Show the login form
-const loginForm = async (request, response) => {
-  // Display login page
-  response.render("user/login", { currentPath: request.path , title: "Login"});
+const loginForm = async (req, res) => {
+  res.render("user/login", {
+    currentPath: req.path,
+    title: "Login",
+  });
 };
 
-// Handle login form submission
-const login = async (request, response) => {
-  /* console.log("Login attempt:", request.body); // Log incoming data */
+const login = async (req, res) => {
+  let authStatus =
+    await userModel.authenticateUser(
+      req.body.u,
+      req.body.pw
+    );
 
-  let authStatus = await userModel.authenticateUser(
-    request.body.u,
-    request.body.pw,
-  );
-
-/*   console.log("Authentication result:", authStatus); // Log result
- */
   if (authStatus) {
-    // Login successful: store user in session
-    request.session.loggedIn = true;
-    request.session.user = request.body.u;
-    
-    // Redirect back to where user was trying to go, or to /user if no previous page
-    const redirectUrl = request.session.redirectUrl || "/user";
-    delete request.session.redirectUrl; // Clear the stored URL after using it
-    response.redirect(redirectUrl);
+    req.session.loggedIn = true;
+    req.session.user = req.body.u;
+
+    const redirectUrl =
+      req.session.redirectUrl || "/user";
+
+    delete req.session.redirectUrl;
+    res.redirect(redirectUrl);
   } else {
-    // Login failed: show error message on login form
-    response.render("user/login", { err: "user not found", currentPath: request.path });
+    res.render("user/login", {
+      err: "user not found",
+      currentPath: req.path,
+    });
   }
 };
 
@@ -114,295 +169,193 @@ const apiLogin = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    let authStatus = await userModel.authenticateUser(email, password);
+    let authStatus =
+      await userModel.authenticateUser(
+        email,
+        password
+      );
 
     if (!authStatus) {
       return res.status(400).json({
         success: false,
-        message: "Invalid email or password"
+        message:
+          "Invalid email or password",
       });
     }
 
-
-    // Create session
     req.session.loggedIn = true;
     req.session.user = email;
 
-    // Log login event
-    uploadProfilePicture,
-    console.log(`User logged in: ${email}`);
+    const user =
+      await userModel.getUserByEmail(email);
 
-    // Fetch user details
-    const user = await userModel.getUserByEmail(email);
-
-    return res.status(200).json({
+    res.json({
       success: true,
-      message: "Login successful",
-      email: user.user, // always provide 'email' property
+      email: user.user,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      profilePicture:
+        user.profilePicture || null,
     });
 
   } catch (err) {
-    console.error("API LOGIN ERROR:", err);
-    return res.status(500).json({
+    console.error(err);
+    res.status(500).json({
       success: false,
-      message: "Server error"
     });
   }
 };
 
-
-// Handle logout (destroy session)
-const logout = async (request, response) => {
-  // Clear the session and redirect to home
-  request.session.destroy();
-  response.redirect("/");
+const logout = async (req, res) => {
+  req.session.destroy();
+  res.redirect("/");
 };
 
-//frontend logout
 const apiLogout = async (req, res) => {
-  try {
-    const userEmail = req.session.user; // Save before destroying session
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("LOGOUT ERROR:", err);
-        return res.status(500).json({
-          success: false,
-          message: "Could not log out"
-        });
-      }
-
-      res.clearCookie("FastodigamaSession");
-
-      // Log logout event
-      console.log(`User logged out: ${userEmail || "unknown"}`);
-
-      return res.status(200).json({
-        success: true,
-        message: "Logged out successfully"
-      });
-    });
-  } catch (err) {
-    console.error("LOGOUT ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
-  }
-};
-
-
-
-// Show the registration form
-const registerForm = async (request, response) => {
-  response.render("user/register", { currentPath: request.path });
-};
-
-// Handle registration form submission
-const register = async (request, response) => {
-  const { u, pw, firstName, lastName } = request.body;
-
-  // ===== SERVER-SIDE VALIDATION =====
-  if (!firstName || firstName.trim().length === 0) {
-    return response.render("user/register", { err: "First name is required" });
-  }
-
-  if (!lastName || lastName.trim().length === 0) {
-    return response.render("user/register", { err: "Last name is required" });
-  }
-
-  if (!u || u.trim().length === 0) {
-    return response.render("user/register", { err: "Email is required" });
-  }
-
-  // Basic email format check
-  if (!/^\S+@\S+\.\S+$/.test(u)) {
-    return response.render("user/register", { err: "Invalid email format" });
-  }
-
-  if (!pw || pw.length < 8) {
-    return response.render("user/register", { err: "Password must be at least 8 characters" });
-  }
-
-  if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
-    return response.render("user/register", { err: "Password must contain letters and numbers" });
-  }
-
-  // ===== CREATE USER =====
-  let result = await userModel.addUser(u, pw, firstName, lastName);
-
-  if (result) {
-    response.redirect("/login");
-  } else {
-    response.render("user/register", {
-      err: "User already exists with that username",
-      currentPath: request.path,
-    });
-  }
-};
-
-
-// Show all users (admin only)
-const getAllUsers = async (request, response) => {
-  let users = await userModel.getAllUsers();
-  response.render("user/users-list", { 
-    title: "Manage Users", 
-    users, 
-    currentPath: request.path 
+  req.session.destroy(() => {
+    res.clearCookie(
+      "FastodigamaSession"
+    );
+    res.json({ success: true });
   });
 };
 
-// Show password reset form (admin only)
-const resetPasswordForm = async (request, response) => {
-  const userId = request.params.id;
-  if (!userId) {
-    return response.redirect("/admin/users");
-  }
-  let user = await userModel.getUserById(userId);
-  if (!user) {
-    return response.redirect("/admin/users");
-  }
-  response.render("user/reset-password", {
+// ==============================
+// REGISTER
+// ==============================
+const registerForm = async (req, res) => {
+  res.render("user/register", {
+    currentPath: req.path,
+  });
+};
+
+const register = async (req, res) => {
+  const { u, pw, firstName, lastName } =
+    req.body;
+
+  let result =
+    await userModel.addUser(
+      u,
+      pw,
+      firstName,
+      lastName
+    );
+
+  if (result) res.redirect("/login");
+  else
+    res.render("user/register", {
+      err: "User exists",
+    });
+};
+
+// ==============================
+// ADMIN USERS
+// ==============================
+const getAllUsers = async (req, res) => {
+  let users =
+    await userModel.getAllUsers();
+
+  res.render("user/users-list", {
+    title: "Manage Users",
+    users,
+    currentPath: req.path,
+  });
+};
+
+const resetPasswordForm = async (
+  req,
+  res
+) => {
+  const user =
+    await userModel.getUserById(
+      req.params.id
+    );
+
+  res.render("user/reset-password", {
     title: "Reset Password",
     user,
-    currentPath: request.path
   });
 };
 
-// Handle password reset (admin only)
-const resetPassword = async (request, response) => {
-  const userId = request.params.id;
-  const { newPassword, confirmPassword } = request.body;
-  // Validate passwords match
-  if (newPassword !== confirmPassword) {
-    let user = await userModel.getUserById(userId);
-    return response.render("user/reset-password", {
-      err: "Passwords do not match",
-      user,
-      title: "Reset Password"
-    });
-  }
-  // Validate password length
-  if (newPassword.length < 4) {
-    let user = await userModel.getUserById(userId);
-    return response.render("user/reset-password", {
-      err: "Password must be at least 4 characters",
-      user,
-      title: "Reset Password"
-    });
-  }
-  // Reset the password
-  let result = await userModel.resetPasswordById(userId, newPassword);
-  if (result) {
-    response.redirect("/admin/users");
-  } else {
-    let user = await userModel.getUserById(userId);
-    response.render("user/reset-password", {
-      err: "Error resetting password",
-      user,
-      title: "Reset Password"
-    });
-  }
+const resetPassword = async (
+  req,
+  res
+) => {
+  await userModel.resetPasswordById(
+    req.params.id,
+    req.body.newPassword
+  );
+
+  res.redirect("/admin/users");
 };
 
-// Show edit user form (admin only)
-const editUserForm = async (request, response) => {
-  const userId = request.params.id;
-  if (!userId) {
-    return response.redirect("/admin/users");
-  }
-  let user = await userModel.getUserById(userId);
-  if (!user) {
-    return response.redirect("/admin/users");
-  }
-  response.render("user/user-edit", {
+const editUserForm = async (
+  req,
+  res
+) => {
+  const user =
+    await userModel.getUserById(
+      req.params.id
+    );
+
+  res.render("user/user-edit", {
     title: "Edit User",
     user,
-    currentPath: request.path
   });
 };
 
-// Handle user edit (admin only)
-const editUser = async (request, response) => {
-  const userId = request.params.id;
-  const { newUsername, firstName, lastName } = request.body;
-  // Validate new username
-  if (!newUsername || newUsername.trim().length === 0) {
-    let user = await userModel.getUserById(userId);
-    return response.render("user/user-edit", {
-      err: "Username cannot be empty",
-      user,
-      title: "Edit User"
-    });
-  }
-  // Update the user
-  let result = await userModel.updateUserById(userId, newUsername, firstName, lastName);
-  if (result) {
-    response.redirect("/admin/users");
-  } else {
-    let user = await userModel.getUserById(userId);
-    response.render("user/user-edit", {
-      err: "Username already exists or user not found",
-      user,
-      title: "Edit User"
-    });
-  }
+const editUser = async (req, res) => {
+  await userModel.updateUserById(
+    req.params.id,
+    req.body.newUsername,
+    req.body.firstName,
+    req.body.lastName
+  );
+
+  res.redirect("/admin/users");
 };
 
-// Delete user (admin only)
-const deleteUser = async (request, response) => {
-  const userId = request.params.id;
-  if (!userId) {
-    return response.redirect("/admin/users");
-  }
-  let result = await userModel.deleteUserById(userId);
-  response.redirect("/admin/users");
+const deleteUser = async (req, res) => {
+  await userModel.deleteUserById(
+    req.params.id
+  );
+
+  res.redirect("/admin/users");
 };
 
+// ==============================
+// LEGACY STREAM (KEPT SAFE)
+// ==============================
+const streamProfileImage = async (
+  req,
+  res
+) => {
+  const fileName =
+    req.params.fileName;
 
-// Proxy route: Stream profile image from R2 by file name
-import { GetObjectCommand } from "@aws-sdk/client-s3";
-
-const streamProfileImage = async (req, res) => {
-  const fileName = req.params.fileName;
-  if (!fileName) {
-    return res.status(400).json({ success: false, message: "No file name provided" });
-  }
-  // Set CORS headers for image requests
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "https://fastodigama.up.railway.app",
-    "https://fastodigama.com"
-  ];
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-  }
   try {
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_PROFILE_BUCKET_NAME,
-      Key: fileName,
-    });
-    const data = await s3.send(command);
-    res.setHeader("Content-Type", data.ContentType || "image/webp");
-    if (data.Body.pipe) {
-      data.Body.pipe(res);
-    } else {
-      // Fallback for non-stream body
-      const chunks = [];
-      for await (const chunk of data.Body) {
-        chunks.push(chunk);
-      }
-      res.end(Buffer.concat(chunks));
-    }
-  } catch (err) {
-    console.error("PROFILE IMAGE STREAM ERROR:", err);
-    return res.status(404).json({ success: false, message: "Image not found" });
+    const data = await s3.send(
+      new GetObjectCommand({
+        Bucket:
+          process.env
+            .R2_PROFILE_BUCKET_NAME,
+        Key: fileName,
+      })
+    );
+
+    res.setHeader(
+      "Content-Type",
+      data.ContentType ||
+        "image/webp"
+    );
+
+    data.Body.pipe(res);
+  } catch {
+    res.status(404).end();
   }
 };
 
+// ==============================
 export {
   getUser,
   loginForm,
@@ -420,5 +373,5 @@ export {
   apiLogout,
   apiGetUser,
   uploadProfilePicture,
-  streamProfileImage
+  streamProfileImage,
 };
