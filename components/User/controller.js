@@ -1,3 +1,28 @@
+// ==============================
+// API: Update current user's firstname and lastname
+// ==============================
+const apiUpdateUserProfile = async (req, res) => {
+  if (!req.session.loggedIn || !req.session.user) {
+    return res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+
+  const { firstName, lastName } = req.body;
+  if (!firstName || !lastName) {
+    return res.status(400).json({ success: false, message: "Missing fields" });
+  }
+
+  try {
+    const user = await userModel.getUserByEmail(req.session.user);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    await userModel.updateUserById(user._id, user.user, firstName, lastName);
+    res.json({ success: true, message: "Profile updated" });
+  } catch (err) {
+    console.error("USER PROFILE UPDATE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 import userModel from "./model.js";
 import multer from "multer";
 import sharp from "sharp";
@@ -375,4 +400,5 @@ export {
   apiGetUser,
   uploadProfilePicture,
   streamProfileImage,
+  apiUpdateUserProfile,
 };
