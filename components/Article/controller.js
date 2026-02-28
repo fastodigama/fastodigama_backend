@@ -44,7 +44,24 @@ const getArticlesApiResponse = async (request, response) => {
 
     const totalPages = Math.ceil(totalArticles / limit);
 
-    response.json({ articles, page, totalPages, totalArticles, search, category });
+    // Ensure all image URLs use CDN domain
+    const mappedArticles = articles.map(article => {
+      if (Array.isArray(article.images)) {
+        article.images = article.images.map(img => {
+          let filename = img.key || img.url || img;
+          // If already a full URL, extract filename
+          if (filename.startsWith('http')) {
+            filename = filename.split('/').pop();
+          }
+          return {
+            ...img,
+            url: `${process.env.ARTICLE_IMAGE_BASE}/${filename}`
+          };
+        });
+      }
+      return article;
+    });
+    response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category });
 
   } catch (error) {
     console.error(error);
@@ -104,6 +121,19 @@ const getArticleByIdApiResponse = async (request, response) => {
       return response.status(404).json({message: "Article not found"});
     }
     
+    // Ensure all image URLs use CDN domain
+    if (article && Array.isArray(article.images)) {
+      article.images = article.images.map(img => {
+        let filename = img.key || img.url || img;
+        if (filename.startsWith('http')) {
+          filename = filename.split('/').pop();
+        }
+        return {
+          ...img,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${filename}`
+        };
+      });
+    }
     response.json({article});
   } catch (error) {
     console.error(error);
