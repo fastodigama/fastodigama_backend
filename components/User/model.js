@@ -16,17 +16,21 @@ async function getUserById(id) {
 
 // Update user information by ID (admin only)
 // Returns true if successful, false if user not found or username taken
-async function updateUserById(id, newUsername, firstName, lastName) {
-    // Check if new username already exists (only if changing the username)
+async function updateUserById(id, newUsername, firstName, lastName, nickname) {
+    // Check if new username or nickname already exists (only if changing)
     let user = await User.findById(id);
     if (!user) return false;
     if (user.user !== newUsername) {
         let existingUser = await User.findOne({ user: newUsername });
         if (existingUser) return false;
     }
+    if (nickname && user.nickname !== nickname) {
+        let existingNickname = await User.findOne({ nickname });
+        if (existingNickname) return false;
+    }
     let result = await User.updateOne(
         { _id: id },
-        { user: newUsername, firstName, lastName }
+        { user: newUsername, firstName, lastName, ...(nickname && { nickname }) }
     );
     return result.modifiedCount === 1;
 }

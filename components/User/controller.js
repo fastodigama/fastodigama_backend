@@ -6,8 +6,8 @@ const apiUpdateUserProfile = async (req, res) => {
     return res.status(401).json({ success: false, message: "Not authenticated" });
   }
 
-  const { firstName, lastName } = req.body;
-  if (!firstName || !lastName) {
+  const { firstName, lastName, nickname } = req.body;
+  if (!firstName || !lastName || !nickname) {
     return res.status(400).json({ success: false, message: "Missing fields" });
   }
 
@@ -16,7 +16,7 @@ const apiUpdateUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    await userModel.updateUserById(user._id, user.user, firstName, lastName);
+    await userModel.updateUserById(user._id, user.user, firstName, lastName, nickname);
     res.json({ success: true, message: "Profile updated" });
   } catch (err) {
     console.error("USER PROFILE UPDATE ERROR:", err);
@@ -62,6 +62,7 @@ const apiGetUser = async (req, res) => {
     email: user.user,
     firstName: user.firstName,
     lastName: user.lastName,
+    nickname: user.nickname,
     profilePicture,
   });
 };
