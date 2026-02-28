@@ -27,13 +27,17 @@ const apiGetUser = async (req, res) => {
       .json({ success: false, message: "User not found" });
   }
 
+  // Always return profilePicture as CDN URL if present, even if only filename is stored
+  let profilePicture = user.profilePicture || null;
+  if (profilePicture && !profilePicture.startsWith('http')) {
+    profilePicture = `${process.env.PROFILE_IMAGE_BASE}/${profilePicture}`;
+  }
   res.json({
     success: true,
     email: user.user,
     firstName: user.firstName,
     lastName: user.lastName,
-    // ✅ SAME AS ARTICLES
-    profilePicture: user.profilePicture || null,
+    profilePicture,
   });
 };
 
@@ -94,19 +98,16 @@ const uploadProfilePicture = [
         })
       );
 
-      // ✅ CDN URL (LIKE ARTICLES)
-      const profileUrl =
-        `${process.env.PROFILE_IMAGE_BASE}/${fileName}`;
-
+      // Store only filename in DB, return CDN URL to frontend
       await userModel.updateProfilePicture(
         user._id,
-        profileUrl
+        fileName
       );
 
+      const profileUrl = `${process.env.PROFILE_IMAGE_BASE}/${fileName}`;
       res.json({
         success: true,
-        message:
-          "Profile picture uploaded",
+        message: "Profile picture uploaded",
         url: profileUrl,
       });
 
