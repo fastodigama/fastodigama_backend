@@ -16,7 +16,7 @@ block layout-content
                 placeholder="Search articles...",
                 value=search || ""
             )
-            button.btn.btn-primary(type="submit") Search
+            button.btn.btn-dark(type="submit") Search
 
         // Category filter (inside the same form)
         select.form-select.form-select-sm.mt-2(name="category", onchange="this.form.submit()", style="max-width: 400px")
@@ -54,7 +54,7 @@ block layout-content
                             .d-inline-flex.gap-2
                                 form(action="/admin/article/edit", method="get")
                                     input(type="hidden", name="articleId", value=article._id)
-                                    button.btn.btn-sm.btn-primary(type="submit") Edit
+                                    button.btn.btn-sm.btn-info(type="submit") Edit
                                 form(action="/admin/article/delete", method="get")
                                     input(type="hidden", name="articleId", value=article._id)
                                     button.btn.btn-sm.btn-danger(type="submit") Delete
@@ -78,7 +78,7 @@ block layout-content
                     .d-flex.gap-2.mt-2
                         form(action="/admin/article/edit", method="get")
                             input(type="hidden", name="articleId", value=article._id)
-                            button.btn.btn-sm.btn-primary(type="submit") Edit
+                            button.btn.btn-sm.btn-info(type="submit") Edit
                         form(action="/admin/article/delete", method="get")
                             input(type="hidden", name="articleId", value=article._id)
                             button.btn.btn-sm.btn-danger(type="submit") Delete
