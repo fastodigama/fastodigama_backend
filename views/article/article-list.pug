@@ -86,7 +86,7 @@ block layout-content
     // Pagination
     if totalPages > 1
         nav.mt-4
-            ul.pagination.justify-content-center
+            ul.pagination.justify-content-center(style="--bs-pagination-active-bg: #212529; --bs-pagination-active-border-color: #212529;")
 
                 // Previous
                 li.page-item(class=(currentPage === 1 ? 'disabled' : ''))
