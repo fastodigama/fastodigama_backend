@@ -9,7 +9,6 @@ import { RedisStore } from "connect-redis";
 import { connect } from "./dbConnection.js";
 import path from "path";
 
-import adminPageRouter from "./components/menuLinks/router.js";
 import pageRouter from "./components/pages/router.js";
 import publicUserRoutes from "./components/User/publicUserRoutes.js";
 import adminUserRoutes from "./components/User/adminUserRoutes.js";
@@ -18,7 +17,6 @@ import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
 import commentRouter from "./components/Comment/routes.js";
 
-import links from "./components/menuLinks/controller.js";
 import articles from "./components/Article/controller.js";
 import categories from "./components/Category/controller.js";
 
@@ -161,7 +159,6 @@ app.use(
 );
 
 // ===== API ROUTES =====
-app.get("/api/menulinks", links.getMenuLinksApiResponse);
 app.get("/api/articles", articles.getArticlesApiResponse);
 app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/categories", categories.getCategoriesApiResponse);
@@ -206,7 +203,6 @@ app.use("/logout", (req, res, next) => {
 
 // ===== ROUTES =====
 app.use("/admin/menu", requireAdmin, adminPageRouter);
-app.use("/admin/article", requireAdmin, articleRouter);
 app.use("/admin/category", requireAdmin, categoryRouter);
 
 // Mount public user routes (login, register, api login, etc.)
