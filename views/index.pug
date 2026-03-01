@@ -40,6 +40,16 @@ block layout-content
                                     div
                                         a.btn.btn-outline-dark.w-100(href="/user") Manage
 
+                        
+                        .col-md-6.col-xl-3
+                            .card.h-100
+                                .card-body.p-4.d-flex.flex-column
+                                    .d-flex.align-items-center.mb-3
+                                        h5.mb-0 Users
+                                    p.text-muted.small.mb-4.flex-grow-1 Update your profile and account settings.
+                                    div
+                                        a.btn.btn-outline-dark.w-100(href="/admin/users") Manage
+
                 else
                     .row.justify-content-center.mt-5
                         .col-md-6.col-lg-5
@@ -48,4 +58,4 @@ block layout-content
                                     h2.fw-bold.mb-3 FASTOADMIN
                                     h4.mb-3 Sign in
                                     p.text-muted.mb-4 Use your administrator account to access the workspace.
-                                    a.btn.btn-dark.w-100(href="/login") Continue to Login
+                                    a.btn.btn-primary.w-100(href="/login") Continue to Login
