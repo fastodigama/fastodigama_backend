@@ -16,7 +16,7 @@ async function getUserById(id) {
 
 // Update user information by ID (admin only)
 // Returns true if successful, false if user not found or username taken
-async function updateUserById(id, newUsername, firstName, lastName, nickname) {
+async function updateUserById(id, newUsername, firstName, lastName, newNickname) {
     // Check if new username or nickname already exists (only if changing)
     let user = await User.findById(id);
     if (!user) return false;
@@ -24,13 +24,13 @@ async function updateUserById(id, newUsername, firstName, lastName, nickname) {
         let existingUser = await User.findOne({ user: newUsername });
         if (existingUser) return false;
     }
-    if (nickname && user.nickname !== nickname) {
-        let existingNickname = await User.findOne({ nickname });
+    if (newNickname && user.nickname !== newNickname) {
+        let existingNickname = await User.findOne({ nickname: newNickname });
         if (existingNickname) return false;
     }
     let result = await User.updateOne(
         { _id: id },
-        { user: newUsername, firstName, lastName, ...(nickname && { nickname }) }
+        { user: newUsername, firstName, lastName, ...(newNickname && { nickname: newNickname }) }
     );
     return result.modifiedCount === 1;
 }
@@ -59,6 +59,7 @@ import bcrypt from "bcryptjs";
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
     user: { type: String, unique: true },
+    nickname: { type: String, unique: true, sparse: true },
     password: String,
     firstName: String,
     lastName: String,
@@ -96,7 +97,7 @@ async function getUser(username) {
 
 // Create a new user account
 // Returns true if successful, false if user already exists
-async function addUser(username, pw, f_Name, l_name) {
+async function addUser(username, pw, f_Name, l_name, nick_name) {
     // Check if username already exists
     let user = await getUser(username);
     console.log(user);
@@ -110,7 +111,8 @@ async function addUser(username, pw, f_Name, l_name) {
             user: username,
             password: hashedPassword,
             firstName: f_Name,
-            lastName: l_name
+            lastName: l_name,
+            nickname:nick_name
         });
 
         // Save user to database

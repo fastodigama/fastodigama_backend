@@ -36,6 +36,16 @@ block layout-content
                                     required
                                 )
                             .mb-3
+                                label.form-label(for="newNickName") New nickName
+                                input.form-control(
+                                    type="text",
+                                    id="newNickName",
+                                    name="newNickName",
+                                    placeholder="Enter new NickName",
+                                    value=user.nickname,
+                                    
+                                )
+                            .mb-3
                                 label.form-label(for="firstName") First Name
                                 input.form-control(
                                     type="text",

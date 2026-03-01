@@ -265,7 +265,8 @@ const register = async (req, res) => {
       u,
       pw,
       firstName,
-      lastName
+      lastName,
+      nickname
     );
 
   if (result) res.redirect("/login");
@@ -336,7 +337,8 @@ const editUser = async (req, res) => {
     req.params.id,
     req.body.newUsername,
     req.body.firstName,
-    req.body.lastName
+    req.body.lastName,
+    req.body.newNickName
   );
 
   res.redirect("/admin/users");
