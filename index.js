@@ -202,7 +202,7 @@ app.use("/logout", (req, res, next) => {
 });
 
 // ===== ROUTES =====
-app.use("/admin/menu", requireAdmin, adminPageRouter);
+app.use("/admin/article", requireAdmin, articleRouter);
 app.use("/admin/category", requireAdmin, categoryRouter);
 
 // Mount public user routes (login, register, api login, etc.)
