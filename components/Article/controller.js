@@ -103,6 +103,7 @@ const getAllArticles = async (request, response) => {
     title: "Article List",
     articles,
     categories,
+    currentPath: request.originalUrl.split('?')[0],
     currentPage: page,
     totalPages,
     totalArticles,
@@ -150,13 +151,13 @@ const viewArticle = async (request, response) => {
   }
   await article.populate("categoryId");
   const htmlContent = marked(article.text);
-  response.render("article/article-view", { title: "view Article", article, htmlContent });
+  response.render("article/article-view", { title: "view Article", article, htmlContent, currentPath: request.originalUrl.split('?')[0] });
 };
 
 // Show the form to add a new article
 const addArticleForm = async (request, response) => {
   const categories = await categoryModel.getCategories();
-  response.render("article/article-add", { title: "Article Add", categories });
+  response.render("article/article-add", { title: "Article Add", categories, currentPath: request.originalUrl.split('?')[0] });
 };
 
 
@@ -236,6 +237,7 @@ const editArticleForm = async (request, response) => {
     title: "Article Edit",
     editArticle,
     categories,
+    currentPath: request.originalUrl.split('?')[0],
   });
 };
 

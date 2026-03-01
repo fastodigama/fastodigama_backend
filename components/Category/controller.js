@@ -43,12 +43,12 @@ const getAllCategories = async (request, response) => {
         categoryList = await categoryModel.getCategories();
     }
     // Show the categories list page
-    response.render("category/category-list", {title: "Category List", categories: categoryList});
+    response.render("category/category-list", {title: "Category List", categories: categoryList, currentPath: request.originalUrl.split('?')[0]});
 };
 
 // Show the form to add a new category
 const AddCategoryForm = (request, response) => {
-    response.render("category/category-add");
+    response.render("category/category-add", {currentPath: request.originalUrl.split('?')[0]});
 };
 
 // Save a new category to the database
@@ -69,7 +69,7 @@ const updateCategoryForm = async (request, response) => {
     // Get the category ID from URL query (?categoryId=...)
     const oldCategoryId = await categoryModel.getCategoryById(request.query.categoryId);
     // Display the edit form with the current category data
-    response.render("category/category-edit", {oldCategoryId});
+    response.render("category/category-edit", {oldCategoryId, currentPath: request.originalUrl.split('?')[0]});
 };
 
 // Handle the edit form submission to update category name
