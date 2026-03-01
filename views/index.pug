@@ -1,126 +1,60 @@
 extends common/layout
 
 block layout-content
-    //- 🌟 GOOGLE MATERIAL DARK THEME STYLES
-    style.
-        body {
-            background-color: #202124 !important; /* Classic Google Dark Background */
-            color: #e8eaed !important;
-        }
-        .google-card {
-            background-color: #303134; /* Google Surface Color */
-            border: 1px solid #5f6368;
-            border-radius: 12px;
-            transition: background-color 0.2s, box-shadow 0.2s;
-        }
-        .google-card:hover {
-            background-color: #3c4043;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        .google-btn-primary {
-            background-color: #8ab4f8; /* Google Primary Blue */
-            color: #202124;
-            border: none;
-            border-radius: 24px;
-            font-weight: 500;
-            padding: 8px 24px;
-        }
-        .google-btn-primary:hover {
-            background-color: #aecbfa;
-            color: #202124;
-        }
-        .google-btn-outline {
-            color: #8ab4f8;
-            border: 1px solid #5f6368;
-            border-radius: 24px;
-            background: transparent;
-            font-weight: 500;
-            padding: 6px 16px;
-            transition: all 0.2s;
-        }
-        .google-btn-outline:hover {
-            background-color: rgba(138, 180, 248, 0.08);
-            border-color: #8ab4f8;
-            color: #8ab4f8;
-        }
-        .text-muted-google { color: #9aa0a6 !important; }
-        .icon-google-blue { color: #8ab4f8; }
-        .icon-google-green { color: #81c995; }
-        .icon-google-yellow { color: #fde293; }
-        .icon-google-red { color: #f28b82; }
-        
-        /* Overriding standard bootstrap borders just for this page */
-        .border-secondary { border-color: #5f6368 !important; }
-
     .container.py-5
         .row.justify-content-center
             .col-lg-11
                 if user
-                    //- 🌟 HEADER
-                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-md-end.mb-5.pb-4.border-bottom.border-secondary
+                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-md-end.mb-5.pb-4.border-bottom
                         .mb-3.mb-md-0
-                            h1.fw-normal.mb-2(style="letter-spacing: -0.5px;")
-                                span(style="color: #8ab4f8;") FASTO
-                                | DIGAMA
-                            p.text-muted-google.mb-0.fs-5 Content Management Workspace
+                            h1.fw-bold.mb-2 FASTODIGAMA
+                            p.text-muted.mb-0.fs-5 Content Management Workspace
                         div
-                            a.google-btn-primary.text-decoration-none.d-inline-flex.align-items-center(href="/admin/article/add")
-                                i.bi.bi-plus-lg.me-2
-                                | New Article
+                            a.btn.btn-primary(href="/admin/article/add") New Article
 
-                    //- 🌟 CARDS GRID
                     .row.g-4.mb-5
-                        //- Article Card
                         .col-md-6.col-xl-3
-                            .google-card.h-100.p-4.d-flex.flex-column
-                                .d-flex.align-items-center.mb-3
-                                    i.bi.bi-file-earmark-text.fs-3.icon-google-blue.me-3
-                                    h5.mb-0.fw-normal Articles
-                                p.text-muted-google.small.mb-4.flex-grow-1 Write, edit, and publish your latest news and long-form content.
-                                div
-                                    a.google-btn-outline.text-decoration-none.d-inline-block.w-100.text-center(href="/admin/article") Manage
+                            .card.h-100
+                                .card-body.p-4.d-flex.flex-column
+                                    .d-flex.align-items-center.mb-3
+                                        h5.mb-0 Articles
+                                    p.text-muted.small.mb-4.flex-grow-1 Write, edit, and publish content.
+                                    div
+                                        a.btn.btn-outline-primary.w-100(href="/admin/article") Manage
 
-                        //- Categories Card
                         .col-md-6.col-xl-3
-                            .google-card.h-100.p-4.d-flex.flex-column
-                                .d-flex.align-items-center.mb-3
-                                    i.bi.bi-grid.fs-3.icon-google-green.me-3
-                                    h5.mb-0.fw-normal Categories
-                                p.text-muted-google.small.mb-4.flex-grow-1 Organize your content taxonomy and structure your database.
-                                div
-                                    a.google-btn-outline.text-decoration-none.d-inline-block.w-100.text-center(href="/admin/category") Manage
+                            .card.h-100
+                                .card-body.p-4.d-flex.flex-column
+                                    .d-flex.align-items-center.mb-3
+                                        h5.mb-0 Categories
+                                    p.text-muted.small.mb-4.flex-grow-1 Organize your content taxonomy.
+                                    div
+                                        a.btn.btn-outline-primary.w-100(href="/admin/category") Manage
 
-                        //- Menu Card
                         .col-md-6.col-xl-3
-                            .google-card.h-100.p-4.d-flex.flex-column
-                                .d-flex.align-items-center.mb-3
-                                    i.bi.bi-list-nested.fs-3.icon-google-yellow.me-3
-                                    h5.mb-0.fw-normal Menu
-                                p.text-muted-google.small.mb-4.flex-grow-1 Build and update the frontend navigation links for your readers.
-                                div
-                                    a.google-btn-outline.text-decoration-none.d-inline-block.w-100.text-center(href="/admin/menu") Manage
+                            .card.h-100
+                                .card-body.p-4.d-flex.flex-column
+                                    .d-flex.align-items-center.mb-3
+                                        h5.mb-0 Menu
+                                    p.text-muted.small.mb-4.flex-grow-1 Update website navigation links.
+                                    div
+                                        a.btn.btn-outline-primary.w-100(href="/admin/menu") Manage
 
-                        //- Account Card
                         .col-md-6.col-xl-3
-                            .google-card.h-100.p-4.d-flex.flex-column
-                                .d-flex.align-items-center.mb-3
-                                    i.bi.bi-person-circle.fs-3.icon-google-red.me-3
-                                    h5.mb-0.fw-normal Account
-                                p.text-muted-google.small.mb-4.flex-grow-1 Update your administrator profile and security settings.
-                                div
-                                    a.google-btn-outline.text-decoration-none.d-inline-block.w-100.text-center(href="/user") Manage
+                            .card.h-100
+                                .card-body.p-4.d-flex.flex-column
+                                    .d-flex.align-items-center.mb-3
+                                        h5.mb-0 Account
+                                    p.text-muted.small.mb-4.flex-grow-1 Update your profile and account settings.
+                                    div
+                                        a.btn.btn-outline-primary.w-100(href="/user") Manage
 
                 else
-                    //- 🌟 LOGIN CARD (Unauthenticated)
                     .row.justify-content-center.mt-5
                         .col-md-6.col-lg-5
-                            .google-card.overflow-hidden
-                                .p-5.text-center
-                                    h2.fw-normal.mb-4
-                                        span(style="color: #8ab4f8;") FASTO
-                                        | ADMIN
-                                    i.bi.bi-shield-lock.fs-1.icon-google-blue.mb-3.d-block
-                                    h4.fw-normal.mb-3 Sign in
-                                    p.text-muted-google.mb-4 Use your administrator account to access the workspace.
-                                    a.google-btn-primary.text-decoration-none.d-inline-flex.align-items-center.w-100.justify-content-center(href="/login")
-                                        | Continue to Login
+                            .card
+                                .card-body.p-5.text-center
+                                    h2.fw-bold.mb-3 FASTOADMIN
+                                    h4.mb-3 Sign in
+                                    p.text-muted.mb-4 Use your administrator account to access the workspace.
+                                    a.btn.btn-primary.w-100(href="/login") Continue to Login

@@ -13,6 +13,7 @@ import adminPageRouter from "./components/menuLinks/router.js";
 import pageRouter from "./components/pages/router.js";
 import publicUserRoutes from "./components/User/publicUserRoutes.js";
 import adminUserRoutes from "./components/User/adminUserRoutes.js";
+import requireAdmin from "./components/User/requireAdmin.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
 import commentRouter from "./components/Comment/routes.js";
@@ -204,9 +205,9 @@ app.use("/logout", (req, res, next) => {
 });
 
 // ===== ROUTES =====
-app.use("/admin/menu", adminPageRouter);
-app.use("/admin/article", articleRouter);
-app.use("/admin/category", categoryRouter);
+app.use("/admin/menu", requireAdmin, adminPageRouter);
+app.use("/admin/article", requireAdmin, articleRouter);
+app.use("/admin/category", requireAdmin, categoryRouter);
 
 // Mount public user routes (login, register, api login, etc.)
 app.use("/", publicUserRoutes);

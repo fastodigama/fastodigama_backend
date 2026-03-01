@@ -63,6 +63,7 @@ const apiGetUser = async (req, res) => {
     firstName: user.firstName,
     lastName: user.lastName,
     nickname: user.nickname,
+    role: user.role,
     profilePicture,
   });
 };
@@ -176,8 +177,21 @@ const login = async (req, res) => {
     );
 
   if (authStatus) {
+    const user =
+      await userModel.getUserByEmail(
+        req.body.u
+      );
+
+    if (user?.role !== "admin") {
+      return res.render("user/login", {
+        err: "Admin access required",
+        currentPath: req.path,
+      });
+    }
+
     req.session.loggedIn = true;
     req.session.user = req.body.u;
+    req.session.role = user.role;
 
     const redirectUrl =
       req.session.redirectUrl || "/user";
@@ -210,17 +224,27 @@ const apiLogin = async (req, res) => {
       });
     }
 
-    req.session.loggedIn = true;
-    req.session.user = email;
-
     const user =
       await userModel.getUserByEmail(email);
+
+    if (user?.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required",
+      });
+    }
+
+    req.session.loggedIn = true;
+    req.session.user = email;
+    req.session.role = user.role;
 
     res.json({
       success: true,
       email: user.user,
       firstName: user.firstName,
       lastName: user.lastName,
+      nickname: user.nickname,
+      role: user.role,
       profilePicture:
         user.profilePicture || null,
     });
@@ -257,7 +281,13 @@ const registerForm = async (req, res) => {
 };
 
 const register = async (req, res) => {
-  const { u, pw, firstName, lastName } =
+  const {
+    u,
+    pw,
+    firstName,
+    lastName,
+    nickName,
+  } =
     req.body;
 
   let result =
@@ -266,7 +296,7 @@ const register = async (req, res) => {
       pw,
       firstName,
       lastName,
-      nickname
+      nickName
     );
 
   if (result) res.redirect("/login");
