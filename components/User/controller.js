@@ -285,11 +285,15 @@ const register = async (req, res) => {
       nickName
     );
 
-  if (result) res.redirect("/login");
-  else
-    res.render("user/register", {
-      err: "User exists",
+  if (result) {
+    res.redirect("/login");
+  } else {
+    // Return 409 Conflict status for duplicate email
+    return res.status(409).json({ 
+      success: false, 
+      message: "Email already exists. Please use a different email." 
     });
+  }
 };
 
 // ==============================
