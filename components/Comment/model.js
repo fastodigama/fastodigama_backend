@@ -140,6 +140,16 @@ async function likeComment(commentId, userId) {
     const comment = await Comment.findById(commentId);
     if (!comment) return null;
     
+    // MIGRATION: Convert old Number likes to array (for backward compatibility)
+    if (typeof comment.likes === 'number') {
+        comment.likes = [];
+    }
+    
+    // Ensure likes is an array
+    if (!Array.isArray(comment.likes)) {
+        comment.likes = [];
+    }
+    
     // Check if user already liked
     const userIdStr = userId.toString();
     const alreadyLiked = comment.likes.some(id => id.toString() === userIdStr);
