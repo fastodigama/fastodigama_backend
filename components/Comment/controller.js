@@ -4,6 +4,33 @@
 import commentModel from "./model.js";
 import userModel from "../User/model.js";
 
+// Helper function to transform comment with full R2 URL for profile pictures
+const transformCommentWithFullURL = (comment) => {
+    const commentObj = comment.toObject ? comment.toObject() : comment;
+    
+    // Transform author profile picture if present
+    if (commentObj.author && commentObj.author.profilePicture) {
+        if (!commentObj.author.profilePicture.startsWith('http')) {
+            commentObj.author.profilePicture = `${process.env.PROFILE_IMAGE_BASE}/${commentObj.author.profilePicture}`;
+        }
+    }
+    
+    // Transform likes array profile pictures if present
+    if (commentObj.likes && Array.isArray(commentObj.likes)) {
+        commentObj.likes = commentObj.likes.map(user => {
+            if (user.profilePicture && !user.profilePicture.startsWith('http')) {
+                return {
+                    ...user,
+                    profilePicture: `${process.env.PROFILE_IMAGE_BASE}/${user.profilePicture}`
+                };
+            }
+            return user;
+        });
+    }
+    
+    return commentObj;
+};
+
 // POST: Create a new comment
 const createComment = async (request, response) => {
     try {
@@ -51,7 +78,7 @@ const createComment = async (request, response) => {
         response.status(201).json({
             success: true,
             message: "Comment posted",
-            comment: comment
+            comment: transformCommentWithFullURL(comment)
         });
     } catch (error) {
         console.error("Create comment error:", error);
@@ -73,8 +100,8 @@ const getCommentsByArticle = async (request, response) => {
             comments.map(async (comment) => {
                 const replies = await commentModel.getCommentReplies(comment._id);
                 return {
-                    ...comment.toObject(),
-                    replies: replies
+                    ...transformCommentWithFullURL(comment),
+                    replies: replies.map(reply => transformCommentWithFullURL(reply))
                 };
             })
         );
@@ -101,7 +128,7 @@ const getCommentById = async (request, response) => {
         
         response.json({
             success: true,
-            comment: comment
+            comment: transformCommentWithFullURL(comment)
         });
     } catch (error) {
         console.error("Get comment error:", error);
@@ -135,7 +162,7 @@ const likeComment = async (request, response) => {
         
         response.json({
             success: true,
-            comment: comment
+            comment: transformCommentWithFullURL(comment)
         });
     } catch (error) {
         console.error("Like comment error:", error);
@@ -186,7 +213,7 @@ const updateComment = async (request, response) => {
         
         response.json({
             success: true,
-            comment: updatedComment
+            comment: transformCommentWithFullURL(updatedComment)
         });
     } catch (error) {
         console.error("Update comment error:", error);
