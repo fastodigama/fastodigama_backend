@@ -59,6 +59,7 @@ const apiGetUser = async (req, res) => {
   }
   res.json({
     success: true,
+    _id: user._id,
     email: user.user,
     firstName: user.firstName,
     lastName: user.lastName,
