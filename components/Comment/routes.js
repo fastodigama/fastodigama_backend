@@ -22,4 +22,12 @@ router.get("/:commentId", commentController.getCommentById);
 // PUT /api/comments/:commentId/like
 router.put("/:commentId/like", commentController.likeComment);
 
+// PUT: Update a comment (only author can edit)
+// PUT /api/comments/:commentId
+router.put("/:commentId", commentController.updateComment);
+
+// DELETE: Delete a comment (author or admin can delete)
+// DELETE /api/comments/:commentId
+router.delete("/:commentId", commentController.deleteComment);
+
 export default router;

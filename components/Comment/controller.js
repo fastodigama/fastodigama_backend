@@ -143,9 +143,110 @@ const likeComment = async (request, response) => {
     }
 };
 
+// PUT: Update a comment (only author can edit their own comment)
+const updateComment = async (request, response) => {
+    try {
+        // Check authentication
+        if (!request.session || !request.session.loggedIn || !request.session.user) {
+            return response.status(401).json({ 
+                error: "Authentication required to update comments" 
+            });
+        }
+
+        const { commentId } = request.params;
+        const { content } = request.body;
+
+        if (!content || content.trim().length < 2) {
+            return response.status(400).json({ 
+                error: "Comment must be at least 2 characters" 
+            });
+        }
+
+        // Get user from session
+        const user = await userModel.getUserByEmail(request.session.user);
+        if (!user) {
+            return response.status(404).json({ error: "User not found" });
+        }
+
+        // Get the comment to check ownership
+        const existingComment = await commentModel.getCommentById(commentId);
+        if (!existingComment) {
+            return response.status(404).json({ error: "Comment not found" });
+        }
+
+        // Check if user is the author (only author can edit)
+        if (!existingComment.author || existingComment.author._id.toString() !== user._id.toString()) {
+            return response.status(403).json({ 
+                error: "You can only edit your own comments" 
+            });
+        }
+
+        // Update the comment
+        const updatedComment = await commentModel.updateComment(commentId, content.trim());
+        
+        response.json({
+            success: true,
+            comment: updatedComment
+        });
+    } catch (error) {
+        console.error("Update comment error:", error);
+        response.status(500).json({ error: "Failed to update comment" });
+    }
+};
+
+// DELETE: Delete a comment (author or admin can delete)
+const deleteComment = async (request, response) => {
+    try {
+        // Check authentication
+        if (!request.session || !request.session.loggedIn || !request.session.user) {
+            return response.status(401).json({ 
+                error: "Authentication required to delete comments" 
+            });
+        }
+
+        const { commentId } = request.params;
+
+        // Get user from session
+        const user = await userModel.getUserByEmail(request.session.user);
+        if (!user) {
+            return response.status(404).json({ error: "User not found" });
+        }
+
+        // Get the comment to check ownership
+        const existingComment = await commentModel.getCommentById(commentId);
+        if (!existingComment) {
+            return response.status(404).json({ error: "Comment not found" });
+        }
+
+        // Check permissions: author can delete their own, admin can delete any
+        const isAuthor = existingComment.author && 
+                        existingComment.author._id.toString() === user._id.toString();
+        const isAdmin = user.role === "admin";
+
+        if (!isAuthor && !isAdmin) {
+            return response.status(403).json({ 
+                error: "You can only delete your own comments" 
+            });
+        }
+
+        // Delete the comment
+        await commentModel.deleteComment(commentId);
+        
+        response.json({
+            success: true,
+            message: "Comment deleted successfully"
+        });
+    } catch (error) {
+        console.error("Delete comment error:", error);
+        response.status(500).json({ error: "Failed to delete comment" });
+    }
+};
+
 export default {
     createComment,
     getCommentsByArticle,
     getCommentById,
-    likeComment
+    likeComment,
+    updateComment,
+    deleteComment
 };

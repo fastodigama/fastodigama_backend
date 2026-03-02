@@ -131,7 +131,10 @@ GET    /api/menulinks                     - Get menu links
 ```
 POST   /api/comments                      - Create comment
 GET    /api/comments/article/:articleId   - Get article comments
+GET    /api/comments/:commentId           - Get single comment
 PUT    /api/comments/:commentId/like      - Like a comment
+PUT    /api/comments/:commentId           - Update comment (author only)
+DELETE /api/comments/:commentId           - Delete comment (author or admin)
 ```
 
 ### Reader Authentication (TikTok)
