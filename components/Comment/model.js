@@ -168,6 +168,36 @@ async function likeComment(commentId, userId) {
         .populate('likes', 'nickname email firstName lastName');
 }
 
+// Get comments authored by a specific user
+async function getCommentsByAuthor(authorId) {
+    return await Comment.find({ author: authorId })
+        .populate('author')
+        .populate('likes', 'nickname email firstName lastName')
+        .populate('articleId', 'title')
+        .populate('parentId', 'content authorName')
+        .sort({ createdAt: -1 });
+}
+
+// Get replies made to comments authored by a specific user
+async function getRepliesToUserComments(authorId) {
+    const userComments = await Comment.find({ author: authorId }).select('_id');
+    const userCommentIds = userComments.map(comment => comment._id);
+
+    if (userCommentIds.length === 0) {
+        return [];
+    }
+
+    return await Comment.find({
+        parentId: { $in: userCommentIds },
+        author: { $ne: authorId }
+    })
+        .populate('author')
+        .populate('likes', 'nickname email firstName lastName')
+        .populate('articleId', 'title')
+        .populate('parentId', 'content authorName')
+        .sort({ createdAt: -1 });
+}
+
 export default {
     createComment,
     getCommentsByArticle,
@@ -177,5 +207,7 @@ export default {
     approveComment,
     deleteComment,
     getUnapprovedComments,
-    likeComment
+    likeComment,
+    getCommentsByAuthor,
+    getRepliesToUserComments
 };

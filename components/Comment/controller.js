@@ -42,6 +42,14 @@ const buildNestedReplies = async (parentCommentId) => {
     );
 };
 
+const getAuthenticatedUserFromSession = async (request) => {
+    if (!request.session || !request.session.loggedIn || !request.session.user) {
+        return null;
+    }
+
+    return await userModel.getUserByEmail(request.session.user);
+};
+
 // POST: Create a new comment
 const createComment = async (request, response) => {
     try {
@@ -158,6 +166,52 @@ const getCommentById = async (request, response) => {
     } catch (error) {
         console.error("Get comment error:", error);
         response.status(500).json({ error: "Failed to fetch comment" });
+    }
+};
+
+// GET: Current user's own comments and replies
+const getMyComments = async (request, response) => {
+    try {
+        const user = await getAuthenticatedUserFromSession(request);
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                error: "Authentication required"
+            });
+        }
+
+        const comments = await commentModel.getCommentsByAuthor(user._id);
+
+        response.json({
+            success: true,
+            comments: comments.map(comment => transformCommentWithFullURL(comment))
+        });
+    } catch (error) {
+        console.error("Get my comments error:", error);
+        response.status(500).json({ error: "Failed to fetch your comments" });
+    }
+};
+
+// GET: Replies from others to current user's comments
+const getRepliesToMe = async (request, response) => {
+    try {
+        const user = await getAuthenticatedUserFromSession(request);
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                error: "Authentication required"
+            });
+        }
+
+        const replies = await commentModel.getRepliesToUserComments(user._id);
+
+        response.json({
+            success: true,
+            replies: replies.map(reply => transformCommentWithFullURL(reply))
+        });
+    } catch (error) {
+        console.error("Get replies to me error:", error);
+        response.status(500).json({ error: "Failed to fetch replies to your comments" });
     }
 };
 
@@ -298,6 +352,8 @@ export default {
     createComment,
     getCommentsByArticle,
     getCommentById,
+    getMyComments,
+    getRepliesToMe,
     likeComment,
     updateComment,
     deleteComment

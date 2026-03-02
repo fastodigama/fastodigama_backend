@@ -14,6 +14,14 @@ router.post("/", commentController.createComment);
 // GET /api/comments/article/:articleId
 router.get("/article/:articleId", commentController.getCommentsByArticle);
 
+// GET: Get current user's comment history
+// GET /api/comments/me
+router.get("/me", commentController.getMyComments);
+
+// GET: Get replies from others to current user's comments
+// GET /api/comments/replies-to-me
+router.get("/replies-to-me", commentController.getRepliesToMe);
+
 // GET: Get a single comment by ID
 // GET /api/comments/:commentId
 router.get("/:commentId", commentController.getCommentById);
