@@ -182,13 +182,6 @@ const login = async (req, res) => {
         req.body.u
       );
 
-    if (user?.role !== "admin") {
-      return res.render("user/login", {
-        err: "Admin access required",
-        currentPath: req.path,
-      });
-    }
-
     req.session.loggedIn = true;
     req.session.user = req.body.u;
     req.session.role = user.role;
@@ -226,13 +219,6 @@ const apiLogin = async (req, res) => {
 
     const user =
       await userModel.getUserByEmail(email);
-
-    if (user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
 
     req.session.loggedIn = true;
     req.session.user = email;
