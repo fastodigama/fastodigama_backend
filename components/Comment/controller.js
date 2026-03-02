@@ -1,8 +1,8 @@
 // ===== COMMENT CONTROLLER =====
-// Handles comment CRUD operations for visitors
+// Handles comment CRUD operations for visitors and authenticated users
 
 import commentModel from "./model.js";
-// Reader model import removed
+import userModel from "../User/model.js";
 
 // POST: Create a new comment
 const createComment = async (request, response) => {
@@ -23,9 +23,21 @@ const createComment = async (request, response) => {
             });
         }
 
-        // Only anonymous comments supported (no reader session)
-        const finalAuthorName = authorName && authorName.trim() ? authorName.trim() : "Anonymous";
-        const authorId = null;
+        // Check if user is authenticated
+        let authorId = null;
+        let finalAuthorName = "Anonymous";
+        
+        if (request.session && request.session.loggedIn && request.session.user) {
+            // User is authenticated - get their profile and use nickname
+            const user = await userModel.getUserByEmail(request.session.user);
+            if (user) {
+                authorId = user._id;
+                finalAuthorName = user.nickname || user.firstName || "Anonymous";
+            }
+        } else {
+            // Anonymous comment - use provided name or default
+            finalAuthorName = authorName && authorName.trim() ? authorName.trim() : "Anonymous";
+        }
         
         // Create the comment
         const comment = await commentModel.createComment(
