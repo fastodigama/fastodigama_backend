@@ -70,6 +70,18 @@ const UserSchema = new mongoose.Schema({
 // Create the User model for database operations
 const User = mongoose.model("User", UserSchema);
 
+// ===== ENSURE INDEXES =====
+// Call this function on app startup to ensure unique indexes exist
+async function ensureIndexes() {
+    try {
+        await User.collection.createIndex({ user: 1 }, { unique: true });
+        await User.collection.createIndex({ nickname: 1 }, { unique: true, sparse: true });
+        console.log('✅ User indexes ensured');
+    } catch (error) {
+        console.error('Error creating user indexes:', error);
+    }
+}
+
 // ===== DATABASE FUNCTIONS =====
 
 // Check if username and password combination exists in database
@@ -99,10 +111,23 @@ async function getUser(username) {
 // Create a new user account
 // Returns true if successful, false if user already exists
 async function addUser(username, pw, f_Name, l_name, nick_name) {
-    // Check if username already exists
-    let user = await getUser(username);
-    console.log(user);
-    if (!user) {
+    try {
+        // Check if username already exists
+        let user = await getUser(username);
+        console.log(user);
+        if (user) {
+            // Username already taken
+            return false;
+        }
+        
+        // Check if nickname already exists (if provided)
+        if (nick_name) {
+            let existingNickname = await User.findOne({ nickname: nick_name });
+            if (existingNickname) {
+                return false;
+            }
+        }
+        
         // Hash the password using bcryptjs (generates salt automatically)
         // The number 10 is the "cost factor" - higher = slower but more secure (10 is recommended)
         let hashedPassword = await bcrypt.hash(pw, 10);
@@ -113,15 +138,20 @@ async function addUser(username, pw, f_Name, l_name, nick_name) {
             password: hashedPassword,
             firstName: f_Name,
             lastName: l_name,
-            nickname:nick_name
+            nickname: nick_name
         });
 
         // Save user to database
-        let resault = await newUser.save();
+        let result = await newUser.save();
         // Return true if save was successful
-        return (resault === newUser) ? true : false;
-    } else {
-        // Username already taken
+        return result ? true : false;
+    } catch (error) {
+        // Handle duplicate key errors from MongoDB
+        if (error.code === 11000) {
+            console.error('Duplicate key error:', error.keyPattern);
+            return false;
+        }
+        console.error('Error adding user:', error);
         return false;
     }
 }
@@ -196,7 +226,8 @@ export default {
     deleteUserById,
     updateUser,
     updateUserById,
-    getUserByEmail
-    ,updateProfilePicture
+    getUserByEmail,
+    updateProfilePicture,
+    ensureIndexes
 };
 
