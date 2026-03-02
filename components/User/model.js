@@ -17,6 +17,8 @@ async function getUserById(id) {
 // Update user information by ID (admin only)
 // Returns true if successful, false if user not found or username taken
 async function updateUserById(id, newUsername, firstName, lastName, newNickname) {
+    // Normalize email to lowercase
+    newUsername = newUsername.toLowerCase();
     // Check if new username or nickname already exists (only if changing)
     let user = await User.findById(id);
     if (!user) return false;
@@ -87,8 +89,8 @@ async function ensureIndexes() {
 // Check if username and password combination exists in database
 // Returns true if user found and password matches, false otherwise
 async function authenticateUser(username, pw) {
-    // Find the user by username
-    let user = await User.findOne({ user: username });
+    // Find the user by username (normalized to lowercase)
+    let user = await User.findOne({ user: username.toLowerCase() });
     
     // If user doesn't exist, return false
     if (!user) return false;
@@ -103,8 +105,8 @@ async function authenticateUser(username, pw) {
 // Find a user by username
 // Returns the user object if found, false if not found
 async function getUser(username) {
-    // Search database for user by username
-    let resault = await User.findOne({user: username});
+    // Search database for user by username (normalized to lowercase)
+    let resault = await User.findOne({user: username.toLowerCase()});
     return (resault) ? resault : false;
 }
 
@@ -112,6 +114,8 @@ async function getUser(username) {
 // Returns true if successful, false if user already exists
 async function addUser(username, pw, f_Name, l_name, nick_name) {
     try {
+        // Normalize email to lowercase
+        username = username.toLowerCase();
         // Check if username already exists
         let user = await getUser(username);
         console.log(user);
@@ -159,8 +163,8 @@ async function addUser(username, pw, f_Name, l_name, nick_name) {
 // Delete a user from database (admin only)
 // Returns true if successful, false if user not found
 async function deleteUser(username) {
-    // Delete the user from database
-    let result = await User.deleteOne({ user: username });
+    // Delete the user from database (normalized to lowercase)
+    let result = await User.deleteOne({ user: username.toLowerCase() });
     
     // Return true if one user was deleted, false if no user found
     return result.deletedCount === 1;
@@ -169,6 +173,9 @@ async function deleteUser(username) {
 // Update user information (admin only)
 // Returns true if successful, false if user not found
 async function updateUser(username, newUsername) {
+    // Normalize emails to lowercase
+    username = username.toLowerCase();
+    newUsername = newUsername.toLowerCase();
     // Check if new username already exists (only if changing the username)
     if (newUsername !== username) {
         let existingUser = await getUser(newUsername);
@@ -199,9 +206,9 @@ async function resetPassword(username, newPassword) {
     // Hash the new password
     let hashedPassword = await bcrypt.hash(newPassword, 10);
     
-    // Update the user's password in database
+    // Update the user's password in database (normalized to lowercase)
     let result = await User.updateOne(
-        { user: username },
+        { user: username.toLowerCase() },
         { password: hashedPassword }
     );
     
@@ -211,7 +218,7 @@ async function resetPassword(username, newPassword) {
 
 //GET User firstname, last name after login
 const getUserByEmail = async (email) => {
-    return await User.findOne({user: email});
+    return await User.findOne({user: email.toLowerCase()});
 };
 
 export default {
