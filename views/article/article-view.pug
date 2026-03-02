@@ -1,5 +1,40 @@
 extends ../common/layout
 
+mixin commentNode(comment, depth)
+    - const indent = Math.min((depth || 0) * 20, 80)
+    .comment-node(style=`margin-left: ${indent}px;`)
+        .card.mb-3
+            .card-body
+                .d-flex.flex-column.flex-sm-row.justify-content-between.align-items-start.gap-2
+                    div
+                        .d-flex.align-items-center.mb-2
+                            strong.me-2= comment.authorName
+                            small.text-muted= new Date(comment.createdAt).toLocaleString()
+                        p.mb-2= comment.content
+                        .d-flex.align-items-center.gap-3
+                            small.text-muted
+                                i.bi.bi-heart-fill.me-1
+                                = comment.likes ? comment.likes.length : 0
+                                |  likes
+                            button.btn.btn-outline-secondary.btn-sm(type="button", onclick=`toggleReplyForm('${comment._id}')`)
+                                i.bi.bi-reply.me-1
+                                | Reply
+                    form(action=`/admin/article/comment/delete?commentId=${comment._id}&articleId=${article._id}`, method="post", onsubmit="return confirm('Delete this comment?')", style="display: inline;")
+                        button.btn.btn-danger.btn-sm(type="submit")
+                            i.bi.bi-trash.me-1
+                            | Delete
+
+                form.reply-form.d-none.mt-3(id=`reply-form-${comment._id}`, onsubmit=`submitReply(event, '${article._id}', '${comment._id}')`)
+                    .mb-2
+                        textarea.form-control(name="content", rows="2", placeholder="Write your reply...", required)
+                    .d-flex.gap-2
+                        button.btn.btn-primary.btn-sm(type="submit") Post Reply
+                        button.btn.btn-secondary.btn-sm(type="button", onclick=`toggleReplyForm('${comment._id}')`) Cancel
+
+        if comment.replies && comment.replies.length > 0
+            each reply in comment.replies
+                +commentNode(reply, (depth || 0) + 1)
+
 block layout-content
     //- Article view page: Display full article with action buttons
     .row.justify-content-center
@@ -7,7 +42,7 @@ block layout-content
             .card.shadow-sm
                 .card-body.p-4
                     //- Article header with title
-                    .d-flex.justify-content-between.align-items-start.mb-4
+                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.gap-3.mb-4
                         div
                             h1.h2.mb-2 #{article.title}
                             p.text-muted.mb-0
@@ -17,7 +52,7 @@ block layout-content
                                         | Created: #{new Date(article.createdAt).toLocaleDateString()}
                         
                         //- Action buttons
-                        .d-flex.gap-2
+                        .d-flex.flex-wrap.gap-2
                             //- Edit button
                             form(action="/admin/article/edit", method="get")
                                 input(type="hidden", name="articleId", value=article._id)
@@ -60,25 +95,7 @@ block layout-content
                         if comments && comments.length > 0
                             .comments-list
                                 each comment in comments
-                                    .card.mb-3
-                                        .card-body
-                                            .d-flex.justify-content-between.align-items-start
-                                                div
-                                                    .d-flex.align-items-center.mb-2
-                                                        strong.me-2= comment.authorName
-                                                        small.text-muted
-                                                            = new Date(comment.createdAt).toLocaleString()
-                                                    p.mb-2= comment.content
-                                                    .d-flex.align-items-center.gap-3
-                                                        small.text-muted
-                                                            i.bi.bi-heart-fill.me-1
-                                                            = comment.likes ? comment.likes.length : 0
-                                                            |  likes
-                                                //- Delete button (admin can delete any comment)
-                                                form(action=`/admin/article/comment/delete?commentId=${comment._id}&articleId=${article._id}`, method="post", onsubmit="return confirm('Delete this comment?')", style="display: inline;")
-                                                    button.btn.btn-danger.btn-sm(type="submit")
-                                                        i.bi.bi-trash.me-1
-                                                        | Delete
+                                    +commentNode(comment, 0)
                         else
                             .alert.alert-info
                                 i.bi.bi-info-circle.me-2
@@ -89,3 +106,45 @@ block layout-content
                         a.btn.btn-secondary(href="/admin/article")
                             i.bi.bi-arrow-left.me-1
                             | Back to Articles
+
+    script.
+        function toggleReplyForm(commentId) {
+            const form = document.getElementById(`reply-form-${commentId}`);
+            if (!form) return;
+            form.classList.toggle('d-none');
+            if (!form.classList.contains('d-none')) {
+                const textarea = form.querySelector('textarea[name="content"]');
+                if (textarea) textarea.focus();
+            }
+        }
+
+        async function submitReply(event, articleId, parentId) {
+            event.preventDefault();
+            const form = event.target;
+            const textarea = form.querySelector('textarea[name="content"]');
+            const content = textarea ? textarea.value.trim() : '';
+
+            if (!content) {
+                alert('Reply cannot be empty');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ articleId, parentId, content })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    alert(data.error || data.message || 'Failed to post reply');
+                    return;
+                }
+
+                window.location.reload();
+            } catch (error) {
+                alert('Failed to post reply');
+            }
+        }

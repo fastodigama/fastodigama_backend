@@ -144,6 +144,17 @@ const getArticleByIdApiResponse = async (request, response) => {
 }
 
 // Display a single article in detail view
+const buildNestedCommentsForArticleView = async (parentCommentId) => {
+  const replies = await commentModel.getCommentReplies(parentCommentId);
+
+  return Promise.all(
+    replies.map(async (reply) => ({
+      ...(reply.toObject ? reply.toObject() : reply),
+      replies: await buildNestedCommentsForArticleView(reply._id),
+    }))
+  );
+};
+
 const viewArticle = async (request, response) => {
   const articleId = request.query.articleId;
   const article = await articleModel.getArticleById(articleId);
@@ -153,8 +164,14 @@ const viewArticle = async (request, response) => {
   await article.populate("categoryId");
   const htmlContent = marked(article.text);
   
-  // Fetch comments for this article
-  const comments = await commentModel.getCommentsByArticle(articleId);
+  // Fetch comments with unlimited nested replies for this article
+  const topLevelComments = await commentModel.getCommentsByArticle(articleId);
+  const comments = await Promise.all(
+    topLevelComments.map(async (comment) => ({
+      ...(comment.toObject ? comment.toObject() : comment),
+      replies: await buildNestedCommentsForArticleView(comment._id),
+    }))
+  );
   
   response.render("article/article-view", { 
     title: "view Article", 

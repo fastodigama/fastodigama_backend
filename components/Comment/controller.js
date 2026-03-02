@@ -31,6 +31,17 @@ const transformCommentWithFullURL = (comment) => {
     return commentObj;
 };
 
+const buildNestedReplies = async (parentCommentId) => {
+    const replies = await commentModel.getCommentReplies(parentCommentId);
+
+    return Promise.all(
+        replies.map(async (reply) => ({
+            ...transformCommentWithFullURL(reply),
+            replies: await buildNestedReplies(reply._id)
+        }))
+    );
+};
+
 // POST: Create a new comment
 const createComment = async (request, response) => {
     try {
@@ -50,16 +61,31 @@ const createComment = async (request, response) => {
             });
         }
 
+        const isAuthenticated = Boolean(
+            request.session && request.session.loggedIn && request.session.user
+        );
+
+        // Replies (including reply-to-reply) require authentication
+        if (parentId && !isAuthenticated) {
+            return response.status(401).json({
+                error: "Authentication required to reply to comments"
+            });
+        }
+
         // Check if user is authenticated
         let authorId = null;
         let finalAuthorName = "Anonymous";
         
-        if (request.session && request.session.loggedIn && request.session.user) {
+        if (isAuthenticated) {
             // User is authenticated - get their profile and use nickname
             const user = await userModel.getUserByEmail(request.session.user);
             if (user) {
                 authorId = user._id;
                 finalAuthorName = user.nickname || user.firstName || "Anonymous";
+            } else if (parentId) {
+                return response.status(401).json({
+                    error: "Authentication required to reply to comments"
+                });
             }
         } else {
             // Anonymous comment - use provided name or default
@@ -95,13 +121,12 @@ const getCommentsByArticle = async (request, response) => {
         // Get top-level comments with author info
         const comments = await commentModel.getCommentsByArticle(articleId);
         
-        // For each comment, get its replies
+        // For each comment, get all nested replies (unlimited depth)
         const commentsWithReplies = await Promise.all(
             comments.map(async (comment) => {
-                const replies = await commentModel.getCommentReplies(comment._id);
                 return {
                     ...transformCommentWithFullURL(comment),
-                    replies: replies.map(reply => transformCommentWithFullURL(reply))
+                    replies: await buildNestedReplies(comment._id)
                 };
             })
         );
