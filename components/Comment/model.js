@@ -28,8 +28,9 @@ const CommentSchema = new mongoose.Schema({
         default: null  // null means it's a top-level comment, otherwise it's a reply
     },
     likes: {
-        type: Number,
-        default: 0
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: "User",
+        default: []
     },
     createdAt: {
         type: Date,
@@ -67,7 +68,8 @@ async function createComment(articleId, content, parentId = null, authorId = nul
 }
 
 // Get all approved comments for an article (with replies)
-// Uses .populate('author') to fetch TikTok visitor info
+// Uses .populate('author') to fetch user info
+// Populates likes array with user data (nickname, email, etc.)
 async function getCommentsByArticle(articleId) {
     return await Comment.find({
         articleId,
@@ -75,6 +77,7 @@ async function getCommentsByArticle(articleId) {
         parentId: null  // Only get top-level comments
     })
     .populate('author')
+    .populate('likes', 'nickname email firstName lastName')
     .sort({ createdAt: -1 });
 }
 
@@ -85,12 +88,15 @@ async function getCommentReplies(parentCommentId) {
         approved: true
     })
     .populate('author')
+    .populate('likes', 'nickname email firstName lastName')
     .sort({ createdAt: 1 });
 }
 
 // Get a single comment by ID
 async function getCommentById(commentId) {
-    return await Comment.findById(commentId).populate('author');
+    return await Comment.findById(commentId)
+        .populate('author')
+        .populate('likes', 'nickname email firstName lastName');
 }
 
 // Update comment (admin only)
@@ -128,13 +134,28 @@ async function getUnapprovedComments() {
         .sort({ createdAt: -1 });
 }
 
-// Like a comment
-async function likeComment(commentId) {
-    return await Comment.findByIdAndUpdate(
-        commentId,
-        { $inc: { likes: 1 } },
-        { new: true }
-    ).populate('author');
+// Like/unlike a comment (toggle)
+// Returns the updated comment with populated author and likes
+async function likeComment(commentId, userId) {
+    const comment = await Comment.findById(commentId);
+    if (!comment) return null;
+    
+    // Check if user already liked
+    const userIdStr = userId.toString();
+    const alreadyLiked = comment.likes.some(id => id.toString() === userIdStr);
+    
+    if (alreadyLiked) {
+        // Unlike: remove from array
+        comment.likes = comment.likes.filter(id => id.toString() !== userIdStr);
+    } else {
+        // Like: add to array
+        comment.likes.push(userId);
+    }
+    
+    await comment.save();
+    return await Comment.findById(commentId)
+        .populate('author')
+        .populate('likes', 'nickname email firstName lastName');
 }
 
 export default {

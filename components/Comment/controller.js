@@ -109,11 +109,25 @@ const getCommentById = async (request, response) => {
     }
 };
 
-// PUT: Like a comment
+// PUT: Like/unlike a comment (requires authentication)
 const likeComment = async (request, response) => {
     try {
+        // Check authentication
+        if (!request.session || !request.session.loggedIn || !request.session.user) {
+            return response.status(401).json({ 
+                error: "Authentication required to like comments" 
+            });
+        }
+
         const { commentId } = request.params;
-        const comment = await commentModel.likeComment(commentId);
+        
+        // Get user ID from session
+        const user = await userModel.getUserByEmail(request.session.user);
+        if (!user) {
+            return response.status(404).json({ error: "User not found" });
+        }
+        
+        const comment = await commentModel.likeComment(commentId, user._id);
         
         if (!comment) {
             return response.status(404).json({ error: "Comment not found" });
