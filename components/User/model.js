@@ -118,7 +118,6 @@ async function addUser(username, pw, f_Name, l_name, nick_name) {
         username = username.toLowerCase();
         // Check if username already exists
         let user = await getUser(username);
-        console.log(user);
         if (user) {
             // Username already taken
             return false;
