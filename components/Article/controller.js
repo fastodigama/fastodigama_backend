@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import articleModel from "./model.js";
 import categoryModel from "../Category/model.js";
+import commentModel from "../Comment/model.js";
 import { marked } from "marked";
 import multer from "multer";
 import { s3 } from "../config/r2.js";
@@ -151,7 +152,17 @@ const viewArticle = async (request, response) => {
   }
   await article.populate("categoryId");
   const htmlContent = marked(article.text);
-  response.render("article/article-view", { title: "view Article", article, htmlContent, currentPath: request.originalUrl.split('?')[0] });
+  
+  // Fetch comments for this article
+  const comments = await commentModel.getCommentsByArticle(articleId);
+  
+  response.render("article/article-view", { 
+    title: "view Article", 
+    article, 
+    htmlContent, 
+    comments,
+    currentPath: request.originalUrl.split('?')[0] 
+  });
 };
 
 // Show the form to add a new article
@@ -349,6 +360,20 @@ const deleteImage = async (request, response) => {
   }
 };
 
+// Delete a comment from article view (admin only)
+const deleteCommentFromArticle = async (request, response) => {
+  const { commentId, articleId } = request.query;
+  
+  try {
+    await commentModel.deleteComment(commentId);
+    // Redirect back to the article view
+    response.redirect(`/admin/article/view?articleId=${articleId}`);
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    response.redirect(`/admin/article/view?articleId=${articleId}`);
+  }
+};
+
 export { upload };
 export default {
   getAllArticles,
@@ -359,6 +384,7 @@ export default {
   editArticle,
   deleteArticle,
   deleteImage,
+  deleteCommentFromArticle,
   getArticlesApiResponse,
   getArticleByIdApiResponse,
 };

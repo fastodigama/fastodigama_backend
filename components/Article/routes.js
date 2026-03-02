@@ -40,6 +40,8 @@ router.post("/edit/submit", upload.array("images"), articles.editArticle);
 // POST /admin/article/delete-image
 router.post("/delete-image", articles.deleteImage);
 
-
+// Delete a comment from article view (admin only)
+// POST /admin/article/comment/delete?commentId=123&articleId=456
+router.post("/comment/delete", articles.deleteCommentFromArticle);
 
 export default router;
