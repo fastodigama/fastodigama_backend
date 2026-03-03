@@ -21,8 +21,10 @@ import consentRouter from "./components/Consent/routes.js";
 import articles from "./components/Article/controller.js";
 import categories from "./components/Category/controller.js";
 
+
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 // ===== DATABASE CONNECTION =====
 connect();
@@ -98,10 +100,14 @@ app.use(
   express.static(path.join(__dirname, "node_modules/bootstrap/dist")),
 );
 
+
 // Body parsers
 app.use(express.urlencoded({ extended: true }));
 // FIX: JSON parser must come BEFORE routes
 app.use(express.json());
+
+// Cookie parser (for TikTok OAuth CSRF state)
+app.use(cookieParser());
 
 // Views
 app.set("views", path.join(__dirname, "views"));
