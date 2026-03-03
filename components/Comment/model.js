@@ -287,6 +287,30 @@ async function getLikesToUserComments(authorId, lastSeenAt = null) {
     return notifications;
 }
 
+// ===== GDPR FUNCTIONS =====
+
+// Get all comments by a user (for GDPR data export)
+async function getCommentsByUser(userId) {
+    return await Comment.find({ author: userId })
+        .sort({ createdAt: -1 })
+        .lean();
+}
+
+// Anonymize user's comments (for GDPR account deletion)
+// Sets author to null and authorName to "Deleted User"
+async function anonymizeUserComments(userId) {
+    const result = await Comment.updateMany(
+        { author: userId },
+        { 
+            $set: { 
+                author: null,
+                authorName: "Deleted User"
+            }
+        }
+    );
+    return result.modifiedCount;
+}
+
 export default {
     createComment,
     getCommentsByArticle,
@@ -300,5 +324,7 @@ export default {
     getCommentsByAuthor,
     getRepliesToUserComments,
     getUnreadRepliesToUserComments,
-    getLikesToUserComments
+    getLikesToUserComments,
+    getCommentsByUser,
+    anonymizeUserComments
 };

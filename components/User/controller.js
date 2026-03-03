@@ -406,6 +406,179 @@ const streamProfileImage = async (
 };
 
 // ==============================
+// GDPR ENDPOINTS
+// ==============================
+
+// API: Export User Data (Right to Portability)
+// GET /api/user/export
+const apiExportUserData = async (req, res) => {
+  if (!req.session.loggedIn || !req.session.user) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "Not authenticated" 
+    });
+  }
+
+  try {
+    const user = await userModel.getUserByEmail(req.session.user);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    // Import Comment and Consent models dynamically
+    const commentModel = (await import("../Comment/model.js")).default;
+    const consentModel = (await import("../Consent/model.js")).default;
+
+    // Get all user's comments
+    const comments = await commentModel.getCommentsByUser(user._id);
+
+    // Get all user's consent records
+    const consents = await consentModel.getConsentsByUserId(user._id);
+
+    // Build complete user data export
+    const userData = {
+      exportDate: new Date().toISOString(),
+      exportVersion: "1.0",
+      profile: {
+        _id: user._id,
+        email: user.user,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        createdAt: user.createdAt || null,
+      },
+      comments: comments.map(c => ({
+        _id: c._id,
+        articleId: c.articleId,
+        content: c.content,
+        parentId: c.parentId,
+        likes: c.likes?.length || 0,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        approved: c.approved
+      })),
+      consents: consents.map(c => ({
+        consentType: c.consentType,
+        granted: c.granted,
+        timestamp: c.timestamp,
+        ipAddress: c.ipAddress,
+        userAgent: c.userAgent
+      })),
+      activityLogs: {
+        lastRepliesSeenAt: user.lastRepliesSeenAt,
+        lastLikesSeenAt: user.lastLikesSeenAt
+      }
+    };
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="user-data-${user._id}.json"`);
+    res.json(userData);
+
+  } catch (err) {
+    console.error("USER DATA EXPORT ERROR:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+};
+
+// API: Delete User Account (Right to be Forgotten)
+// DELETE /api/user/account
+const apiDeleteUserAccount = async (req, res) => {
+  if (!req.session.loggedIn || !req.session.user) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "Not authenticated" 
+    });
+  }
+
+  const { confirmPassword } = req.body;
+  if (!confirmPassword) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Password confirmation required" 
+    });
+  }
+
+  try {
+    const user = await userModel.getUserByEmail(req.session.user);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    // Verify password before deletion
+    const authStatus = await userModel.authenticateUser(
+      req.session.user,
+      confirmPassword
+    );
+
+    if (!authStatus) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid password" 
+      });
+    }
+
+    // Import Comment and Consent models
+    const commentModel = (await import("../Comment/model.js")).default;
+    const consentModel = (await import("../Consent/model.js")).default;
+
+    // GDPR-compliant deletion:
+    // 1. Delete all consent records
+    await consentModel.deleteConsentsByUserId(user._id);
+
+    // 2. Anonymize user's comments (don't delete - they may be part of public discourse)
+    //    Set author to null and authorName to "Deleted User"
+    await commentModel.anonymizeUserComments(user._id);
+
+    // 3. Delete user profile picture from R2 (if exists)
+    if (user.profilePicture && !user.profilePicture.startsWith('http')) {
+      try {
+        const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        await s3.send(
+          new DeleteObjectCommand({
+            Bucket: process.env.R2_PROFILE_BUCKET_NAME,
+            Key: user.profilePicture,
+          })
+        );
+      } catch (deleteErr) {
+        console.error("Profile picture deletion error:", deleteErr);
+        // Continue with account deletion even if image deletion fails
+      }
+    }
+
+    // 4. Delete the user account
+    await userModel.deleteUserById(user._id);
+
+    // 5. Destroy session
+    req.session.destroy(() => {
+      res.clearCookie("FastodigamaSession");
+      res.json({ 
+        success: true, 
+        message: "Account deleted successfully" 
+      });
+    });
+
+  } catch (err) {
+    console.error("USER ACCOUNT DELETION ERROR:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+};
+
+// ==============================
 export {
   getUser,
   loginForm,
@@ -425,4 +598,6 @@ export {
   uploadProfilePicture,
   streamProfileImage,
   apiUpdateUserProfile,
+  apiExportUserData,
+  apiDeleteUserAccount,
 };

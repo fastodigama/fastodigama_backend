@@ -20,6 +20,12 @@ router.post("/api/user/profile-picture", userController.uploadProfilePicture);
 // API: Update user firstname and lastname (authenticated users only)
 router.post("/api/user/profile", userController.apiUpdateUserProfile);
 
+// GDPR API: Export user data (Right to Portability)
+router.get("/api/user/export", userController.apiExportUserData);
+
+// GDPR API: Delete user account (Right to be Forgotten)
+router.delete("/api/user/account", userController.apiDeleteUserAccount);
+
 router.post("/api/login", userController.apiLogin);
 
 // API: Get current user info as JSON (for frontend session check)
