@@ -93,7 +93,11 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 			}),
 			{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
 		);
-		const accessToken = tokenRes.data.data.access_token;
+				if (!tokenRes.data?.data?.access_token) {
+					console.error("Token exchange failed:", tokenRes.data);
+					return res.status(400).send("TikTok token exchange failed");
+				}
+				const accessToken = tokenRes.data.data.access_token;
 		// Get user info
 		const userRes = await axios.get(
 			"https://open.tiktokapis.com/v2/user/info/",

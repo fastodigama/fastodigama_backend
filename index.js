@@ -13,6 +13,10 @@ import pageRouter from "./components/pages/router.js";
 import publicUserRoutes from "./components/User/publicUserRoutes.js";
 import adminUserRoutes from "./components/User/adminUserRoutes.js";
 
+// Debug TikTok OAuth env variables
+console.log("TikTok Redirect:", process.env.TIKTOK_REDIRECT_URI);
+console.log("TikTok Client Key:", process.env.TIKTOK_CLIENT_KEY);
+
 // TikTok OAuth CSP override middleware (must run before helmet)
 const tiktokCsp = (req, res, next) => {
   // Only apply to TikTok OAuth endpoints
