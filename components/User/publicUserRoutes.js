@@ -40,14 +40,28 @@ router.post("/api/logout", userController.apiLogout);
 router.get("/auth/tiktok", (req, res) => {
 	// Generate a secure random CSRF state token (30 bytes, base64url)
 	const csrfState = crypto.randomBytes(30).toString('base64url');
-	// Store state in a short-lived cookie (1 minute)
+	// Generate PKCE code_verifier (43-128 chars, base64url)
+	const codeVerifier = crypto.randomBytes(64).toString('base64url');
+	// Generate code_challenge (SHA256, base64url)
+	const codeChallenge = crypto
+		.createHash('sha256')
+		.update(codeVerifier)
+		.digest()
+		.toString('base64')
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=+$/, '');
+	// Store state and code_verifier in short-lived cookies (1 minute)
 	res.cookie('tiktokCsrfState', csrfState, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
+	res.cookie('tiktokCodeVerifier', codeVerifier, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
 	const params = new URLSearchParams({
 		client_key: process.env.TIKTOK_CLIENT_KEY,
 		scope: "user.info.basic",
 		response_type: "code",
 		redirect_uri: process.env.TIKTOK_REDIRECT_URI,
-		state: csrfState
+		state: csrfState,
+		code_challenge: codeChallenge,
+		code_challenge_method: 'S256'
 	});
 	res.redirect(`https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`);
 });
@@ -58,13 +72,15 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 	if (!code) return res.status(400).send("Missing code");
 	// Verify CSRF state from cookie
 	const csrfCookie = req.cookies.tiktokCsrfState;
-	if (!state || !csrfCookie || state !== csrfCookie) {
-		return res.status(400).send("Invalid state parameter. Possible CSRF attack.");
+	const codeVerifier = req.cookies.tiktokCodeVerifier;
+	if (!state || !csrfCookie || state !== csrfCookie || !codeVerifier) {
+		return res.status(400).send("Invalid state or PKCE parameter. Possible CSRF or PKCE attack.");
 	}
-	// Clear state cookie
+	// Clear state and code_verifier cookies
 	res.clearCookie('tiktokCsrfState');
+	res.clearCookie('tiktokCodeVerifier');
 	try {
-		// Exchange code for access token
+		// Exchange code for access token (with PKCE)
 		const tokenRes = await axios.post(
 			"https://open.tiktokapis.com/v2/oauth/token/",
 			new URLSearchParams({
@@ -72,7 +88,8 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 				client_secret: process.env.TIKTOK_CLIENT_SECRET,
 				code,
 				grant_type: "authorization_code",
-				redirect_uri: process.env.TIKTOK_REDIRECT_URI
+				redirect_uri: process.env.TIKTOK_REDIRECT_URI,
+				code_verifier: codeVerifier
 			}),
 			{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
 		);
