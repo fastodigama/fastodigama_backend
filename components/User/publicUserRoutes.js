@@ -117,7 +117,9 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 		req.session.loggedIn = true;
 		req.session.user = userDoc.user;
 		req.session.role = userDoc.role;
-		res.redirect("/user");
+		// Redirect to frontend user page
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000/user";
+		res.redirect(frontendUrl);
 	} catch (err) {
 		console.error("TikTok OAuth error", err?.response?.data || err);
 		res.status(500).send("TikTok login failed");
