@@ -32,6 +32,20 @@ const CommentSchema = new mongoose.Schema({
         ref: "User",
         default: []
     },
+    likeEvents: {
+        type: [{
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -160,6 +174,10 @@ async function likeComment(commentId, userId) {
     } else {
         // Like: add to array
         comment.likes.push(userId);
+        comment.likeEvents.push({
+            user: userId,
+            createdAt: new Date()
+        });
     }
     
     await comment.save();
@@ -198,6 +216,77 @@ async function getRepliesToUserComments(authorId) {
         .sort({ createdAt: -1 });
 }
 
+async function getUnreadRepliesToUserComments(authorId, lastSeenAt = null) {
+    const userComments = await Comment.find({ author: authorId }).select('_id');
+    const userCommentIds = userComments.map(comment => comment._id);
+
+    if (userCommentIds.length === 0) {
+        return [];
+    }
+
+    const query = {
+        parentId: { $in: userCommentIds },
+        author: { $ne: authorId }
+    };
+
+    if (lastSeenAt) {
+        query.createdAt = { $gt: lastSeenAt };
+    }
+
+    return await Comment.find(query)
+        .populate('author')
+        .populate('likes', 'nickname email firstName lastName')
+        .populate('articleId', 'title')
+        .populate('parentId', 'content authorName')
+        .sort({ createdAt: -1 });
+}
+
+async function getLikesToUserComments(authorId, lastSeenAt = null) {
+    const userComments = await Comment.find({ author: authorId })
+        .populate('articleId', 'title')
+        .populate('parentId', 'content authorName');
+
+    const notifications = [];
+
+    for (const comment of userComments) {
+        if (!Array.isArray(comment.likeEvents) || comment.likeEvents.length === 0) {
+            continue;
+        }
+
+        const filteredEvents = comment.likeEvents.filter(event => {
+            const isSelfLike = event.user && event.user.toString() === authorId.toString();
+            const isUnreadByTime = !lastSeenAt || event.createdAt > lastSeenAt;
+            return !isSelfLike && isUnreadByTime;
+        });
+
+        if (filteredEvents.length === 0) {
+            continue;
+        }
+
+        const likerIds = [...new Set(filteredEvents.map(event => event.user.toString()))];
+        const likerDocs = await mongoose.model('User').find({ _id: { $in: likerIds } });
+
+        const likerMap = new Map(likerDocs.map(liker => [liker._id.toString(), liker]));
+
+        filteredEvents.forEach(event => {
+            const liker = likerMap.get(event.user.toString());
+            notifications.push({
+                _id: `${comment._id}-${event.user}-${event.createdAt.getTime()}`,
+                commentId: comment._id,
+                articleId: comment.articleId,
+                parentId: comment.parentId || null,
+                commentContent: comment.content,
+                authorName: comment.authorName,
+                likedAt: event.createdAt,
+                user: liker || null
+            });
+        });
+    }
+
+    notifications.sort((a, b) => new Date(b.likedAt) - new Date(a.likedAt));
+    return notifications;
+}
+
 export default {
     createComment,
     getCommentsByArticle,
@@ -209,5 +298,7 @@ export default {
     getUnapprovedComments,
     likeComment,
     getCommentsByAuthor,
-    getRepliesToUserComments
+    getRepliesToUserComments,
+    getUnreadRepliesToUserComments,
+    getLikesToUserComments
 };

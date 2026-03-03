@@ -22,6 +22,18 @@ router.get("/me", commentController.getMyComments);
 // GET /api/comments/replies-to-me
 router.get("/replies-to-me", commentController.getRepliesToMe);
 
+// POST: Mark replies notifications as seen
+// POST /api/comments/replies-to-me/mark-seen
+router.post("/replies-to-me/mark-seen", commentController.markRepliesSeen);
+
+// GET: Get likes from others on current user's comments
+// GET /api/comments/likes-to-me
+router.get("/likes-to-me", commentController.getLikesToMe);
+
+// POST: Mark likes notifications as seen
+// POST /api/comments/likes-to-me/mark-seen
+router.post("/likes-to-me/mark-seen", commentController.markLikesSeen);
+
 // GET: Get a single comment by ID
 // GET /api/comments/:commentId
 router.get("/:commentId", commentController.getCommentById);

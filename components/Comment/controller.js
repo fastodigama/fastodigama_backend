@@ -50,6 +50,18 @@ const getAuthenticatedUserFromSession = async (request) => {
     return await userModel.getUserByEmail(request.session.user);
 };
 
+const transformLikeNotificationWithFullURL = (notification) => {
+    const notificationObj = notification.toObject ? notification.toObject() : notification;
+
+    if (notificationObj.user && notificationObj.user.profilePicture) {
+        if (!notificationObj.user.profilePicture.startsWith('http')) {
+            notificationObj.user.profilePicture = `${process.env.PROFILE_IMAGE_BASE}/${notificationObj.user.profilePicture}`;
+        }
+    }
+
+    return notificationObj;
+};
+
 // POST: Create a new comment
 const createComment = async (request, response) => {
     try {
@@ -204,14 +216,85 @@ const getRepliesToMe = async (request, response) => {
         }
 
         const replies = await commentModel.getRepliesToUserComments(user._id);
+        const unreadReplies = await commentModel.getUnreadRepliesToUserComments(
+            user._id,
+            user.lastRepliesSeenAt || null
+        );
 
         response.json({
             success: true,
-            replies: replies.map(reply => transformCommentWithFullURL(reply))
+            replies: replies.map(reply => transformCommentWithFullURL(reply)),
+            unreadCount: unreadReplies.length
         });
     } catch (error) {
         console.error("Get replies to me error:", error);
         response.status(500).json({ error: "Failed to fetch replies to your comments" });
+    }
+};
+
+// POST: Mark replies notifications as seen
+const markRepliesSeen = async (request, response) => {
+    try {
+        const user = await getAuthenticatedUserFromSession(request);
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                error: "Authentication required"
+            });
+        }
+
+        await userModel.markRepliesSeen(user._id);
+        response.json({ success: true });
+    } catch (error) {
+        console.error("Mark replies seen error:", error);
+        response.status(500).json({ error: "Failed to mark replies as seen" });
+    }
+};
+
+// GET: Likes from others on current user's comments
+const getLikesToMe = async (request, response) => {
+    try {
+        const user = await getAuthenticatedUserFromSession(request);
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                error: "Authentication required"
+            });
+        }
+
+        const likes = await commentModel.getLikesToUserComments(user._id, null);
+        const unreadLikes = await commentModel.getLikesToUserComments(
+            user._id,
+            user.lastLikesSeenAt || null
+        );
+
+        response.json({
+            success: true,
+            likes: likes.map(like => transformLikeNotificationWithFullURL(like)),
+            unreadCount: unreadLikes.length
+        });
+    } catch (error) {
+        console.error("Get likes to me error:", error);
+        response.status(500).json({ error: "Failed to fetch likes to your comments" });
+    }
+};
+
+// POST: Mark likes notifications as seen
+const markLikesSeen = async (request, response) => {
+    try {
+        const user = await getAuthenticatedUserFromSession(request);
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                error: "Authentication required"
+            });
+        }
+
+        await userModel.markLikesSeen(user._id);
+        response.json({ success: true });
+    } catch (error) {
+        console.error("Mark likes seen error:", error);
+        response.status(500).json({ error: "Failed to mark likes as seen" });
     }
 };
 
@@ -354,6 +437,9 @@ export default {
     getCommentById,
     getMyComments,
     getRepliesToMe,
+    markRepliesSeen,
+    getLikesToMe,
+    markLikesSeen,
     likeComment,
     updateComment,
     deleteComment

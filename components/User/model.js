@@ -66,7 +66,9 @@ const UserSchema = new mongoose.Schema({
     password: String,
     firstName: String,
     lastName: String,
-    profilePicture: { type: String, default: '' } // URL or path to profile picture
+    profilePicture: { type: String, default: '' }, // URL or path to profile picture
+    lastRepliesSeenAt: { type: Date, default: null },
+    lastLikesSeenAt: { type: Date, default: null }
 });
 
 // Create the User model for database operations
@@ -220,6 +222,22 @@ const getUserByEmail = async (email) => {
     return await User.findOne({user: email.toLowerCase()});
 };
 
+async function markRepliesSeen(userId) {
+    let result = await User.updateOne(
+        { _id: userId },
+        { lastRepliesSeenAt: new Date() }
+    );
+    return result.modifiedCount === 1;
+}
+
+async function markLikesSeen(userId) {
+    let result = await User.updateOne(
+        { _id: userId },
+        { lastLikesSeenAt: new Date() }
+    );
+    return result.modifiedCount === 1;
+}
+
 export default {
     authenticateUser,
     getUser,
@@ -234,6 +252,8 @@ export default {
     updateUserById,
     getUserByEmail,
     updateProfilePicture,
-    ensureIndexes
+    ensureIndexes,
+    markRepliesSeen,
+    markLikesSeen
 };
 
