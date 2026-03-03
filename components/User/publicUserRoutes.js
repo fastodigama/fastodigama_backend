@@ -81,23 +81,35 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 	res.clearCookie('tiktokCodeVerifier');
 	try {
 		// Exchange code for access token (with PKCE)
-		const tokenRes = await axios.post(
-			"https://open.tiktokapis.com/v2/oauth/token/",
-			new URLSearchParams({
-				client_key: process.env.TIKTOK_CLIENT_KEY,
-				client_secret: process.env.TIKTOK_CLIENT_SECRET,
-				code,
-				grant_type: "authorization_code",
-				redirect_uri: process.env.TIKTOK_REDIRECT_URI,
-				code_verifier: codeVerifier
-			}),
-			{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-		);
-				if (!tokenRes.data?.data?.access_token) {
-					console.error("Token exchange failed:", tokenRes.data);
-					return res.status(400).send("TikTok token exchange failed");
-				}
-				const accessToken = tokenRes.data.data.access_token;
+		let tokenRes;
+		try {
+			tokenRes = await axios.post(
+				"https://open.tiktokapis.com/v2/oauth/token/",
+				new URLSearchParams({
+					client_key: process.env.TIKTOK_CLIENT_KEY,
+					client_secret: process.env.TIKTOK_CLIENT_SECRET,
+					code,
+					grant_type: "authorization_code",
+					redirect_uri: process.env.TIKTOK_REDIRECT_URI,
+					code_verifier: codeVerifier
+				}),
+				{ headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+			);
+		} catch (tokenErr) {
+			// Log full axios error details
+			if (tokenErr.response) {
+				console.error("TikTok token exchange error:", tokenErr.response.data);
+				return res.status(400).send("TikTok token exchange failed: " + JSON.stringify(tokenErr.response.data));
+			} else {
+				console.error("TikTok token exchange error:", tokenErr);
+				return res.status(400).send("TikTok token exchange failed: " + tokenErr.message);
+			}
+		}
+		if (!tokenRes.data?.data?.access_token) {
+			console.error("Token exchange failed (no access_token):", tokenRes.data);
+			return res.status(400).send("TikTok token exchange failed: no access_token");
+		}
+		const accessToken = tokenRes.data.data.access_token;
 		// Get user info
 		const userRes = await axios.get(
 			"https://open.tiktokapis.com/v2/user/info/",
