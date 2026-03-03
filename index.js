@@ -12,6 +12,32 @@ import path from "path";
 import pageRouter from "./components/pages/router.js";
 import publicUserRoutes from "./components/User/publicUserRoutes.js";
 import adminUserRoutes from "./components/User/adminUserRoutes.js";
+
+// TikTok OAuth CSP override middleware (must run before helmet)
+const tiktokCsp = (req, res, next) => {
+  // Only apply to TikTok OAuth endpoints
+  if (
+    req.path === "/auth/tiktok" ||
+    req.path === "/auth/tiktok/callback"
+  ) {
+    // Remove any existing CSP headers (including report-only)
+    res.removeHeader("Content-Security-Policy");
+    res.removeHeader("Content-Security-Policy-Report-Only");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tiktokcdn.com https://*.ttwstatic.com https://sf-security.ibytedtos.com https://*.arkoselabs.com; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "img-src 'self' data: blob: https://*.tiktokcdn.com https://*.ttwstatic.com https://sf-security.ibytedtos.com https://*.arkoselabs.com; " +
+        "frame-src 'self' https://*.tiktok.com https://*.ttwstatic.com https://*.tiktokcdn.com https://*.arkoselabs.com; " +
+        "connect-src 'self' https://*.tiktok.com https://*.tiktokcdn.com https://*.ttwstatic.com https://sf-security.ibytedtos.com https://*.arkoselabs.com; " +
+        "font-src 'self' data: https://fonts.gstatic.com; " +
+        "object-src 'none'; " +
+        "media-src 'self';"
+    );
+  }
+  next();
+};
 import requireAdmin from "./components/User/requireAdmin.js";
 import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
@@ -33,6 +59,11 @@ connect();
 const __dirname = import.meta.dirname;
 const app = express();
 const port = process.env.PORT || "8888";
+
+
+// ===== CSP OVERRIDE FOR TIKTOK OAUTH ROUTES =====
+// This must run before helmet
+app.use(tiktokCsp);
 
 // ===== MIDDLEWARE CONFIGURATION =====
 
