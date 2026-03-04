@@ -171,30 +171,45 @@ const loginForm = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  let authStatus =
-    await userModel.authenticateUser(
-      req.body.u,
-      req.body.pw
-    );
-
-  if (authStatus) {
-    const user =
-      await userModel.getUserByEmail(
-        req.body.u
+  try {
+    let authStatus =
+      await userModel.authenticateUser(
+        req.body.u,
+        req.body.pw
       );
 
-    req.session.loggedIn = true;
-    req.session.user = req.body.u;
-    req.session.role = user.role;
+    if (authStatus) {
+      const user =
+        await userModel.getUserByEmail(
+          req.body.u
+        );
 
-    const redirectUrl =
-      req.session.redirectUrl || "/user";
+      if (!user) {
+        return res.render("user/login", {
+          err: "user not found",
+          currentPath: req.path,
+        });
+      }
 
-    delete req.session.redirectUrl;
-    res.redirect(redirectUrl);
-  } else {
-    res.render("user/login", {
-      err: "user not found",
+      req.session.loggedIn = true;
+      req.session.user = req.body.u;
+      req.session.role = user.role;
+
+      const redirectUrl =
+        req.session.redirectUrl || "/user";
+
+      delete req.session.redirectUrl;
+      res.redirect(redirectUrl);
+    } else {
+      res.render("user/login", {
+        err: "user not found",
+        currentPath: req.path,
+      });
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).render("user/login", {
+      err: "Server error. Please try again later.",
       currentPath: req.path,
     });
   }

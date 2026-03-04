@@ -78,7 +78,6 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 	if (!state || !csrfCookie || state !== csrfCookie || !codeVerifier) {
 		return res.status(400).send("Invalid state or PKCE parameter. Possible CSRF or PKCE attack.");
 	}
-		router.get("/api/user", requireUser, userController.apiGetUser);
 	res.clearCookie('tiktokCsrfState');
 	res.clearCookie('tiktokCodeVerifier');
 	try {
