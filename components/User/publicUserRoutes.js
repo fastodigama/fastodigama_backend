@@ -3,7 +3,7 @@ import express from "express";
 import * as userController from "./controller.js";
 import crypto from "crypto";
 import axios from "axios";
-import User from "./model.js";
+import { User } from "./model.js";
 
 const router = express.Router();
 

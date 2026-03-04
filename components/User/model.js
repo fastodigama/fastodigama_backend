@@ -77,6 +77,9 @@ const UserSchema = new mongoose.Schema({
 // Create the User model for database operations
 const User = mongoose.model("User", UserSchema);
 
+// Export the real Mongoose model for direct DB operations
+export { User };
+
 // ===== ENSURE INDEXES =====
 // Call this function on app startup to ensure unique indexes exist
 async function ensureIndexes() {
