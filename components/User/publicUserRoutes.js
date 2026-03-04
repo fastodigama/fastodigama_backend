@@ -105,12 +105,13 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 				return res.status(400).send("TikTok token exchange failed: " + tokenErr.message);
 			}
 		}
-		if (!tokenRes.data?.data?.access_token) {
+		// TikTok sometimes returns access_token at root, sometimes under data
+		let accessToken = tokenRes.data?.data?.access_token || tokenRes.data?.access_token;
+		if (!accessToken) {
 			console.error("Token exchange failed (no access_token):", tokenRes.data);
 			// Show the full TikTok API error response in the browser for debugging
 			return res.status(400).send("TikTok token exchange failed: " + JSON.stringify(tokenRes.data));
 		}
-		const accessToken = tokenRes.data.data.access_token;
 		// Get user info
 		const userRes = await axios.get(
 			"https://open.tiktokapis.com/v2/user/info/",
