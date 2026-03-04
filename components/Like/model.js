@@ -44,11 +44,17 @@ async function countLikesForArticle(articleId) {
   return await Like.countDocuments({ articleId });
 }
 
+// Delete all likes by a user
+async function deleteManyByUserId(userId) {
+  return await Like.deleteMany({ userId });
+}
+
 export default {
   likeArticle,
   unlikeArticle,
   isArticleLikedByUser,
   getLikedArticlesByUser,
   getUsersWhoLikedArticle,
-  countLikesForArticle
+  countLikesForArticle,
+  deleteManyByUserId
 };

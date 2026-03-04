@@ -539,17 +539,22 @@ const apiDeleteUserAccount = async (req, res) => {
       });
     }
 
-    // Import Comment and Consent models
+
+    // Import Comment, Consent, and Like models
     const commentModel = (await import("../Comment/model.js")).default;
     const consentModel = (await import("../Consent/model.js")).default;
+    const likeModel = (await import("../Like/model.js")).default;
 
     // GDPR-compliant deletion:
     // 1. Delete all consent records
     await consentModel.deleteConsentsByUserId(user._id);
 
     // 2. Anonymize user's comments (don't delete - they may be part of public discourse)
-    //    Set author to null and authorName to "Deleted User"
+    //    Set author to null and authorName to "Vetrain Fastodian"
     await commentModel.anonymizeUserComments(user._id);
+
+    // 3. Delete all likes by this user
+    await likeModel.deleteManyByUserId(user._id);
 
     // 3. Delete user profile picture from R2 (if exists)
     if (user.profilePicture && !user.profilePicture.startsWith('http')) {
@@ -581,9 +586,13 @@ const apiDeleteUserAccount = async (req, res) => {
 
   } catch (err) {
     console.error("USER ACCOUNT DELETION ERROR:", err);
+    if (err && err.stack) {
+      console.error("STACK TRACE:", err.stack);
+    }
     res.status(500).json({ 
       success: false, 
-      message: "Server error" 
+      message: "Server error",
+      error: err && err.message ? err.message : String(err)
     });
   }
 };

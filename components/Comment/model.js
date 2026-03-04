@@ -12,11 +12,11 @@ const CommentSchema = new mongoose.Schema({
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        default: null  // Allow anonymous comments (no author)
+        required: true // Disallow anonymous comments
     },
     authorName: {
         type: String,
-        default: "Anonymous"  // Display name for anonymous comments
+        required: true // Always require authorName
     },
     content: {
         type: String,
@@ -304,7 +304,7 @@ async function anonymizeUserComments(userId) {
         { 
             $set: { 
                 author: null,
-                authorName: "Deleted User"
+                authorName: "Vetrain Fastodian"
             }
         }
     );
