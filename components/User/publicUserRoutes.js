@@ -51,9 +51,9 @@ router.get("/auth/tiktok", (req, res) => {
 		.replace(/\+/g, '-')
 		.replace(/\//g, '_')
 		.replace(/=+$/, '');
-	// Store state and code_verifier in short-lived cookies (1 minute)
-	res.cookie('tiktokCsrfState', csrfState, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
-	res.cookie('tiktokCodeVerifier', codeVerifier, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
+	// Store state and code_verifier in cookies (10 minutes)
+	res.cookie('tiktokCsrfState', csrfState, { maxAge: 600000, httpOnly: true, sameSite: 'lax' });
+	res.cookie('tiktokCodeVerifier', codeVerifier, { maxAge: 600000, httpOnly: true, sameSite: 'lax' });
 	// Try user.info.profile scope for v2 API, space-separated if multiple scopes needed
 	const params = new URLSearchParams({
 		client_key: process.env.TIKTOK_CLIENT_KEY,
