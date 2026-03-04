@@ -113,24 +113,34 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 			return res.status(400).send("TikTok token exchange failed: " + JSON.stringify(tokenRes.data));
 		}
 		// Get user info
-		const userRes = await axios.get(
-			"https://open.tiktokapis.com/v2/user/info/",
-			{ headers: { Authorization: `Bearer ${accessToken}` } }
-		);
-		const tiktokUser = userRes.data.data.user;
-		// Upsert user in DB
-		const userDoc = await User.findOneAndUpdate(
-			{ oauthProvider: "tiktok", oauthId: tiktokUser.open_id },
-			{
-				oauthProvider: "tiktok",
-				oauthId: tiktokUser.open_id,
-				nickname: tiktokUser.display_name || tiktokUser.username,
-				oauthAvatar: tiktokUser.avatar_url,
-				// Optionally set user field to tiktok_openid for uniqueness
-				user: `tiktok_${tiktokUser.open_id}`
-			},
-			{ upsert: true, new: true, setDefaultsOnInsert: true }
-		);
+		let userRes, tiktokUser, userDoc;
+		try {
+			userRes = await axios.get(
+				"https://open.tiktokapis.com/v2/user/info/",
+				{ headers: { Authorization: `Bearer ${accessToken}` } }
+			);
+			tiktokUser = userRes.data.data.user;
+		} catch (userErr) {
+			console.error("TikTok user info error:", userErr?.response?.data || userErr);
+			return res.status(500).send("TikTok user info failed: " + JSON.stringify(userErr?.response?.data || userErr.message));
+		}
+		try {
+			userDoc = await User.findOneAndUpdate(
+				{ oauthProvider: "tiktok", oauthId: tiktokUser.open_id },
+				{
+					oauthProvider: "tiktok",
+					oauthId: tiktokUser.open_id,
+					nickname: tiktokUser.display_name || tiktokUser.username,
+					oauthAvatar: tiktokUser.avatar_url,
+					// Optionally set user field to tiktok_openid for uniqueness
+					user: `tiktok_${tiktokUser.open_id}`
+				},
+				{ upsert: true, new: true, setDefaultsOnInsert: true }
+			);
+		} catch (dbErr) {
+			console.error("DB upsert error:", dbErr);
+			return res.status(500).send("DB upsert failed: " + dbErr.message);
+		}
 		// Set session
 		req.session.loggedIn = true;
 		req.session.user = userDoc.user;
