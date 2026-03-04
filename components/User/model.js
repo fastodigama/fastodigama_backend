@@ -60,18 +60,15 @@ import bcrypt from "bcryptjs";
 // ===== USER MODEL & SCHEMA =====
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
-        user: { type: String, unique: true, sparse: true }, // email or username, optional for OAuth
-        password: { type: String }, // optional for OAuth
-        firstName: { type: String }, // optional
-        lastName: { type: String }, // optional
-        nickname: { type: String, unique: true, sparse: true }, // display name for all users
-        role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
-        profilePicture: { type: String, default: '' }, // URL or path to profile picture
-        oauthProvider: { type: String, enum: ["tiktok", "instagram", "google", "facebook"], sparse: true },
-        oauthId: { type: String, unique: true, sparse: true }, // provider user id
-        oauthAvatar: { type: String }, // provider avatar url
-        lastRepliesSeenAt: { type: Date, default: null },
-        lastLikesSeenAt: { type: Date, default: null }
+    user: { type: String, unique: true, sparse: true }, // email or username
+    password: { type: String },
+    firstName: { type: String },
+    lastName: { type: String },
+    nickname: { type: String, unique: true, sparse: true },
+    role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
+    profilePicture: { type: String, default: '' },
+    lastRepliesSeenAt: { type: Date, default: null },
+    lastLikesSeenAt: { type: Date, default: null }
 });
 
 // Create the User model for database operations
