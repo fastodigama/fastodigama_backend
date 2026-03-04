@@ -54,15 +54,17 @@ router.get("/auth/tiktok", (req, res) => {
 	// Store state and code_verifier in short-lived cookies (1 minute)
 	res.cookie('tiktokCsrfState', csrfState, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
 	res.cookie('tiktokCodeVerifier', codeVerifier, { maxAge: 60000, httpOnly: true, sameSite: 'lax' });
+	// Try user.info.profile scope for v2 API, space-separated if multiple scopes needed
 	const params = new URLSearchParams({
 		client_key: process.env.TIKTOK_CLIENT_KEY,
-		scope: "user.info.basic",
+		scope: "user.info.profile", // Change to user.info.profile as per new API
 		response_type: "code",
 		redirect_uri: process.env.TIKTOK_REDIRECT_URI,
 		state: csrfState,
 		code_challenge: codeChallenge,
 		code_challenge_method: 'S256'
 	});
+	// Correct URL formatting with backticks
 	res.redirect(`https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`);
 });
 
@@ -115,6 +117,7 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 		// Get user info
 		let userRes, tiktokUser, userDoc;
 		try {
+			// Make sure requested fields match the granted scope
 			userRes = await axios.get(
 				"https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,display_name,avatar_url",
 				{ headers: { Authorization: `Bearer ${accessToken}` } }
