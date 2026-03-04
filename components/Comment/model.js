@@ -16,7 +16,8 @@ const CommentSchema = new mongoose.Schema({
     },
     authorName: {
         type: String,
-        required: true // Always require authorName
+        required: true, // Always require authorName
+        default: "Deleted User" // Default for anonymized/deleted users
     },
     content: {
         type: String,
@@ -69,8 +70,8 @@ const Comment = mongoose.model("Comment", CommentSchema);
 async function createComment(articleId, content, parentId = null, authorId = null, authorName = "Anonymous") {
     const comment = new Comment({
         articleId,
-        author: authorId || null,
-        authorName: authorName || "Anonymous",
+        author: authorId,
+        authorName: authorName,
         content,
         parentId
     });
@@ -304,7 +305,7 @@ async function anonymizeUserComments(userId) {
         { 
             $set: { 
                 author: null,
-                authorName: "Vetrain Fastodian"
+                authorName: "Deleted User"
             }
         }
     );
