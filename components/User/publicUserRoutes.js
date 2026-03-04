@@ -116,7 +116,7 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 		let userRes, tiktokUser, userDoc;
 		try {
 			userRes = await axios.get(
-				"https://open.tiktokapis.com/v2/user/info/",
+				"https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,display_name,avatar_url",
 				{ headers: { Authorization: `Bearer ${accessToken}` } }
 			);
 			tiktokUser = userRes.data.data.user;
