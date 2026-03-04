@@ -419,6 +419,21 @@ const deleteImage = async (request, response) => {
       return response.status(404).json({ error: "Article not found" });
     }
 
+
+    // Delete image from R2
+    try {
+      const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+      await s3.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: imageKey,
+        })
+      );
+    } catch (deleteErr) {
+      console.error("R2 image deletion error:", deleteErr);
+      // Continue with DB update even if image deletion fails
+    }
+
     const updatedImages = article.images.filter(img => img.key !== imageKey);
 
     const result = await articleModel.editArticlebyId(articleId, {
