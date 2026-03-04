@@ -18,6 +18,7 @@ import articleRouter from "./components/Article/routes.js";
 import categoryRouter from "./components/Category/routes.js";
 import commentRouter from "./components/Comment/routes.js";
 import consentRouter from "./components/Consent/routes.js";
+import likeRouter from "./components/Like/routes.js";
 
 import articles from "./components/Article/controller.js";
 import categories from "./components/Category/controller.js";
@@ -173,6 +174,7 @@ app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 // ===== VISITOR ROUTES =====
 app.use("/api/comments", commentRouter);
 app.use("/api/consent", consentRouter);
+app.use("/api/like", likeRouter);
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
