@@ -78,7 +78,9 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.model("User", UserSchema);
 
 // Export the real Mongoose model for direct DB operations
+// Export User as both default and named for compatibility
 export { User };
+export default User;
 
 // ===== ENSURE INDEXES =====
 // Call this function on app startup to ensure unique indexes exist
@@ -244,22 +246,5 @@ async function markLikesSeen(userId) {
     return result.modifiedCount === 1;
 }
 
-export default {
-    authenticateUser,
-    getUser,
-    getUserById,
-    addUser,
-    getAllUsers,
-    resetPassword,
-    resetPasswordById,
-    deleteUser,
-    deleteUserById,
-    updateUser,
-    updateUserById,
-    getUserByEmail,
-    updateProfilePicture,
-    ensureIndexes,
-    markRepliesSeen,
-    markLikesSeen
-};
+// (No default export of utility functions, only the real User model)
 
