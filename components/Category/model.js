@@ -27,10 +27,10 @@ async function getCategoryById(id) {
 // Add sample categories to database on first run
 async function initializeCategories() {
     const categoryList = [
-        { name: "Latest" },
-        { name: "World" },
-        { name: "Cars" },
-        { name: "Wellness" }
+        { name: "Love" },
+        { name: "Mind" },
+        { name: "Wealth" },
+        { name: "Future" }
     ];
     try {
         // Insert all sample categories
