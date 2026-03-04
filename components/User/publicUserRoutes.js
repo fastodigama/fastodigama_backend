@@ -107,7 +107,8 @@ router.get("/auth/tiktok/callback", async (req, res) => {
 		}
 		if (!tokenRes.data?.data?.access_token) {
 			console.error("Token exchange failed (no access_token):", tokenRes.data);
-			return res.status(400).send("TikTok token exchange failed: no access_token");
+			// Show the full TikTok API error response in the browser for debugging
+			return res.status(400).send("TikTok token exchange failed: " + JSON.stringify(tokenRes.data));
 		}
 		const accessToken = tokenRes.data.data.access_token;
 		// Get user info
