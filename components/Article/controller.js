@@ -1,3 +1,44 @@
+// Like an article
+const likeArticleApi = async (request, response) => {
+  try {
+    const articleId = request.params.id;
+    // You should get userId from session or request body; here we use request.body.userId for demo
+    const userId = request.body.userId;
+    if (!userId) return response.status(400).json({ message: "Missing userId" });
+    const article = await articleModel.getArticleById(articleId);
+    if (!article) return response.status(404).json({ message: "Article not found" });
+    if (!article.likes) article.likes = [];
+    if (!article.likes.map(id => id.toString()).includes(userId)) {
+      article.likes.push(userId);
+      await article.save();
+    }
+    response.json({ likes: article.likes.length });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Unlike an article
+const unlikeArticleApi = async (request, response) => {
+  try {
+    const articleId = request.params.id;
+    const userId = request.body.userId;
+    if (!userId) return response.status(400).json({ message: "Missing userId" });
+    const article = await articleModel.getArticleById(articleId);
+    if (!article) return response.status(404).json({ message: "Article not found" });
+    if (!article.likes) article.likes = [];
+    const before = article.likes.length;
+    article.likes = article.likes.filter(id => id.toString() !== userId);
+    if (article.likes.length !== before) {
+      await article.save();
+    }
+    response.json({ likes: article.likes.length });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Server Error" });
+  }
+};
 import mongoose from "mongoose";
 import articleModel from "./model.js";
 import categoryModel from "../Category/model.js";
@@ -46,11 +87,16 @@ const getArticlesApiResponse = async (request, response) => {
     const totalPages = Math.ceil(totalArticles / limit);
 
     // Ensure all image URLs use CDN domain
-    const mappedArticles = articles.map(article => {
+    // Count comments for each article
+    const commentModel = (await import("../Comment/model.js")).default;
+    const mappedArticles = await Promise.all(articles.map(async article => {
+      let commentsCount = 0;
+      try {
+        commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
+      } catch (e) {}
       if (Array.isArray(article.images)) {
         article.images = article.images.map(img => {
           let filename = img.key || img.url || img;
-          // If already a full URL, extract filename
           if (filename.startsWith('http')) {
             filename = filename.split('/').pop();
           }
@@ -60,8 +106,13 @@ const getArticlesApiResponse = async (request, response) => {
           };
         });
       }
-      return article;
-    });
+      return {
+        ...article.toObject ? article.toObject() : article,
+        views: article.views || 0,
+        commentsCount,
+        likes: Array.isArray(article.likes) ? article.likes.length : 0
+      };
+    }));
     response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category });
 
   } catch (error) {
@@ -117,12 +168,17 @@ const getAllArticles = async (request, response) => {
 const getArticleByIdApiResponse = async (request, response) => {
   try {
     const id = request.params.id;
-    const article = await articleModel.getArticleById(id);
-
+    // Increment views atomically and return the updated document
+    const article = await articleModel.incrementArticleViewsById(id);
     if (!article) {
       return response.status(404).json({message: "Article not found"});
     }
-    
+    // Count comments for this article
+    const commentModel = (await import("../Comment/model.js")).default;
+    let commentsCount = 0;
+    try {
+      commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
+    } catch (e) {}
     // Ensure all image URLs use CDN domain
     if (article && Array.isArray(article.images)) {
       article.images = article.images.map(img => {
@@ -136,7 +192,14 @@ const getArticleByIdApiResponse = async (request, response) => {
         };
       });
     }
-    response.json({article});
+    response.json({
+      article: {
+        ...article.toObject ? article.toObject() : article,
+        views: article.views || 0,
+        commentsCount,
+        likes: Array.isArray(article.likes) ? article.likes.length : 0
+      }
+    });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error"})
@@ -404,4 +467,6 @@ export default {
   deleteCommentFromArticle,
   getArticlesApiResponse,
   getArticleByIdApiResponse,
+  likeArticleApi,
+  unlikeArticleApi,
 };

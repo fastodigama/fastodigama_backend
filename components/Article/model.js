@@ -37,6 +37,8 @@ const ArticleSchema = new mongoose.Schema(
         }, // Essential for SEO and accessibility
       }
     ],
+    views: { type: Number, default: 0 },
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true },
 );
@@ -227,10 +229,19 @@ async function deleteArticleById(id) {
 
 
 
+// Increment views by 1 and return updated article
+async function incrementArticleViewsById(id) {
+  return await ArticleModel.findByIdAndUpdate(
+    id,
+    { $inc: { views: 1 } },
+    { new: true }
+  ).populate("categoryId");
+}
+
 export default {
     getArticles,
     getArticleById,
-    
+    incrementArticleViewsById,
     addArticle,
     editArticlebyId,
     deleteArticleById,

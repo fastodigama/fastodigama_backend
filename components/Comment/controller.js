@@ -133,7 +133,7 @@ const createComment = async (request, response) => {
 };
 
 // GET: Get all approved comments for an article
-// Populates author info (TikTok name and avatar)
+// Populates author info (name and avatar)
 const getCommentsByArticle = async (request, response) => {
     try {
         const { articleId } = request.params;

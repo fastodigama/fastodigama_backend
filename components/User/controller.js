@@ -219,27 +219,23 @@ const apiLogin = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    let authStatus =
-      await userModel.authenticateUser(
-        email,
-        password
-      );
-
-    if (!authStatus) {
-      return res.status(400).json({
+    const user = await userModel.getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Invalid email or password",
+        message: "User not found"
       });
     }
-
-    const user =
-      await userModel.getUserByEmail(email);
-
+    let authStatus = await userModel.authenticateUser(email, password);
+    if (!authStatus) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
     req.session.loggedIn = true;
     req.session.user = email;
     req.session.role = user.role;
-
     res.json({
       success: true,
       email: user.user,
@@ -247,14 +243,13 @@ const apiLogin = async (req, res) => {
       lastName: user.lastName,
       nickname: user.nickname,
       role: user.role,
-      profilePicture:
-        user.profilePicture || null,
+      profilePicture: user.profilePicture || null,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
+      message: "Server error. Please try again later."
     });
   }
 };

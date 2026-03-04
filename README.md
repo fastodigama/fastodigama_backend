@@ -1,6 +1,6 @@
 # Fastodigama Backend
 
-A Node.js/Express backend for a journaling website with article management, categories, and a TikTok-powered comments system.
+A Node.js/Express backend for a journaling website with article management, categories, and a comment system.
 
 ---
 
@@ -8,8 +8,8 @@ A Node.js/Express backend for a journaling website with article management, cate
 
 - **Admin Panel**: Manage articles, categories, and menu links
 - **Article Management**: Create, edit, and publish articles with markdown support
-- **Comment System**: TikTok-authenticated comments with nested replies
-- **Reader Authentication**: TikTok OAuth login for visitors
+- **Comment System**: Comments with nested replies
+- **Reader Authentication**: OAuth login for visitors
 - **Image Uploads**: Cloudflare R2 integration for media storage
 - **Session Management**: Secure session-based authentication
 
@@ -19,7 +19,6 @@ A Node.js/Express backend for a journaling website with article management, cate
 
 - Node.js 18+ 
 - MongoDB
-- TikTok Developer Account (for comments feature)
 - Cloudflare R2 Account (optional, for image uploads)
 
 ---
@@ -45,10 +44,6 @@ PORT=8888
 SESSIONSECRET=your-random-secret-here
 MONGODB_URI=mongodb://localhost:27017/fastodigama
 
-# TikTok OAuth (for comments)
-TIKTOK_CLIENT_KEY=your-client-key
-TIKTOK_CLIENT_SECRET=your-client-secret
-TIKTOK_REDIRECT_URI=http://localhost:8888/api/reader/auth/tiktok/callback
 FRONTEND_URL=http://localhost:3000
 ```
 
@@ -69,8 +64,8 @@ fastodigama_backend/
 ├── components/
 │   ├── Article/        # Article CRUD operations
 │   ├── Category/       # Category management
-│   ├── Comment/        # Comments with TikTok auth
-│   ├── Reader/         # TikTok visitor authentication
+│   ├── Comment/        # Comments
+│   ├── Reader/         # Visitor authentication
 │   ├── User/           # Admin user management
 │   ├── menuLinks/      # Navigation menu
 │   └── config/         # R2 storage config
@@ -82,35 +77,6 @@ fastodigama_backend/
 
 ---
 
-## 🔐 TikTok Integration Setup
-
-We've built a complete TikTok OAuth system for authenticated comments.
-
-### Step 1: Get TikTok Credentials
-
-1. Go to [TikTok Developer Portal](https://developers.tiktok.com/)
-2. Create a Sandbox App
-3. Copy Client Key & Client Secret
-4. Set Redirect URI: `http://localhost:8888/api/reader/auth/tiktok/callback`
-
-### Step 2: Follow Setup Guide
-
-We've created comprehensive guides for you:
-
-- **[SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)** ⭐ Start here!
-- **[TIKTOK_OAUTH_SETUP.md](TIKTOK_OAUTH_SETUP.md)** - Complete integration guide
-- **[FRONTEND_TIKTOK_GUIDE.md](FRONTEND_TIKTOK_GUIDE.md)** - Frontend implementation
-- **[COMMENTS_SETUP_GUIDE.md](COMMENTS_SETUP_GUIDE.md)** - Comments API reference
-
-### Quick Test
-
-```bash
-# Make sure .env is configured, then:
-npm run dev
-
-# Test auth endpoint:
-curl http://localhost:8888/api/reader/auth/tiktok
-```
 
 ---
 
@@ -137,15 +103,6 @@ PUT    /api/comments/:commentId           - Update comment (author only)
 DELETE /api/comments/:commentId           - Delete comment (author or admin)
 ```
 
-### Reader Authentication (TikTok)
-
-```
-GET    /api/reader/auth/tiktok            - Get TikTok auth URL
-GET    /api/reader/auth/tiktok/callback   - OAuth callback (server-side)
-POST   /api/reader/tiktok-callback        - OAuth callback (client-side)
-GET    /api/reader/me                     - Get current reader info
-GET    /api/reader/logout                 - Logout reader
-```
 
 ### Admin Routes
 
@@ -180,8 +137,8 @@ GET    /api/reader/logout                 - Logout reader
 - Parent comment (for nested replies)
 - Likes count
 
-### Reader (TikTok Visitors)
-- TikTok ID (unique)
+### Reader (Visitors)
+- Unique ID
 - Display name
 - Avatar URL
 - Bio
@@ -223,8 +180,6 @@ See [.env.example](.env.example) for all configuration options.
 ## 📚 Documentation
 
 - **SETUP_CHECKLIST.md** - Step-by-step setup guide
-- **TIKTOK_OAUTH_SETUP.md** - Complete OAuth implementation
-- **FRONTEND_TIKTOK_GUIDE.md** - Frontend integration guide
 - **COMMENTS_SETUP_GUIDE.md** - Comments API documentation
 - **FRONTEND_IMPLEMENTATION_GUIDE.md** - General frontend guide
 
@@ -237,7 +192,6 @@ See [.env.example](.env.example) for all configuration options.
 1. **Update environment variables:**
    - Set production MongoDB URI
    - Set production frontend URL
-   - Update TikTok redirect URI
    - Use strong session secret
 
 2. **Security updates:**
@@ -250,9 +204,6 @@ See [.env.example](.env.example) for all configuration options.
    - Remove anonymous comment support
    - Make `author` field required in Comment model
 
-4. **TikTok:**
-   - Request production access from TikTok
-   - Update redirect URIs in TikTok portal
 
 ---
 
@@ -310,12 +261,10 @@ If you encounter any issues:
 
 After setting up the backend:
 
-1. ✅ Get TikTok sandbox credentials
-2. ✅ Configure `.env` file
-3. ✅ Read [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)
-4. ⬜ Build frontend (see FRONTEND_TIKTOK_GUIDE.md)
-5. ⬜ Test TikTok login flow
-6. ⬜ Test comments system
-7. ⬜ Deploy to production
+1. ✅ Configure `.env` file
+2. ✅ Read [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)
+3. ⬜ Build frontend
+4. ⬜ Test comments system
+5. ⬜ Deploy to production
 
 Happy coding! 🚀
