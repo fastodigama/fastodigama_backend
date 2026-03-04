@@ -60,18 +60,18 @@ import bcrypt from "bcryptjs";
 // ===== USER MODEL & SCHEMA =====
 // Define user structure: username and encrypted password
 const UserSchema = new mongoose.Schema({
-    user: { type: String, unique: true, sparse: true }, // email or username, optional for OAuth
-    password: { type: String }, // optional for OAuth
-    firstName: { type: String }, // optional
-    lastName: { type: String }, // optional
-    nickname: { type: String, unique: true, sparse: true }, // display name for all users
-    role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
-    profilePicture: { type: String, default: '' }, // URL or path to profile picture
-    oauthProvider: { type: String, enum: ["tiktok", "instagram", "google", "facebook"], sparse: true },
-    oauthId: { type: String, unique: true, sparse: true }, // provider user id
-    oauthAvatar: { type: String }, // provider avatar url
-    lastRepliesSeenAt: { type: Date, default: null },
-    lastLikesSeenAt: { type: Date, default: null }
+        user: { type: String, unique: true, sparse: true }, // email or username, optional for OAuth
+        password: { type: String }, // optional for OAuth
+        firstName: { type: String }, // optional
+        lastName: { type: String }, // optional
+        nickname: { type: String, unique: true, sparse: true }, // display name for all users
+        role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
+        profilePicture: { type: String, default: '' }, // URL or path to profile picture
+        oauthProvider: { type: String, enum: ["tiktok", "instagram", "google", "facebook"], sparse: true },
+        oauthId: { type: String, unique: true, sparse: true }, // provider user id
+        oauthAvatar: { type: String }, // provider avatar url
+        lastRepliesSeenAt: { type: Date, default: null },
+        lastLikesSeenAt: { type: Date, default: null }
 });
 
 // Create the User model for database operations
@@ -79,8 +79,39 @@ const User = mongoose.model("User", UserSchema);
 
 // Export the real Mongoose model for direct DB operations
 // Export User as both default and named for compatibility
-export { User };
-export default User;
+export {
+    User,
+    authenticateUser,
+    getUser,
+    addUser,
+    deleteUser,
+    updateUser,
+    getAllUsers,
+    resetPassword,
+    getUserByEmail,
+    updateProfilePicture,
+    getUserById,
+    updateUserById,
+    markRepliesSeen,
+    markLikesSeen
+};
+
+export default {
+    User,
+    authenticateUser,
+    getUser,
+    addUser,
+    deleteUser,
+    updateUser,
+    getAllUsers,
+    resetPassword,
+    getUserByEmail,
+    updateProfilePicture,
+    getUserById,
+    updateUserById,
+    markRepliesSeen,
+    markLikesSeen
+};
 
 // ===== ENSURE INDEXES =====
 // Call this function on app startup to ensure unique indexes exist
@@ -225,10 +256,11 @@ async function resetPassword(username, newPassword) {
     return result.modifiedCount === 1;
 }
 
+
 //GET User firstname, last name after login
-const getUserByEmail = async (email) => {
+async function getUserByEmail(email) {
     return await User.findOne({user: email.toLowerCase()});
-};
+}
 
 async function markRepliesSeen(userId) {
     let result = await User.updateOne(
