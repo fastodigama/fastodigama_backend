@@ -53,13 +53,4 @@ async function deleteManyByUserId(userId) {
   return await Like.deleteMany({ userId });
 }
 
-export default {
-  likeArticle,
-  unlikeArticle,
-  isArticleLikedByUser,
-  getLikedArticlesByUser,
-  getUsersWhoLikedArticle,
-  countLikesForArticle,
-  deleteManyByUserId,
-  deleteLikesByArticleId
-};
+export default Like;
