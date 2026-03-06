@@ -45,6 +45,10 @@ async function countLikesForArticle(articleId) {
 }
 
 // Delete all likes by a user
+// Delete all likes for an article
+async function deleteLikesByArticleId(articleId) {
+  return await Like.deleteMany({ articleId });
+}
 async function deleteManyByUserId(userId) {
   return await Like.deleteMany({ userId });
 }
@@ -56,5 +60,6 @@ export default {
   getLikedArticlesByUser,
   getUsersWhoLikedArticle,
   countLikesForArticle,
-  deleteManyByUserId
+  deleteManyByUserId,
+  deleteLikesByArticleId
 };

@@ -2,6 +2,16 @@ import mongoose from "mongoose";
 import categoryModel from "./model.js";
 
 // ===== CATEGORY CONTROLLER =====
+// Get all categories sorted by order (API)
+const getCategoriesSortedByOrder = async (request, response) => {
+    try {
+        const categoryList = await categoryModel.getCategoriesSortedByOrder();
+        response.json({ categories: categoryList });
+    } catch (error) {
+        console.error("Error fetching sorted categories API:", error);
+        response.status(500).json({ message: "Server Error fetching sorted categories" });
+    }
+};
 // Handles all category business logic (Create, Read, Update, Delete)
 
 // 🌟 NEW: Get all Categories and return as JSON (FOR FRONTEND API)
@@ -34,13 +44,13 @@ const getCategoryByIdApiResponse = async (request, response) => {
 
 // Get and display all categories (FOR ADMIN DASHBOARD)
 const getAllCategories = async (request, response) => {
-    // Fetch all categories from database
-    let categoryList = await categoryModel.getCategories();
+    // Fetch all categories from database, sorted by order
+    let categoryList = await categoryModel.getCategoriesSortedByOrder();
 
     // If no categories exist, create sample ones first
     if(!categoryList.length) {
         await categoryModel.initializeCategories();
-        categoryList = await categoryModel.getCategories();
+        categoryList = await categoryModel.getCategoriesSortedByOrder();
     }
     // Show the categories list page
     response.render("category/category-list", {title: "Category List", categories: categoryList, currentPath: request.originalUrl.split('?')[0]});
@@ -74,15 +84,15 @@ const updateCategoryForm = async (request, response) => {
 
 // Handle the edit form submission to update category name
 const updateCategory = async (request, response) => {
-    // Send the category ID and new name to the database
-    let result = await categoryModel.updateCategoryById(request.body.categoryId, request.body.name);
-        if(result){
-            // Success: go back to category list
-            response.redirect("/admin/category")
-        } else {
-            // Error: show error message on edit form
-            response.render("category/category-edit", {err: "error updating category"});
-        }
+    // Send the category ID, new name, and order to the database
+    let result = await categoryModel.updateCategoryById(request.body.categoryId, request.body.name, request.body.order);
+    if(result){
+        // Success: go back to category list
+        response.redirect("/admin/category")
+    } else {
+        // Error: show error message on edit form
+        response.render("category/category-edit", {err: "error updating category"});
+    }
 }
 
 // Delete a category by name
@@ -108,5 +118,6 @@ export default {
     updateCategoryForm,
     deleteCategory,
     getCategoriesApiResponse,
-    getCategoryByIdApiResponse 
+    getCategoryByIdApiResponse,
+    getCategoriesSortedByOrder
 }

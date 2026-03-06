@@ -14,7 +14,7 @@ block layout-content
             thead.table-dark
                 tr
                     th.text-start(style="width: 35%") Category
-                    
+                    th.text-center(style="width: 15%") Order
                     th.text-center(style="width: 20%") Actions
             //- Table body: Loop through each category
             tbody
@@ -23,8 +23,8 @@ block layout-content
                         //- Category name
                         td
                             strong #{category.name}
-                            
-                        
+                        //- Order field
+                        td.text-center #{category.order}
                         //- Edit and delete buttons
                         td.text-center
                             .d-inline-flex.gap-2

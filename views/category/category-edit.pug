@@ -21,7 +21,11 @@ block layout-content
                         //- Input for new category name
                         .mb-3
                             label.form-label(for="name") New Category Name
-                            input.form-control(type="text", id="name", name="name", placeholder="Enter new category name", required)
+                            input.form-control(type="text", id="name", name="name", placeholder="Enter new category name", required, value=oldCategoryId.name)
+                        //- Order field
+                        .mb-3
+                            label.form-label(for="order") Order
+                            input.form-control(type="number", id="order", name="order", placeholder="Order", min="0", value=oldCategoryId.order)
                        
                         //- Submit and cancel buttons
                         .d-flex.justify-content-end.gap-2.mt-4

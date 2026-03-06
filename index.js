@@ -171,6 +171,7 @@ app.post("/api/article/:id/like", articles.likeArticleApi);
 app.post("/api/article/:id/unlike", articles.unlikeArticleApi);
 app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
+app.get("/api/categories/sorted", categories.getCategoriesSortedByOrder);
 
 // ===== VISITOR ROUTES =====
 app.use("/api/comments", commentRouter);

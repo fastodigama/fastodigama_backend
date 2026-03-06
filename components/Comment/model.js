@@ -64,6 +64,10 @@ const CommentSchema = new mongoose.Schema({
 const Comment = mongoose.model("Comment", CommentSchema);
 
 // ===== DATABASE FUNCTIONS =====
+// Delete all comments for an article
+async function deleteCommentsByArticleId(articleId) {
+    await Comment.deleteMany({ articleId });
+}
 
 // Create a new comment
 // Returns the created comment with author info populated

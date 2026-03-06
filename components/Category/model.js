@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 const CategorySchema = new mongoose.Schema(
     {
         name: {type: String, required: true},
+        order: {type: Number, default: 0},
     }
 );
 
@@ -14,6 +15,10 @@ const CategorySchema = new mongoose.Schema(
 const CategoryModel = mongoose.model("Category", CategorySchema);
 
 // ===== DATABASE FUNCTIONS =====
+// Get all categories sorted by order
+async function getCategoriesSortedByOrder() {
+    return await CategoryModel.find({}).sort({ order: 1 });
+};
 
 // Get all categories from database
 async function getCategories() {
@@ -63,20 +68,18 @@ async function addCategory(newCategory) {
 // Parameters: id (MongoDB _id), newName (new category name)
 
 async function updateCategoryById(id, newName) {
-    // Find the category by ID and update the name field
-    let result = await CategoryModel.findByIdAndUpdate(id,
-        {
-        name: newName
-        });
-    // Log success or error to console (for debugging)
+    // Find the category by ID and update the name and order fields
+    let updateObj = { name: newName };
+    if (arguments.length > 2) {
+        updateObj.order = arguments[2];
+    }
+    let result = await CategoryModel.findByIdAndUpdate(id, updateObj);
     if (result){
         console.log("Category updated successfully");
     }else{
         console.error("error updating category");
     }
-
-    return result; // Return the result to the controller
-    
+    return result;
 }
 
 // Delete a category by name
@@ -98,7 +101,8 @@ export default {
     initializeCategories,
     addCategory,
     updateCategoryById,
-    deleteCategoryByName
+    deleteCategoryByName,
+    getCategoriesSortedByOrder
 }
 
 

@@ -12,7 +12,9 @@ const likeArticleApi = async (request, response) => {
       article.likes.push(userId);
       await article.save();
     }
-    response.json({ likes: article.likes.length });
+    // Return like count and likedByCurrentUser
+    const likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId);
+    response.status(200).json({ likes: article.likes.length, likedByCurrentUser });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error" });
@@ -33,7 +35,9 @@ const unlikeArticleApi = async (request, response) => {
     if (article.likes.length !== before) {
       await article.save();
     }
-    response.json({ likes: article.likes.length });
+    // Return like count and likedByCurrentUser
+    const likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId);
+    response.status(200).json({ likes: article.likes.length, likedByCurrentUser });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error" });
@@ -102,15 +106,26 @@ const getArticlesApiResponse = async (request, response) => {
           }
           return {
             ...img,
-            url: `${process.env.ARTICLE_IMAGE_BASE}/${filename}`
+            url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
           };
         });
+      }
+      // Determine likedByCurrentUser safely
+      let likedByCurrentUser = false;
+      const userId =
+        (request.user && request.user._id) ||
+        request.body?.userId ||
+        request.query?.userId ||
+        null;
+      if (userId && Array.isArray(article.likes)) {
+        likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId.toString());
       }
       return {
         ...article.toObject ? article.toObject() : article,
         views: article.views || 0,
         commentsCount,
-        likes: Array.isArray(article.likes) ? article.likes.length : 0
+        likes: Array.isArray(article.likes) ? article.likes.length : 0,
+        likedByCurrentUser
       };
     }));
     response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category });
@@ -188,16 +203,27 @@ const getArticleByIdApiResponse = async (request, response) => {
         }
         return {
           ...img,
-          url: `${process.env.ARTICLE_IMAGE_BASE}/${filename}`
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
         };
       });
+    }
+    // Determine likedByCurrentUser safely
+    let likedByCurrentUser = false;
+    const userId =
+      (request.user && request.user._id) ||
+      request.body?.userId ||
+      request.query?.userId ||
+      null;
+    if (userId && Array.isArray(article.likes)) {
+      likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId.toString());
     }
     response.json({
       article: {
         ...article.toObject ? article.toObject() : article,
         views: article.views || 0,
         commentsCount,
-        likes: Array.isArray(article.likes) ? article.likes.length : 0
+        likes: Array.isArray(article.likes) ? article.likes.length : 0,
+        likedByCurrentUser
       }
     });
   } catch (error) {
@@ -266,7 +292,8 @@ const addNewArticle = async (request, response) => {
 
     if (request.files && request.files.length > 0) {
       images = await Promise.all(request.files.map(async (file, index) => {
-        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-");
+        // Sanitize slug: remove spaces and special characters
+        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
         const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
 
         const buffer = await sharp(file.buffer)
@@ -282,7 +309,7 @@ const addNewArticle = async (request, response) => {
         }));
 
         return {
-          url: `${process.env.ARTICLE_IMAGE_BASE}/${fileName}`,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(fileName)}`,
           key: fileName,
           alt: altTexts[index] || ""
         };
@@ -365,7 +392,8 @@ const editArticle = async (request, response) => {
         : [];
 
       newImages = await Promise.all(request.files.map(async (file, index) => {
-        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-");
+        // Sanitize slug: remove spaces and special characters
+        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
         const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
 
         const buffer = await sharp(file.buffer)
@@ -381,7 +409,7 @@ const editArticle = async (request, response) => {
         }));
 
         return {
-          url: `${process.env.ARTICLE_IMAGE_BASE}/${fileName}`,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(fileName)}`,
           key: fileName,
           alt: newAltTexts[index] || ""
         };

@@ -13,7 +13,11 @@ block layout-content
                         //- Category name field
                         .mb-3
                             label.form-label(for="name") Category Name
-                            input.form-control(type="text", id="name", name="name", placeholder="Category Name", required)                       
+                            input.form-control(type="text", id="name", name="name", placeholder="Category Name", required)
+                        //- Order field
+                        .mb-3
+                            label.form-label(for="order") Order
+                            input.form-control(type="number", id="order", name="order", placeholder="Order", min="0")
                        
                         //- Submit and cancel buttons
                         .d-flex.justify-content-end.gap-2.mt-4

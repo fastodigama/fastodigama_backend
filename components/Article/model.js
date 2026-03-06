@@ -240,11 +240,19 @@ async function deleteArticleById(id) {
       }
     }
 
+    // Delete all comments for this article
+    const { default: commentModel } = await import("../Comment/model.js");
+    await commentModel.deleteCommentsByArticleId(id);
+
+    // Delete all likes for this article
+    const { default: likeModel } = await import("../Like/model.js");
+    await likeModel.deleteLikesByArticleId(id);
+
     // Remove the article from database
     let result = await ArticleModel.deleteOne({ _id: id });
 
     if (result.deletedCount === 1) {
-      console.log("Article and images deleted successfully");
+      console.log("Article, images, comments, and likes deleted successfully");
     } else {
       console.log("Error deleting the article");
     }
