@@ -20,17 +20,16 @@ const likeArticleApi = async (request, response) => {
     }
     // Save like in Like collection using Mongoose model
     const Like = (await import("../Like/model.js")).default;
-    const likeResult = await Like.findOneAndUpdate(
+    await Like.findOneAndUpdate(
       { userId, articleId },
       { $setOnInsert: { userId, articleId } },
       { upsert: true, new: true }
     );
-    console.log('[LIKE API] Like DB result:', likeResult);
     // Get updated like count and likedByCurrentUser
     const likes = await Like.countDocuments({ articleId });
-    const likedByCurrentUser = !!(await Like.exists({ userId, articleId }));
+    const likedByCurrentUser = await Like.exists({ userId, articleId });
     console.log(`[LIKE API] User ${userId} liked article ${articleId}`);
-    response.status(200).json({ likes, likedByCurrentUser });
+    response.status(200).json({ likes, likedByCurrentUser: !!likedByCurrentUser });
   } catch (error) {
     console.error("[LIKE API] Error:", error);
     response.status(500).json({ message: "Server Error" });
@@ -47,12 +46,11 @@ const unlikeArticleApi = async (request, response) => {
     if (!article) return response.status(404).json({ message: "Article not found" });
     // Remove like from Like collection using Mongoose model
     const Like = (await import("../Like/model.js")).default;
-    const unlikeResult = await Like.deleteOne({ userId, articleId });
-    console.log('[LIKE API] Unlike DB result:', unlikeResult);
+    await Like.deleteOne({ userId, articleId });
     // Get updated like count and likedByCurrentUser
     const likes = await Like.countDocuments({ articleId });
-    const likedByCurrentUser = !!(await Like.exists({ userId, articleId }));
-    response.status(200).json({ likes, likedByCurrentUser });
+    const likedByCurrentUser = await Like.exists({ userId, articleId });
+    response.status(200).json({ likes, likedByCurrentUser: !!likedByCurrentUser });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error" });
@@ -132,7 +130,7 @@ const getArticlesApiResponse = async (request, response) => {
         request.body?.userId ||
         request.query?.userId ||
         null;
-      const likes = await likeModel.countLikesForArticle(article._id);
+      const likes = await likeModel.countDocuments({ articleId: article._id });
       let likedByCurrentUser = false;
       if (userId) {
         likedByCurrentUser = await likeModel.isArticleLikedByUser(userId, article._id);
@@ -225,18 +223,18 @@ const getArticleByIdApiResponse = async (request, response) => {
       });
     }
     // Use Like collection for like count and likedByCurrentUser
-    const Like = (await import("../Like/model.js")).default;
+    const likeModel = (await import("../Like/model.js")).default;
     const userId =
       (request.user && request.user._id) ||
       request.body?.userId ||
       request.query?.userId ||
       null;
-    const likes = await Like.countDocuments({ articleId: article._id });
+    const likes = await likeModel.countDocuments({ articleId: article._id });
     let likedByCurrentUser = false;
     let likedAt = null;
     if (userId) {
       // Find the Like document for this user and article
-      const likeDoc = await Like.findOne({ userId, articleId: article._id });
+      const likeDoc = await likeModel.findOne({ userId, articleId: article._id });
       if (likeDoc) {
         likedByCurrentUser = true;
         likedAt = likeDoc.createdAt;

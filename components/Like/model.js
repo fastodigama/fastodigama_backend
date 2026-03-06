@@ -40,9 +40,6 @@ async function getUsersWhoLikedArticle(articleId) {
 }
 
 // Count likes for an article
-async function countLikesForArticle(articleId) {
-  return await Like.countDocuments({ articleId });
-}
 
 // Delete all likes by a user
 // Delete all likes for an article
