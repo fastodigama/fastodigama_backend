@@ -19,6 +19,7 @@ import categoryRouter from "./components/Category/routes.js";
 import commentRouter from "./components/Comment/routes.js";
 import consentRouter from "./components/Consent/routes.js";
 import likeRouter from "./components/Like/routes.js";
+import pollRouter from "./components/Poll/routes.js";
 
 import articles from "./components/Article/controller.js";
 import categories from "./components/Category/controller.js";
@@ -175,6 +176,7 @@ app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 app.use("/api/comments", commentRouter);
 app.use("/api/consent", consentRouter);
 app.use("/api/like", likeRouter);
+app.use("/api/poll", pollRouter);
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
@@ -213,6 +215,7 @@ app.use("/logout", (req, res, next) => {
 // ===== ROUTES =====
 app.use("/admin/article", requireAdmin, articleRouter);
 app.use("/admin/category", requireAdmin, categoryRouter);
+app.use("/admin/poll", requireAdmin, pollRouter);
 
 // Mount public user routes (login, register, api login, etc.)
 app.use("/", publicUserRoutes);

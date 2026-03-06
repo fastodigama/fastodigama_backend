@@ -1,0 +1,62 @@
+extends ../common/layout
+
+block layout-content
+  h1.mb-4 Edit Poll
+  if err
+    div.alert.alert-danger= err
+  form(action=`/admin/poll/edit/${poll._id}` method="POST" id="pollForm")
+    .mb-3
+      label.form-label(for="question") Question:
+      input.form-control(type="text" name="question" required value=poll.question)
+    .mb-3
+      label.form-label Choices:
+      #choices-list
+        each choice, idx in poll.choices
+          .input-group.mb-2
+            input.form-control(type="text" name=`choice${idx+1}` required value=choice.text)
+            button.btn.btn-danger(type="button" onclick="removeChoice(this)") Delete
+      button.btn.btn-secondary(type="button" id="addChoiceBtn") Add Choice
+    .mb-3
+      label.form-label(for="articleId") Related Article (optional):
+      select.form-select(name="articleId")
+        option(value="none" selected=!poll.articleId) None
+        if articles
+          each article in articles
+            option(value=article._id selected=String(article._id)==String(poll.articleId))= article.title
+    button.btn.btn-primary(type="submit") Update Poll
+    a.btn.btn-link(href="/admin/poll") Back to Polls
+
+block scripts
+  script.
+    // Dynamic add/remove for poll choices (2-4)
+    const pollForm = document.getElementById('pollForm');
+    const choicesList = document.getElementById('choices-list');
+    const addChoiceBtn = document.getElementById('addChoiceBtn');
+    function updateChoiceNames() {
+      const inputs = choicesList.querySelectorAll('input');
+      inputs.forEach((input, idx) => {
+        input.name = `choice${idx+1}`;
+        input.placeholder = `Choice ${idx+1}`;
+      });
+      // Only allow delete if more than 2 choices
+      const deleteBtns = choicesList.querySelectorAll('button');
+      deleteBtns.forEach(btn => btn.disabled = inputs.length <= 2);
+      addChoiceBtn.disabled = inputs.length >= 4;
+    }
+    function removeChoice(btn) {
+      if (choicesList.querySelectorAll('input').length > 2) {
+        btn.parentElement.remove();
+        updateChoiceNames();
+      }
+    }
+    addChoiceBtn.onclick = function() {
+      const count = choicesList.querySelectorAll('input').length;
+      if (count < 4) {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML = `<input class="form-control" type="text" name="choice${count+1}" placeholder="Choice ${count+1}" required><button class="btn btn-danger" type="button" onclick="removeChoice(this)">Delete</button>`;
+        choicesList.appendChild(div);
+        updateChoiceNames();
+      }
+    };
+    updateChoiceNames();

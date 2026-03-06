@@ -215,17 +215,42 @@ async function editArticlebyId(id, articleData) {
 
 // Delete an article by ID
 async function deleteArticleById(id) {
-    // Remove the article from database
-    let result = await ArticleModel.deleteOne({_id: id});
+    // Fetch the article to get image keys
+    const article = await ArticleModel.findById(id);
+    if (!article) {
+      console.log("Article not found");
+      return { deletedCount: 0 };
+    }
 
-    if(result.deletedCount === 1) {
-        console.log("Article deleted successfully");
-    }else{
-        console.log("Error deleting the article");
+    // Delete all images from R2
+    if (Array.isArray(article.images)) {
+      const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+      for (const img of article.images) {
+        if (img.key) {
+          try {
+            await s3.send(new DeleteObjectCommand({
+              Bucket: process.env.R2_BUCKET_NAME,
+              Key: img.key,
+            }));
+            console.log(`Deleted image from R2: ${img.key}`);
+          } catch (err) {
+            console.error(`Failed to delete image from R2: ${img.key}`, err);
+          }
+        }
+      }
+    }
+
+    // Remove the article from database
+    let result = await ArticleModel.deleteOne({ _id: id });
+
+    if (result.deletedCount === 1) {
+      console.log("Article and images deleted successfully");
+    } else {
+      console.log("Error deleting the article");
     }
 
     return result;
-}
+  }
 
 
 
