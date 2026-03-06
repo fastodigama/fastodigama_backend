@@ -1,0 +1,27 @@
+extends ../common/layout
+
+block layout-content
+  h1 Polls
+  a(href="/admin/poll/add") Add New Poll
+  if polls.length
+    table
+      thead
+        tr
+          th Question
+          th Related Article
+          th Actions
+      tbody
+        each poll in polls
+          tr
+            td #{poll.question}
+            td
+              if poll.articleId
+                | #{poll.articleId}
+              else
+                | -
+            td
+              a(href=`/admin/poll/edit/${poll._id}`) Edit
+              form(action=`/admin/poll/delete/${poll._id}` method="POST" style="display:inline;")
+                button(type="submit" onclick="return confirm('Delete this poll?')") Delete
+  else
+    p No polls found.
