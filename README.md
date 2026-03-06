@@ -4,7 +4,7 @@ A Node.js/Express backend for a journaling website with article management, cate
 
 ---
 
-## 🌟 Features
+## Features
 
 - **Admin Panel**: Manage articles, categories, and menu links
 - **Article Management**: Create, edit, and publish articles with markdown support
