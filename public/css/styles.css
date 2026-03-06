@@ -3,6 +3,22 @@ body {
   color:#fff;
   background-color:#222;
 }
+
+/* Custom font size utility for extra small text */
+.fs-7 {
+  font-size: 0.75rem !important;
+}
+
+/* Responsive tweaks for small buttons */
+@media (max-width: 576px) {
+  .btn-sm {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+  .fs-7 {
+    font-size: 0.68rem !important;
+  }
+}
 a {
   color:yellow;
 }

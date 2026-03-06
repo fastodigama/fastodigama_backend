@@ -31,9 +31,9 @@ block layout-content
                             td
                                 #{user.lastName}
                             td.text-center
-                                .d-flex.gap-2.justify-content-center
-                                    a.btn.btn-sm.btn-dark(href=`/admin/users/reset/${user._id}`) Reset Password
-                                    a.btn.btn-sm.btn-info(href=`/admin/users/edit/${user._id}`) Edit
-                                    a.btn.btn-sm.btn-danger(href=`/admin/users/delete/${user._id}`, onclick="return confirm('Are you sure you want to delete this user?')") Delete
+                                .d-flex.gap-1.justify-content-center
+                                    a.btn.btn-sm.btn-dark.fw-light.px-2.py-1.fs-7(href=`/admin/users/reset/${user._id}`) Reset
+                                    a.btn.btn-sm.btn-info.fw-light.px-2.py-1.fs-7(href=`/admin/users/edit/${user._id}`) Edit
+                                    a.btn.btn-sm.btn-danger.fw-light.px-2.py-1.fs-7(href=`/admin/users/delete/${user._id}`, onclick="return confirm('Are you sure you want to delete this user?')") Delete
         else
             .alert.alert-info No users found
