@@ -1,22 +1,32 @@
 // Like an article
 const likeArticleApi = async (request, response) => {
   try {
+    console.log("[LIKE API] Incoming like request:", {
+      params: request.params,
+      body: request.body,
+      user: request.user
+    });
     const articleId = request.params.id;
-    // You should get userId from session or request body; here we use request.body.userId for demo
     const userId = request.body.userId;
-    if (!userId) return response.status(400).json({ message: "Missing userId" });
-    const article = await articleModel.getArticleById(articleId);
-    if (!article) return response.status(404).json({ message: "Article not found" });
-    if (!article.likes) article.likes = [];
-    if (!article.likes.map(id => id.toString()).includes(userId)) {
-      article.likes.push(userId);
-      await article.save();
+    if (!userId) {
+      console.warn("[LIKE API] Missing userId in request body");
+      return response.status(400).json({ message: "Missing userId" });
     }
-    // Return like count and likedByCurrentUser
-    const likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId);
-    response.status(200).json({ likes: article.likes.length, likedByCurrentUser });
+    const article = await articleModel.getArticleById(articleId);
+    if (!article) {
+      console.warn(`[LIKE API] Article not found: ${articleId}`);
+      return response.status(404).json({ message: "Article not found" });
+    }
+    // Save like in Like collection
+    const likeModel = (await import("../Like/model.js")).default;
+    await likeModel.likeArticle(userId, articleId);
+    // Get updated like count and likedByCurrentUser
+    const likes = await likeModel.countLikesForArticle(articleId);
+    const likedByCurrentUser = await likeModel.isArticleLikedByUser(userId, articleId);
+    console.log(`[LIKE API] User ${userId} liked article ${articleId}`);
+    response.status(200).json({ likes, likedByCurrentUser: !!likedByCurrentUser });
   } catch (error) {
-    console.error(error);
+    console.error("[LIKE API] Error:", error);
     response.status(500).json({ message: "Server Error" });
   }
 };
@@ -29,15 +39,13 @@ const unlikeArticleApi = async (request, response) => {
     if (!userId) return response.status(400).json({ message: "Missing userId" });
     const article = await articleModel.getArticleById(articleId);
     if (!article) return response.status(404).json({ message: "Article not found" });
-    if (!article.likes) article.likes = [];
-    const before = article.likes.length;
-    article.likes = article.likes.filter(id => id.toString() !== userId);
-    if (article.likes.length !== before) {
-      await article.save();
-    }
-    // Return like count and likedByCurrentUser
-    const likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId);
-    response.status(200).json({ likes: article.likes.length, likedByCurrentUser });
+    // Remove like from Like collection
+    const likeModel = (await import("../Like/model.js")).default;
+    await likeModel.unlikeArticle(userId, articleId);
+    // Get updated like count and likedByCurrentUser
+    const likes = await likeModel.countLikesForArticle(articleId);
+    const likedByCurrentUser = await likeModel.isArticleLikedByUser(userId, articleId);
+    response.status(200).json({ likes, likedByCurrentUser: !!likedByCurrentUser });
   } catch (error) {
     console.error(error);
     response.status(500).json({ message: "Server Error" });
@@ -93,6 +101,7 @@ const getArticlesApiResponse = async (request, response) => {
     // Ensure all image URLs use CDN domain
     // Count comments for each article
     const commentModel = (await import("../Comment/model.js")).default;
+    const likeModel = (await import("../Like/model.js")).default;
     const mappedArticles = await Promise.all(articles.map(async article => {
       let commentsCount = 0;
       try {
@@ -110,22 +119,23 @@ const getArticlesApiResponse = async (request, response) => {
           };
         });
       }
-      // Determine likedByCurrentUser safely
-      let likedByCurrentUser = false;
+      // Use Like collection for like count and likedByCurrentUser
       const userId =
         (request.user && request.user._id) ||
         request.body?.userId ||
         request.query?.userId ||
         null;
-      if (userId && Array.isArray(article.likes)) {
-        likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId.toString());
+      const likes = await likeModel.countLikesForArticle(article._id);
+      let likedByCurrentUser = false;
+      if (userId) {
+        likedByCurrentUser = await likeModel.isArticleLikedByUser(userId, article._id);
       }
       return {
         ...article.toObject ? article.toObject() : article,
         views: article.views || 0,
         commentsCount,
-        likes: Array.isArray(article.likes) ? article.likes.length : 0,
-        likedByCurrentUser
+        likes,
+        likedByCurrentUser: !!likedByCurrentUser
       };
     }));
     response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category });
@@ -207,23 +217,32 @@ const getArticleByIdApiResponse = async (request, response) => {
         };
       });
     }
-    // Determine likedByCurrentUser safely
-    let likedByCurrentUser = false;
+    // Use Like collection for like count and likedByCurrentUser
+    const likeModel = (await import("../Like/model.js")).default;
     const userId =
       (request.user && request.user._id) ||
       request.body?.userId ||
       request.query?.userId ||
       null;
-    if (userId && Array.isArray(article.likes)) {
-      likedByCurrentUser = article.likes.map(id => id.toString()).includes(userId.toString());
+    const likes = await likeModel.countLikesForArticle(article._id);
+    let likedByCurrentUser = false;
+    let likedAt = null;
+    if (userId) {
+      // Find the Like document for this user and article
+      const likeDoc = await likeModel.findOne({ userId, articleId: article._id });
+      if (likeDoc) {
+        likedByCurrentUser = true;
+        likedAt = likeDoc.createdAt;
+      }
     }
     response.json({
       article: {
         ...article.toObject ? article.toObject() : article,
         views: article.views || 0,
         commentsCount,
-        likes: Array.isArray(article.likes) ? article.likes.length : 0,
-        likedByCurrentUser
+        likes,
+        likedByCurrentUser: !!likedByCurrentUser,
+        likedAt: likedAt
       }
     });
   } catch (error) {
