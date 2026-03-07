@@ -39,15 +39,22 @@ async function getUsersWhoLikedArticle(articleId) {
   return await Like.find({ articleId }).populate("userId");
 }
 
-// Count likes for an article
-
-// Delete all likes by a user
 // Delete all likes for an article
 async function deleteLikesByArticleId(articleId) {
   return await Like.deleteMany({ articleId });
 }
+// Delete all likes by a user
 async function deleteManyByUserId(userId) {
   return await Like.deleteMany({ userId });
 }
 
-export default Like;
+export {
+  Like,
+  likeArticle,
+  unlikeArticle,
+  isArticleLikedByUser,
+  getLikedArticlesByUser,
+  getUsersWhoLikedArticle,
+  deleteLikesByArticleId,
+  deleteManyByUserId
+};

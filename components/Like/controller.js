@@ -1,4 +1,9 @@
-import LikeModel from "./model.js";
+import {
+  likeArticle as likeArticleModel,
+  unlikeArticle as unlikeArticleModel,
+  getLikedArticlesByUser as getLikedArticlesByUserModel,
+  getUsersWhoLikedArticle as getUsersWhoLikedArticleModel
+} from "./model.js";
 
 // Like an article
 export const likeArticle = async (req, res) => {
@@ -7,7 +12,7 @@ export const likeArticle = async (req, res) => {
     return res.status(400).json({ message: "Missing userId or articleId" });
   }
   try {
-    await LikeModel.likeArticle(userId, articleId);
+    await likeArticleModel(userId, articleId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -21,7 +26,7 @@ export const unlikeArticle = async (req, res) => {
     return res.status(400).json({ message: "Missing userId or articleId" });
   }
   try {
-    await LikeModel.unlikeArticle(userId, articleId);
+    await unlikeArticleModel(userId, articleId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -35,7 +40,7 @@ export const getLikedArticlesByUser = async (req, res) => {
     return res.status(400).json({ message: "Missing userId" });
   }
   try {
-    const likes = await LikeModel.getLikedArticlesByUser(userId);
+    const likes = await getLikedArticlesByUserModel(userId);
     res.json({ articles: likes.map(like => like.articleId) });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -49,7 +54,7 @@ export const getUsersWhoLikedArticle = async (req, res) => {
     return res.status(400).json({ message: "Missing articleId" });
   }
   try {
-    const likes = await LikeModel.getUsersWhoLikedArticle(articleId);
+    const likes = await getUsersWhoLikedArticleModel(articleId);
     res.json({ users: likes.map(like => like.userId) });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });

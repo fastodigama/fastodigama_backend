@@ -106,7 +106,7 @@ const getArticlesApiResponse = async (request, response) => {
     // Ensure all image URLs use CDN domain
     // Count comments for each article
     const commentModel = (await import("../Comment/model.js")).default;
-    const likeModel = (await import("../Like/model.js")).default;
+    const { Like } = await import("../Like/model.js");
     const mappedArticles = await Promise.all(articles.map(async article => {
       let commentsCount = 0;
       try {
@@ -130,10 +130,10 @@ const getArticlesApiResponse = async (request, response) => {
         request.body?.userId ||
         request.query?.userId ||
         null;
-      const likes = await likeModel.countDocuments({ articleId: article._id });
+      const likes = await Like.countDocuments({ articleId: article._id });
       let likedByCurrentUser = false;
       if (userId) {
-        likedByCurrentUser = await likeModel.isArticleLikedByUser(userId, article._id);
+        likedByCurrentUser = await (await import("../Like/model.js")).isArticleLikedByUser(userId, article._id);
       }
       return {
         ...article.toObject ? article.toObject() : article,
