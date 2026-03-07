@@ -223,18 +223,18 @@ const getArticleByIdApiResponse = async (request, response) => {
       });
     }
     // Use Like collection for like count and likedByCurrentUser
-    const likeModel = (await import("../Like/model.js")).default;
+    const { Like } = await import("../Like/model.js");
     const userId =
       (request.user && request.user._id) ||
       request.body?.userId ||
       request.query?.userId ||
       null;
-    const likes = await likeModel.countDocuments({ articleId: article._id });
+    const likes = await Like.countDocuments({ articleId: article._id });
     let likedByCurrentUser = false;
     let likedAt = null;
     if (userId) {
       // Find the Like document for this user and article
-      const likeDoc = await likeModel.findOne({ userId, articleId: article._id });
+      const likeDoc = await Like.findOne({ userId, articleId: article._id });
       if (likeDoc) {
         likedByCurrentUser = true;
         likedAt = likeDoc.createdAt;
