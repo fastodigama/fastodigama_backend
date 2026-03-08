@@ -62,40 +62,41 @@ const transformLikeNotificationWithFullURL = (notification) => {
     return notificationObj;
 };
 
-// POST: Create a new comment
+// POST: Create a new comment (by article slug)
+import articleModel from "../Article/model.js";
 const createComment = async (request, response) => {
     try {
-        const { articleId, content, parentId, authorName } = request.body;
-        
+        const { slug, content, parentId, authorName } = request.body;
         // Validate required fields
-        if (!articleId || !content) {
-            return response.status(400).json({ 
-                error: "Missing required fields (articleId, content)" 
+        if (!slug || !content) {
+            return response.status(400).json({
+                error: "Missing required fields (slug, content)"
             });
         }
-        
+        // Find article by slug
+        const article = await articleModel.getArticleBySlug(slug);
+        if (!article) {
+            return response.status(404).json({ error: "Article not found for provided slug" });
+        }
+        const articleId = article._id;
         // Validate content length (min 2 chars)
         if (content.trim().length < 2) {
-            return response.status(400).json({ 
-                error: "Comment must be at least 2 characters" 
+            return response.status(400).json({
+                error: "Comment must be at least 2 characters"
             });
         }
-
         const isAuthenticated = Boolean(
             request.session && request.session.loggedIn && request.session.user
         );
-
         // Replies (including reply-to-reply) require authentication
         if (parentId && !isAuthenticated) {
             return response.status(401).json({
                 error: "Authentication required to reply to comments"
             });
         }
-
         // Check if user is authenticated
         let authorId = null;
         let finalAuthorName = "Anonymous";
-        
         if (isAuthenticated) {
             // User is authenticated - get their profile and use nickname
             const user = await userModel.getUserByEmail(request.session.user);
@@ -111,7 +112,6 @@ const createComment = async (request, response) => {
             // Anonymous comment - use provided name or default
             finalAuthorName = authorName && authorName.trim() ? authorName.trim() : "Anonymous";
         }
-        
         // Create the comment
         const comment = await commentModel.createComment(
             articleId,
@@ -120,7 +120,6 @@ const createComment = async (request, response) => {
             authorId,
             finalAuthorName
         );
-        
         response.status(201).json({
             success: true,
             message: "Comment posted",
@@ -132,15 +131,19 @@ const createComment = async (request, response) => {
     }
 };
 
-// GET: Get all approved comments for an article
+// GET: Get all approved comments for an article by slug
 // Populates author info (name and avatar)
 const getCommentsByArticle = async (request, response) => {
     try {
-        const { articleId } = request.params;
-        
+        const { slug } = request.params;
+        // Find article by slug
+        const article = await articleModel.getArticleBySlug(slug);
+        if (!article) {
+            return response.status(404).json({ error: "Article not found for provided slug" });
+        }
+        const articleId = article._id;
         // Get top-level comments with author info
         const comments = await commentModel.getCommentsByArticle(articleId);
-        
         // For each comment, get all nested replies (unlimited depth)
         const commentsWithReplies = await Promise.all(
             comments.map(async (comment) => {
@@ -150,7 +153,6 @@ const getCommentsByArticle = async (request, response) => {
                 };
             })
         );
-        
         response.json({
             success: true,
             comments: commentsWithReplies

@@ -10,9 +10,10 @@ const router = express.Router();
 // POST /api/comments
 router.post("/", commentController.createComment);
 
-// GET: Get all approved comments for an article
-// GET /api/comments/article/:articleId
-router.get("/article/:articleId", commentController.getCommentsByArticle);
+
+// GET: Get all approved comments for an article by slug
+// GET /api/comments/article/:slug
+router.get("/article/:slug", commentController.getCommentsByArticle);
 
 // GET: Get current user's comment history
 // GET /api/comments/me
