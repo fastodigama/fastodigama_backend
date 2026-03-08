@@ -168,8 +168,8 @@ app.get("/api/articles", articles.getArticlesApiResponse);
 // app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/article/:slug", articles.getArticleBySlugApiResponse);
 // Like/unlike endpoints
-app.post("/api/article/:id/like", articles.likeArticleApi);
-app.post("/api/article/:id/unlike", articles.unlikeArticleApi);
+app.post("/api/article/:slug/like", articles.likeArticleApi);
+app.post("/api/article/:slug/unlike", articles.unlikeArticleApi);
 app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
 app.get("/api/categories/sorted", categories.getCategoriesSortedByOrder);

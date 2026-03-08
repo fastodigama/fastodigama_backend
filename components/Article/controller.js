@@ -68,18 +68,19 @@ const likeArticleApi = async (request, response) => {
       body: request.body,
       user: request.user
     });
-    const articleId = request.params.id;
+    const slug = request.params.slug;
     // Get userId only from request.body
     const userId = request.body && request.body.userId;
     if (!userId) {
       console.warn("[LIKE API] Missing userId in request body");
       return response.status(400).json({ message: "Missing userId" });
     }
-    const article = await articleModel.getArticleById(articleId);
+    const article = await articleModel.getArticleBySlug(slug);
     if (!article) {
-      console.warn(`[LIKE API] Article not found: ${articleId}`);
+      console.warn(`[LIKE API] Article not found: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
+    const articleId = article._id;
     // Save like in Like collection using Mongoose model
     const { Like } = await import("../Like/model.js");
     await Like.findOneAndUpdate(
@@ -90,7 +91,7 @@ const likeArticleApi = async (request, response) => {
     // Get updated like count and likedByCurrentUser
     const likes = await Like.countDocuments({ articleId });
     const likedByCurrentUser = await Like.exists({ userId, articleId });
-    console.log(`[LIKE API] User ${userId} liked article ${articleId}`);
+    console.log(`[LIKE API] User ${userId} liked article ${articleId} (slug: ${slug})`);
     response.status(200).json({ likes, likedByCurrentUser: !!likedByCurrentUser });
   } catch (error) {
     console.error("[LIKE API] Error:", error);
@@ -101,11 +102,12 @@ const likeArticleApi = async (request, response) => {
 // Unlike an article
 const unlikeArticleApi = async (request, response) => {
   try {
-    const articleId = request.params.id;
+    const slug = request.params.slug;
     const userId = request.body.userId;
     if (!userId) return response.status(400).json({ message: "Missing userId" });
-    const article = await articleModel.getArticleById(articleId);
+    const article = await articleModel.getArticleBySlug(slug);
     if (!article) return response.status(404).json({ message: "Article not found" });
+    const articleId = article._id;
     // Remove like from Like collection using Mongoose model
     const { Like } = await import("../Like/model.js");
     await Like.deleteOne({ userId, articleId });
