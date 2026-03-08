@@ -9,6 +9,7 @@ import { s3 } from "../config/r2.js"; // Adjust the path if your folder structur
 const ArticleSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    slug: { type: String, unique: true },
     text: { type: String, required: true },
     author: {
         type:String,

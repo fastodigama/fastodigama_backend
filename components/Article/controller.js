@@ -19,7 +19,7 @@ const likeArticleApi = async (request, response) => {
       return response.status(404).json({ message: "Article not found" });
     }
     // Save like in Like collection using Mongoose model
-    const Like = (await import("../Like/model.js")).default;
+    const { Like } = await import("../Like/model.js");
     await Like.findOneAndUpdate(
       { userId, articleId },
       { $setOnInsert: { userId, articleId } },
@@ -45,7 +45,7 @@ const unlikeArticleApi = async (request, response) => {
     const article = await articleModel.getArticleById(articleId);
     if (!article) return response.status(404).json({ message: "Article not found" });
     // Remove like from Like collection using Mongoose model
-    const Like = (await import("../Like/model.js")).default;
+    const { Like } = await import("../Like/model.js");
     await Like.deleteOne({ userId, articleId });
     // Get updated like count and likedByCurrentUser
     const likes = await Like.countDocuments({ articleId });
