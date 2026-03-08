@@ -196,7 +196,7 @@ async function getCommentsByAuthor(authorId) {
     return await Comment.find({ author: authorId })
         .populate('author')
         .populate('likes', 'nickname email firstName lastName')
-        .populate('articleId', 'title')
+        .populate('articleId', 'title slug')
         .populate('parentId', 'content authorName')
         .sort({ createdAt: -1 });
 }
@@ -216,7 +216,7 @@ async function getRepliesToUserComments(authorId) {
     })
         .populate('author')
         .populate('likes', 'nickname email firstName lastName')
-        .populate('articleId', 'title')
+        .populate('articleId', 'title slug')
         .populate('parentId', 'content authorName')
         .sort({ createdAt: -1 });
 }
@@ -241,7 +241,7 @@ async function getUnreadRepliesToUserComments(authorId, lastSeenAt = null) {
     return await Comment.find(query)
         .populate('author')
         .populate('likes', 'nickname email firstName lastName')
-        .populate('articleId', 'title')
+        .populate('articleId', 'title slug')
         .populate('parentId', 'content authorName')
         .sort({ createdAt: -1 });
 }

@@ -7,14 +7,14 @@ import userModel from "../User/model.js";
 // Helper function to transform comment with full R2 URL for profile pictures
 const transformCommentWithFullURL = (comment) => {
     const commentObj = comment.toObject ? comment.toObject() : comment;
-    
+
     // Transform author profile picture if present
     if (commentObj.author && commentObj.author.profilePicture) {
         if (!commentObj.author.profilePicture.startsWith('http')) {
             commentObj.author.profilePicture = `${process.env.PROFILE_IMAGE_BASE}/${commentObj.author.profilePicture}`;
         }
     }
-    
+
     // Transform likes array profile pictures if present
     if (commentObj.likes && Array.isArray(commentObj.likes)) {
         commentObj.likes = commentObj.likes.map(user => {
@@ -27,7 +27,13 @@ const transformCommentWithFullURL = (comment) => {
             return user;
         });
     }
-    
+
+    // Ensure articleId includes slug and title if populated
+    if (commentObj.articleId && typeof commentObj.articleId === 'object') {
+        commentObj.articleSlug = commentObj.articleId.slug;
+        commentObj.articleTitle = commentObj.articleId.title;
+    }
+
     return commentObj;
 };
 
