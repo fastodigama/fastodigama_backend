@@ -3,11 +3,13 @@ const getArticleBySlugApiResponse = async (request, response) => {
   try {
     const slug = request.params.slug;
     console.log(`[API] Fetching article by slug: ${slug}`);
-    const article = await articleModel.getArticleBySlug(slug);
+    let article = await articleModel.getArticleBySlug(slug);
     if (!article) {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
+    // Increment views
+    article = await articleModel.incrementArticleViewsById(article._id);
     // Count comments for this article
     const commentModel = (await import("../Comment/model.js")).default;
     let commentsCount = 0;
