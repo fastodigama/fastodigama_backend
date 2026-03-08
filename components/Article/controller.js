@@ -1,3 +1,65 @@
+// Get single article by slug
+const getArticleBySlugApiResponse = async (request, response) => {
+  try {
+    const slug = request.params.slug;
+    console.log(`[API] Fetching article by slug: ${slug}`);
+    const article = await articleModel.getArticleBySlug(slug);
+    if (!article) {
+      console.warn(`[API] Article not found for slug: ${slug}`);
+      return response.status(404).json({ message: "Article not found" });
+    }
+    // Count comments for this article
+    const commentModel = (await import("../Comment/model.js")).default;
+    let commentsCount = 0;
+    try {
+      commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
+    } catch (e) {}
+    // Ensure all image URLs use CDN domain
+    if (article && Array.isArray(article.images)) {
+      article.images = article.images.map(img => {
+        let filename = img.key || img.url || img;
+        if (filename.startsWith('http')) {
+          filename = filename.split('/').pop();
+        }
+        return {
+          ...img,
+          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
+        };
+      });
+    }
+    // Use Like collection for like count and likedByCurrentUser
+    const { Like } = await import("../Like/model.js");
+    const userId =
+      (request.user && request.user._id) ||
+      request.body?.userId ||
+      request.query?.userId ||
+      null;
+    const likes = await Like.countDocuments({ articleId: article._id });
+    let likedByCurrentUser = false;
+    let likedAt = null;
+    if (userId) {
+      // Find the Like document for this user and article
+      const likeDoc = await Like.findOne({ userId, articleId: article._id });
+      if (likeDoc) {
+        likedByCurrentUser = true;
+        likedAt = likeDoc.createdAt;
+      }
+    }
+    response.json({
+      article: {
+        ...article.toObject ? article.toObject() : article,
+        views: article.views || 0,
+        commentsCount,
+        likes,
+        likedByCurrentUser: !!likedByCurrentUser,
+        likedAt: likedAt
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ message: "Server Error" })
+  }
+}
 // Like an article
 const likeArticleApi = async (request, response) => {
   try {
@@ -534,6 +596,7 @@ export default {
   deleteCommentFromArticle,
   getArticlesApiResponse,
   getArticleByIdApiResponse,
+  getArticleBySlugApiResponse,
   likeArticleApi,
   unlikeArticleApi,
 };

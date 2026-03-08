@@ -165,7 +165,8 @@ app.use(
 
 // ===== API ROUTES =====
 app.get("/api/articles", articles.getArticlesApiResponse);
-app.get("/api/article/:id", articles.getArticleByIdApiResponse);
+// app.get("/api/article/:id", articles.getArticleByIdApiResponse);
+app.get("/api/article/:slug", articles.getArticleBySlugApiResponse);
 // Like/unlike endpoints
 app.post("/api/article/:id/like", articles.likeArticleApi);
 app.post("/api/article/:id/unlike", articles.unlikeArticleApi);

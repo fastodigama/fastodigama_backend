@@ -1,6 +1,17 @@
+
 import mongoose from "mongoose";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../config/r2.js"; // Adjust the path if your folder structure is different
+
+// Helper to generate slug from title
+function generateSlug(title) {
+  return String(title)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
 
 // ===== ARTICLE MODEL =====
 // Defines the database schema and functions to interact with Articles collection
@@ -57,6 +68,11 @@ async function getArticles() {
 async function getArticleById(id) {
   return await ArticleModel.findById(id).populate("categoryId");
 };
+
+// Get one article by slug
+async function getArticleBySlug(slug) {
+  return await ArticleModel.findOne({ slug }).populate("categoryId");
+}
 
 // Count all Articles
 const countArticles = () => {
@@ -149,15 +165,25 @@ async function addArticle(newArticle) {
       alt: img.alt && img.alt.trim() !== "" ? img.alt : String(newArticle.title)
     }));
 
+    // Generate slug from title
+    let baseSlug = generateSlug(newArticle.title);
+    let slug = baseSlug;
+    let counter = 1;
+    // Ensure slug is unique
+    while (await ArticleModel.exists({ slug })) {
+      slug = `${baseSlug}-${counter++}`;
+    }
+
     let article = new ArticleModel({
       title: String(newArticle.title),
+      slug,
       text: String(newArticle.text),
       categoryId: newArticle.categoryId,
       images: processedImages // Use the processed images with guaranteed alt tags
     });
 
     const result = await article.save();
-    console.log("Article saved successfully with alt tags");
+    console.log("Article saved successfully with alt tags and slug");
     
     return result;
   } catch (error) {
@@ -272,18 +298,19 @@ async function incrementArticleViewsById(id) {
 }
 
 export default {
-    getArticles,
-    getArticleById,
-    incrementArticleViewsById,
-    addArticle,
-    editArticlebyId,
-    deleteArticleById,
-    countArticles,
-    getArticlesPaginated,
-    countSearchArticles,
-    searchArticlesPaginated,
-    countByCategory,
-    getByCategoryPaginated,
-    countByCategoryAndSearch,
-    getByCategoryAndSearchPaginated
+  getArticles,
+  getArticleById,
+  getArticleBySlug,
+  incrementArticleViewsById,
+  addArticle,
+  editArticlebyId,
+  deleteArticleById,
+  countArticles,
+  getArticlesPaginated,
+  countSearchArticles,
+  searchArticlesPaginated,
+  countByCategory,
+  getByCategoryPaginated,
+  countByCategoryAndSearch,
+  getByCategoryAndSearchPaginated
 }
