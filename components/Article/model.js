@@ -23,9 +23,9 @@ const ArticleSchema = new mongoose.Schema(
     slug: { type: String, unique: true },
     text: { type: String, required: true },
     author: {
-        type:String,
-        required:true,
-        default: "Fadel Matar"
+      type:String,
+      required:true,
+      default: "Fastodigama Editorial"
     },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
