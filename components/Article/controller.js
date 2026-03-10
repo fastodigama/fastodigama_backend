@@ -47,6 +47,45 @@ const getArticleBySlugApiResponse = async (request, response) => {
         likedAt = likeDoc.createdAt;
       }
     }
+
+    // Fetch related articles (same category, excluding current article)
+    let relatedArticles = [];
+    try {
+      relatedArticles = await articleModel.getByCategoryPaginated(
+        article.categoryId?._id || article.categoryId,
+        0,
+        5
+      );
+      // Exclude the current article
+      relatedArticles = relatedArticles.filter(a => String(a._id) !== String(article._id));
+      // Map image URLs for related articles and limit fields
+      relatedArticles = relatedArticles.map(a => {
+        let images = Array.isArray(a.images)
+          ? a.images.map(img => {
+              let filename = img.key || img.url || img;
+              if (filename.startsWith('http')) {
+                filename = filename.split('/').pop();
+              }
+              return {
+                ...img,
+                url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
+              };
+            })
+          : [];
+        const obj = a.toObject ? a.toObject() : a;
+        return {
+          _id: obj._id,
+          title: obj.title,
+          slug: obj.slug,
+          images,
+          author: obj.author,
+          categoryId: obj.categoryId
+        };
+      });
+    } catch (e) {
+      relatedArticles = [];
+    }
+
     response.json({
       article: {
         ...article.toObject ? article.toObject() : article,
@@ -55,7 +94,8 @@ const getArticleBySlugApiResponse = async (request, response) => {
         likes,
         likedByCurrentUser: !!likedByCurrentUser,
         likedAt: likedAt
-      }
+      },
+      relatedArticles
     });
   } catch (error) {
     console.error(error);
