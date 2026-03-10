@@ -1,111 +1,333 @@
 extends ../common/layout
 
 mixin commentNode(comment, depth)
-    - const indent = Math.min((depth || 0) * 20, 80)
+    - const indent = Math.min((depth || 0) * 24, 96)
     .comment-node(style=`margin-left: ${indent}px;`)
-        .card.mb-3
-            .card-body
-                .d-flex.flex-column.flex-sm-row.justify-content-between.align-items-start.gap-2
-                    div
-                        .d-flex.align-items-center.mb-2
-                            strong.me-2= comment.authorName
-                            small.text-muted= new Date(comment.createdAt).toLocaleString()
-                        p.mb-2= comment.content
-                        .d-flex.align-items-center.gap-3
-                            small.text-muted
-                                i.bi.bi-heart-fill.me-1
-                                = comment.likes ? comment.likes.length : 0
-                                |  likes
-                            button.btn.btn-outline-secondary.btn-sm(type="button", onclick=`toggleReplyForm('${comment._id}')`)
-                                i.bi.bi-reply.me-1
-                                | Reply
-                    form(action=`/admin/article/comment/delete?commentId=${comment._id}&articleId=${article._id}`, method="post", onsubmit="return confirm('Delete this comment?')", style="display: inline;")
-                        button.btn.btn-danger.btn-sm(type="submit")
-                            i.bi.bi-trash.me-1
-                            | Delete
-
-                form.reply-form.d-none.mt-3(id=`reply-form-${comment._id}`, onsubmit=`submitReply(event, '${article._id}', '${comment._id}')`)
-                    .mb-2
-                        textarea.form-control(name="content", rows="2", placeholder="Write your reply...", required)
-                    .d-flex.gap-2
-                        button.btn.btn-primary.btn-sm(type="submit") Post Reply
-                        button.btn.btn-secondary.btn-sm(type="button", onclick=`toggleReplyForm('${comment._id}')`) Cancel
+        .comment-card.mb-3
+            .d-flex.gap-3.align-items-start
+                .comment-avatar
+                    span= (comment.authorName || 'A').charAt(0).toUpperCase()
+                .flex-grow-1
+                    .comment-bubble
+                        .d-flex.flex-wrap.justify-content-between.align-items-center.mb-1.gap-2
+                            .d-flex.align-items-center.gap-2
+                                strong.comment-author= comment.authorName
+                                if depth > 0
+                                    span.badge.reply-badge
+                                        i.bi.bi-arrow-return-right.me-1
+                                        | Reply
+                            small.text-muted.comment-time
+                                i.bi.bi-clock.me-1
+                                = new Date(comment.createdAt).toLocaleString()
+                        p.comment-text.mb-2= comment.content
+                        .d-flex.align-items-center.justify-content-between.flex-wrap.gap-2
+                            .d-flex.align-items-center.gap-3
+                                span.likes-badge
+                                    i.bi.bi-heart-fill.me-1
+                                    = comment.likes ? comment.likes.length : 0
+                                button.btn.btn-link.btn-sm.reply-btn.p-0(type="button", onclick=`toggleReplyForm('${comment._id}')`)
+                                    i.bi.bi-reply.me-1
+                                    | Reply
+                            form(action=`/admin/article/comment/delete?commentId=${comment._id}&articleId=${article._id}`, method="post", onsubmit="return confirm('Delete this comment?')", style="display: inline;")
+                                button.btn.btn-sm.btn-delete(type="submit")
+                                    i.bi.bi-trash3
+                                    | Delete
+                    form.reply-form.d-none.mt-3(id=`reply-form-${comment._id}`, onsubmit=`submitReply(event, '${article._id}', '${comment._id}')`)
+                        .input-group.input-group-sm
+                            textarea.form-control.reply-textarea(name="content", rows="2", placeholder="Write your reply…", required)
+                        .d-flex.gap-2.mt-2
+                            button.btn.btn-primary.btn-sm(type="submit")
+                                i.bi.bi-send.me-1
+                                | Post Reply
+                            button.btn.btn-outline-secondary.btn-sm(type="button", onclick=`toggleReplyForm('${comment._id}')`) Cancel
 
         if comment.replies && comment.replies.length > 0
             each reply in comment.replies
                 +commentNode(reply, (depth || 0) + 1)
 
 block layout-content
-    //- Article view page: Display full article with action buttons
-    .row.justify-content-center
-        .col-lg-10
-            .card.shadow-sm
-                .card-body.p-4
-                    //- Article header with title
-                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.gap-3.mb-4
+    style.
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --danger: #dc2626;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+        }
+
+        body { background: #f1f5f9; }
+
+        /* ── Article card ── */
+        .article-shell {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+        .article-topbar {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+            padding: 2rem 2rem 1.5rem;
+            color: #fff;
+        }
+        .article-topbar h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -.01em; }
+        .article-meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            background: rgba(255,255,255,.18);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 99px;
+            padding: .2rem .75rem;
+            font-size: .78rem;
+            color: rgba(255,255,255,.9);
+        }
+        .article-body { padding: 2rem; }
+
+        /* ── Action buttons ── */
+        .action-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            align-items: center;
+        }
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .4rem .9rem;
+            border-radius: 99px;
+            font-size: .82rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: filter .15s, transform .1s;
+        }
+        .btn-action:hover { filter: brightness(1.07); transform: translateY(-1px); }
+        .btn-action:active { transform: translateY(0); }
+        .btn-edit   { background: #e0f2fe; color: #0369a1; }
+        .btn-del    { background: #fee2e2; color: #b91c1c; }
+        .btn-likes  { background: #fef3c7; color: #b45309; }
+
+        /* ── Divider ── */
+        .styled-hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary) 0%, transparent 100%);
+            margin: 1.5rem 0;
+            opacity: .25;
+        }
+
+        /* ── Images grid ── */
+        .img-grid-item { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); }
+        .img-grid-item img { transition: transform .3s; }
+        .img-grid-item:hover img { transform: scale(1.04); }
+        .img-caption {
+            padding: .4rem .75rem;
+            background: var(--surface-alt);
+            border-top: 1px solid var(--border);
+            font-size: .78rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Article content ── */
+        .article-content { font-size: 1.02rem; line-height: 1.8; color: var(--text-main); }
+
+        /* ── Comments section ── */
+        .comments-section { background: var(--surface-alt); border-radius: var(--radius); padding: 1.75rem; }
+        .section-heading {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── Comment card ── */
+        .comment-card { background: transparent; }
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #2563eb);
+            color: #fff;
+            font-size: .85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .comment-bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0 var(--radius) var(--radius) var(--radius);
+            padding: .9rem 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .comment-author { font-size: .9rem; color: var(--text-main); }
+        .comment-time   { font-size: .75rem; color: var(--text-muted); }
+        .comment-text   { font-size: .92rem; color: #334155; margin-bottom: 0; }
+        .reply-badge    { background: #ede9fe; color: #7c3aed; font-size: .7rem; border-radius: 99px; padding: .2rem .55rem; }
+        .likes-badge    { font-size: .78rem; color: #e11d48; display: flex; align-items: center; gap: .25rem; }
+        .reply-btn      { font-size: .78rem; color: var(--text-muted); text-decoration: none; }
+        .reply-btn:hover { color: var(--primary); }
+        .btn-delete     { background: #fee2e2; border: 1.5px solid #fca5a5; color: #dc2626; border-radius: 8px; padding: .35rem .75rem; font-size: .82rem; font-weight: 600; display: inline-flex; align-items: center; gap: .35rem; transition: background .15s, border-color .15s, transform .1s; }
+        .btn-delete:hover { background: #dc2626; border-color: #dc2626; color: #fff; transform: translateY(-1px); }
+        .btn-delete:active { transform: translateY(0); }
+        .reply-textarea { border-radius: var(--radius-sm); font-size: .88rem; resize: none; border-color: var(--border); }
+        .reply-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+
+        /* ── Back button ── */
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .5rem 1.1rem;
+            border-radius: 99px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: .85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background .15s, color .15s;
+        }
+        .btn-back:hover { background: #e2e8f0; color: var(--text-main); }
+
+        /* ── Modal ── */
+        .modal-content { border: none; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+        .modal-header  { border-bottom: 1px solid var(--border); padding: 1.1rem 1.5rem; }
+        .modal-footer  { border-top: 1px solid var(--border); padding: .85rem 1.5rem; }
+        .list-group-item { border-color: var(--border); font-size: .9rem; }
+
+        /* ── No comments empty state ── */
+        .empty-comments {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-muted);
+        }
+        .empty-comments i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .35; }
+
+    .row.justify-content-center.py-4
+        .col-xl-9.col-lg-10
+
+            .article-shell
+
+                //- ── Top bar (gradient header) ──
+                .article-topbar
+                    .d-flex.flex-column.flex-md-row.justify-content-between.gap-3.align-items-start
+
                         div
-                            h1.h2.mb-2 #{article.title}
-                            p.text-muted.mb-0
-                                small Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'}
+                            h1.mb-3= article.title
+                            .d-flex.flex-wrap.gap-2
+                                span.article-meta-pill
+                                    i.bi.bi-folder2
+                                    = article.categoryId ? article.categoryId.name : 'Uncategorized'
                                 if article.createdAt
-                                    span.ms-3 
-                                        | Created: #{new Date(article.createdAt).toLocaleDateString()}
-                        
+                                    span.article-meta-pill
+                                        i.bi.bi-calendar3
+                                        = new Date(article.createdAt).toLocaleDateString()
+
                         //- Action buttons
-                        .d-flex.flex-wrap.gap-2
-                            //- Edit button
+                        .action-strip.align-self-md-center
+
                             form(action="/admin/article/edit", method="get")
                                 input(type="hidden", name="articleId", value=article._id)
-                                button.btn.btn-info.btn-sm(type="submit")
-                                    i.bi.bi-pencil.me-1
+                                button.btn-action.btn-edit(type="submit")
+                                    i.bi.bi-pencil-square
                                     | Edit
-                            //- Delete button
+
                             form(action="/admin/article/delete", method="get", onsubmit="return confirm('Are you sure you want to delete this article?')")
                                 input(type="hidden", name="articleId", value=article._id)
-                                button.btn.btn-danger.btn-sm(type="submit")
-                                    i.bi.bi-trash.me-1
+                                button.btn-action.btn-del(type="submit")
+                                    i.bi.bi-trash3
                                     | Delete
-                    
-                    //- Divider
-                    hr
-                    
-                    //- Article Images
+
+                            button.btn-action.btn-likes(type="button", data-bs-toggle="modal", data-bs-target="#likesModal")
+                                i.bi.bi-heart
+                                | Likes
+
+                //- ── Article body ──
+                .article-body
+
+                    //- Images
                     if article.images && article.images.length > 0
-                        .article-images.mt-4.mb-4
-                            h5.mb-3 Images
+                        .mb-4
+                            p.section-heading
+                                i.bi.bi-images.me-2
+                                | Images
                             .row.g-3
                                 each image in article.images
-                                    .col-md-4
-                                        .card
-                                            img.card-img-top(src=image.url, alt=image.alt || article.title, style="height: 200px; object-fit: cover;")
+                                    .col-md-4.col-sm-6
+                                        .img-grid-item
+                                            img.w-100(src=image.url, alt=image.alt || article.title, style="height: 200px; object-fit: cover; display: block;")
                                             if image.alt
-                                                .card-body.p-2
-                                                    small.text-muted= image.alt
-                    
-                    //- Article content
-                    .article-content.mt-4
-                         div!= htmlContent
-                    
-                    //- Comments Section
-                    .comments-section.mt-5.pt-4.border-top
-                        h4.mb-4
-                            i.bi.bi-chat-left-text.me-2
-                            | Comments (#{comments ? comments.length : 0})
-                        
+                                                .img-caption= image.alt
+                        hr.styled-hr
+
+                    //- Content
+                    .article-content
+                        div!= htmlContent
+
+                    hr.styled-hr
+
+                    //- Comments
+                    .comments-section
+
+                        p.section-heading
+                            i.bi.bi-chat-left-dots.me-2
+                            | Comments
+                            span.ms-2.badge.rounded-pill(style="background:#e0f2fe;color:#0369a1;font-size:.78rem;")= comments ? comments.length : 0
+
                         if comments && comments.length > 0
-                            .comments-list
+                            .comments-list.d-flex.flex-column.gap-2
                                 each comment in comments
                                     +commentNode(comment, 0)
                         else
-                            .alert.alert-info
-                                i.bi.bi-info-circle.me-2
+                            .empty-comments
+                                i.bi.bi-chat-square
                                 | No comments yet.
-                    
-                    //- Back button at bottom
-                    .mt-5.pt-3.border-top
-                        a.btn.btn-secondary(href="/admin/article")
-                            i.bi.bi-arrow-left.me-1
+
+                    //- Back button
+                    .mt-4.pt-3
+                        a.btn-back(href="/admin/article")
+                            i.bi.bi-arrow-left
                             | Back to Articles
+
+    //- ── Likes Modal ──
+    .modal.fade#likesModal(tabindex="-1", aria-labelledby="likesModalLabel", aria-hidden="true")
+        .modal-dialog.modal-dialog-centered
+            .modal-content
+                .modal-header
+                    .d-flex.align-items-center.gap-2
+                        .d-flex.align-items-center.justify-content-center.rounded-circle(style="width:32px;height:32px;background:#fef3c7;")
+                            i.bi.bi-heart-fill(style="color:#b45309;font-size:.9rem;")
+                        h5.modal-title.mb-0#likesModalLabel Users Who Liked This
+                    button.btn-close(type="button", data-bs-dismiss="modal", aria-label="Close")
+                .modal-body.p-0
+                    ul.list-group.list-group-flush
+                        if likedUsers && likedUsers.length > 0
+                            each user in likedUsers
+                                li.list-group-item.d-flex.align-items-center.gap-2.px-4.py-2
+                                    .d-flex.align-items-center.justify-content-center.rounded-circle(style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#2563eb);color:#fff;font-size:.72rem;font-weight:700;")
+                                        = (user.firstName || user.nickname || user.email || 'U').charAt(0).toUpperCase()
+                                    span= user.firstName || user.lastName ? (user.firstName + ' ' + user.lastName) : (user.nickname || user.user || user.email || user._id)
+                        else
+                            li.list-group-item.text-center.text-muted.py-4
+                                i.bi.bi-heart.d-block.mb-2(style="font-size:1.5rem;opacity:.35;")
+                                | No likes yet.
+                .modal-footer
+                    button.btn.btn-sm.btn-secondary.rounded-pill(type="button", data-bs-dismiss="modal")
+                        | Close
 
     script.
         function toggleReplyForm(commentId) {

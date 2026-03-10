@@ -392,11 +392,22 @@ const viewArticle = async (request, response) => {
     }))
   );
   
+  // Fetch users who liked this article
+  const { getUsersWhoLikedArticle } = await import("../Like/model.js");
+  let likedUsers = [];
+  try {
+    likedUsers = await getUsersWhoLikedArticle(articleId);
+    likedUsers = likedUsers.map(like => like.userId).filter(Boolean);
+  } catch (e) {
+    likedUsers = [];
+  }
+  
   response.render("article/article-view", { 
     title: "view Article", 
     article, 
     htmlContent, 
     comments,
+    likedUsers,
     currentPath: request.originalUrl.split('?')[0] 
   });
 };
