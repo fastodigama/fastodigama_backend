@@ -22,9 +22,9 @@ const ArticleSchema = new mongoose.Schema(
     slug: { type: String, unique: true },
     text: { type: String, required: true },
     author: {
-      type:String,
-      required:true,
-      default: "Fastodigama Editorial"
+      type: String,
+      required: true,
+      default: "Fadel Matar"
     },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -180,7 +180,7 @@ async function addArticle(newArticle) {
       text: String(newArticle.text),
       categoryId: newArticle.categoryId,
       images: processedImages, // Use the processed images with guaranteed alt tags
-      author: newArticle.author,
+      author: newArticle.author && newArticle.author.trim() !== "" ? newArticle.author : "Fadel Matar",
       embedVideo: newArticle.embedVideo || "",
       embedVideoPosition: newArticle.embedVideoPosition || "inline"
     });

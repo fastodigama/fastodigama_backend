@@ -84,6 +84,23 @@ block layout-content
               button#add-more-images.btn.btn-outline-secondary.btn-sm(type="button")
                 | + Add Another Image
 
+            // 5.1. Embed Video (Optional)
+            .mb-3
+              label.form-label(for="embedVideo") Embed Video (YouTube or Embed URL)
+              input.form-control(
+                type="text",
+                id="embedVideo",
+                name="embedVideo",
+                placeholder="Paste YouTube embed URL or iframe src..."
+              )
+
+            // 5.2. Video Position (Optional)
+            .mb-3
+              label.form-label(for="embedVideoPosition") Video Position
+              select.form-select(id="embedVideoPosition", name="embedVideoPosition")
+                option(value="inline" selected) Inline (inside article)
+                option(value="hero") Hero (replace hero image)
+
             // 6. Buttons
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/article") Cancel
