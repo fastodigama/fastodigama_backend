@@ -53,6 +53,13 @@ const ArticleSchema = new mongoose.Schema(
     embedVideo: { type: String, default: "" },
     // Optional: where to display the video (e.g., 'hero', 'inline')
     embedVideoPosition: { type: String, default: "inline" },
+    // Optional FAQs field: array of {question, answer}
+    faqs: [
+      {
+        question: { type: String },
+        answer: { type: String }
+      }
+    ],
   },
   { timestamps: true },
 );

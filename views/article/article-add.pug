@@ -35,6 +35,7 @@ block layout-content
                 required
               )
 
+
             // 3. Article Text
             .mb-3
               label.form-label(for="article-text") Article Text
@@ -46,6 +47,29 @@ block layout-content
                 style="min-height: 200px",
                 autocomplete="off"
               )
+
+            // 6. FAQs (optional)
+            .mb-4
+              label.form-label.fw-bold Article FAQs (Optional)
+              #faq-container
+                .faq-block.border.rounded.p-3.mb-3.bg-light
+                  .row
+                    .col-md-6.mb-2.mb-md-0
+                      label.form-label.small.fw-bold.text-primary.faq-question-label FAQ Question 1
+                      input.form-control(
+                        type="text",
+                        name="faqQuestions",
+                        placeholder="e.g., What is the best way to embed a YouTube video?"
+                      )
+                    .col-md-6
+                      label.form-label.small FAQ Answer
+                      input.form-control(
+                        type="text",
+                        name="faqAnswers",
+                        placeholder="e.g., Use the YouTube embed code (iframe) in your article text."
+                      )
+              button#add-more-faqs.btn.btn-outline-secondary.btn-sm(type="button")
+                | + Add Another Question
 
             // 4. Category
             .mb-3

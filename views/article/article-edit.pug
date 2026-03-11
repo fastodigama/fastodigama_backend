@@ -119,6 +119,50 @@ block layout-content
                             a.btn.btn-secondary(href="/admin/article") Cancel
                             button.btn.btn-dark(type="submit") Save Changes
 
+                        // FAQs (optional)
+                        .mb-4
+                            label.form-label.fw-bold Article FAQs (Optional)
+                            #faq-container
+                                if editArticle.faqs && editArticle.faqs.length > 0
+                                    each faq, idx in editArticle.faqs
+                                        .faq-block.border.rounded.p-3.mb-3.bg-light
+                                            .row
+                                                .col-md-6.mb-2.mb-md-0
+                                                    label.form-label.small.fw-bold.faq-question-label FAQ Question #{idx+1}
+                                                    input.form-control(
+                                                        type="text",
+                                                        name="faqQuestions",
+                                                        value=faq.question,
+                                                        placeholder="e.g., What is the best way to embed a YouTube video?"
+                                                    )
+                                                .col-md-6
+                                                    label.form-label.small FAQ Answer
+                                                    input.form-control(
+                                                        type="text",
+                                                        name="faqAnswers",
+                                                        value=faq.answer,
+                                                        placeholder="e.g., Use the YouTube embed code (iframe) in your article text."
+                                                    )
+                                else
+                                    .faq-block.border.rounded.p-3.mb-3.bg-light
+                                        .row
+                                            .col-md-6.mb-2.mb-md-0
+                                                label.form-label.small.fw-bold.text-primary.faq-question-label FAQ Question 1
+                                                input.form-control(
+                                                    type="text",
+                                                    name="faqQuestions",
+                                                    placeholder="e.g., What is the best way to embed a YouTube video?"
+                                                )
+                                            .col-md-6
+                                                label.form-label.small FAQ Answer
+                                                input.form-control(
+                                                    type="text",
+                                                    name="faqAnswers",
+                                                    placeholder="e.g., Use the YouTube embed code (iframe) in your article text."
+                                                )
+                            button#add-more-faqs.btn.btn-outline-secondary.btn-sm(type="button")
+                                | + Add Another Question
+
                         // Embed Video (optional)
                         .mb-3
                             label.form-label(for="embedVideo") Embed Video (YouTube iframe or link, optional)
@@ -157,7 +201,28 @@ block layout-content
                     container.appendChild(newBlock);
                 });
             }
-            
+
+            // 1b. Logic for adding more FAQ blocks
+            const addFaqBtn = document.getElementById('add-more-faqs');
+            const faqContainer = document.getElementById('faq-container');
+            if (addFaqBtn && faqContainer) {
+                addFaqBtn.addEventListener('click', function() {
+                    const originalFaq = faqContainer.querySelector('.faq-block');
+                    const newFaq = originalFaq.cloneNode(true);
+                    // Reset inputs in the cloned block
+                    newFaq.querySelectorAll('input').forEach(input => input.value = '');
+                    // Update the label
+                    const qLabel = newFaq.querySelector('.faq-question-label');
+                    if (qLabel) {
+                        // Count current blocks for numbering
+                        const count = faqContainer.querySelectorAll('.faq-block').length + 1;
+                        qLabel.textContent = `FAQ Question ${count}`;
+                        qLabel.classList.remove('text-primary', 'fw-bold');
+                    }
+                    faqContainer.appendChild(newFaq);
+                });
+            }
+
             // 2. Logic for deleting existing images
             const deleteButtons = document.querySelectorAll('.delete-image-btn');
             
