@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../config/r2.js"; // Adjust the path if your folder structure is different
@@ -50,6 +49,10 @@ const ArticleSchema = new mongoose.Schema(
       }
     ],
     views: { type: Number, default: 0 },
+    // Optional embed video field
+    embedVideo: { type: String, default: "" },
+    // Optional: where to display the video (e.g., 'hero', 'inline')
+    embedVideoPosition: { type: String, default: "inline" },
   },
   { timestamps: true },
 );
@@ -152,9 +155,6 @@ const getByCategoryAndSearchPaginated = (categoryId, search, skip, limit) => {
 };
 
 
-
-
-
 async function addArticle(newArticle) {
   try {
     // Process images to ensure they have an 'alt' tag
@@ -179,7 +179,10 @@ async function addArticle(newArticle) {
       slug,
       text: String(newArticle.text),
       categoryId: newArticle.categoryId,
-      images: processedImages // Use the processed images with guaranteed alt tags
+      images: processedImages, // Use the processed images with guaranteed alt tags
+      author: newArticle.author,
+      embedVideo: newArticle.embedVideo || "",
+      embedVideoPosition: newArticle.embedVideoPosition || "inline"
     });
 
     const result = await article.save();
@@ -219,7 +222,11 @@ async function editArticlebyId(id, articleData) {
         }
 
         // 1. Update the Database FIRST
-        const result = await ArticleModel.updateOne({ _id: id }, { $set: articleData });
+        const result = await ArticleModel.updateOne({ _id: id }, { $set: {
+            ...articleData,
+            embedVideo: articleData.embedVideo || existingArticle.embedVideo || "",
+            embedVideoPosition: articleData.embedVideoPosition || existingArticle.embedVideoPosition || "inline"
+        } });
 
         // 2. ONLY if the database update worked, clean up R2
         if (result.modifiedCount === 1 && keysToDelete.length > 0) {

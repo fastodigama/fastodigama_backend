@@ -119,6 +119,16 @@ block layout-content
                             a.btn.btn-secondary(href="/admin/article") Cancel
                             button.btn.btn-dark(type="submit") Save Changes
 
+                        // Embed Video (optional)
+                        .mb-3
+                            label.form-label(for="embedVideo") Embed Video (YouTube iframe or link, optional)
+                            input.form-control(
+                                type="text",
+                                id="embedVideo",
+                                name="embedVideo",
+                                value=editArticle.embedVideo || "",
+                                placeholder="Paste YouTube embed code or link (optional)"
+                            )
     //- Image clone and delete script
     script.
         document.addEventListener('DOMContentLoaded', function() {
