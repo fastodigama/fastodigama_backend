@@ -138,13 +138,13 @@ block layout-content
   script.
     document.addEventListener('DOMContentLoaded', function() {
       // --- 1. HANDLE ADDING MORE IMAGES ---
-      const addBtn = document.getElementById('add-more-images');
-      const container = document.getElementById('image-container');
+      const addImageBtn = document.getElementById('add-more-images');
+      const imageContainer = document.getElementById('image-container');
       let imageCount = 1; // Keep track of the number of images
 
-      addBtn.addEventListener('click', function() {
-        imageCount++; 
-        const originalBlock = container.querySelector('.image-block');
+      addImageBtn.addEventListener('click', function() {
+        imageCount++;
+        const originalBlock = imageContainer.querySelector('.image-block');
         const newBlock = originalBlock.cloneNode(true);
 
         // Reset inputs in the cloned block
@@ -156,13 +156,32 @@ block layout-content
         const label = newBlock.querySelector('.image-upload-label');
         if (label) {
           label.textContent = `Upload Image ${imageCount} (Body Image)`;
-          label.classList.remove('text-primary', 'fw-bold'); 
+          label.classList.remove('text-primary', 'fw-bold');
         }
 
-        container.appendChild(newBlock);
+        imageContainer.appendChild(newBlock);
       });
 
-      // --- 2. HANDLE FORM SUBMISSION & LOADING STATE ---
+      // --- 2. HANDLE ADDING MORE FAQS ---
+      const addFaqBtn = document.getElementById('add-more-faqs');
+      const faqContainer = document.getElementById('faq-container');
+      let faqCount = 1;
+      addFaqBtn.addEventListener('click', function() {
+        faqCount++;
+        const originalFaqBlock = faqContainer.querySelector('.faq-block');
+        const newFaqBlock = originalFaqBlock.cloneNode(true);
+        // Reset inputs in the cloned FAQ block
+        const inputs = newFaqBlock.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+        // Update the question label number
+        const questionLabel = newFaqBlock.querySelector('.faq-question-label');
+        if (questionLabel) {
+          questionLabel.textContent = `FAQ Question ${faqCount}`;
+        }
+        faqContainer.appendChild(newFaqBlock);
+      });
+
+      // --- 3. HANDLE FORM SUBMISSION & LOADING STATE ---
       const form = document.getElementById('add-article-form');
       const submitBtn = document.getElementById('submit-btn');
       const submitSpinner = document.getElementById('submit-spinner');
@@ -171,7 +190,6 @@ block layout-content
       form.addEventListener('submit', function(e) {
         // Disable the button to prevent double-clicks
         submitBtn.disabled = true;
-        
         // Show the spinner and change the text
         submitSpinner.classList.remove('d-none');
         submitText.textContent = 'Optimizing & Uploading...';
