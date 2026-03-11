@@ -129,6 +129,15 @@ block layout-content
                                 value=editArticle.embedVideo || "",
                                 placeholder="Paste YouTube embed code or link (optional)"
                             )
+                        // Video Position (hero/inline)
+                        .mb-3
+                            label.form-label(for="embedVideoPosition") Video Position
+                            select.form-select(
+                                id="embedVideoPosition",
+                                name="embedVideoPosition"
+                            )
+                                option(value="inline", selected=editArticle.embedVideoPosition === 'inline') Inline (inside article)
+                                option(value="hero", selected=editArticle.embedVideoPosition === 'hero') Hero (top of article)
     //- Image clone and delete script
     script.
         document.addEventListener('DOMContentLoaded', function() {

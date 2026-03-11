@@ -423,8 +423,8 @@ const addArticleForm = async (request, response) => {
 // 🌟 UPDATED: Save a new article to the database (with author)
 const addNewArticle = async (request, response) => {
   try {
-    // Extracted author from req.body
-    const { title, text, categoryId, author } = request.body; 
+    // Extracted author, embedVideo, embedVideoPosition from req.body
+    const { title, text, categoryId, author, embedVideo, embedVideoPosition } = request.body; 
     
     const altTexts = request.body.alt 
       ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
@@ -458,8 +458,8 @@ const addNewArticle = async (request, response) => {
       }));
     }
 
-    // Added author to the payload sent to the model
-    const result = await articleModel.addArticle({ title, text, categoryId, author, images });
+    // Added author, embedVideo, embedVideoPosition to the payload sent to the model
+    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition });
     if (result) return response.redirect("/admin/article");
 
   } catch (err) {
@@ -506,10 +506,10 @@ const editArticleForm = async (request, response) => {
 const editArticle = async (request, response) => {
   try {
     // Extracted author from req.body
-    const { articleId, title, text, categoryId, author, existingImageKeys, existingImageAlts } = request.body;
+    const { articleId, title, text, categoryId, author, embedVideo, embedVideoPosition, existingImageKeys, existingImageAlts } = request.body;
     
-    // Added author to the update payload
-    const updateData = { title, text, categoryId, author };
+    // Added author, embedVideo, embedVideoPosition to the update payload
+    const updateData = { title, text, categoryId, author, embedVideo, embedVideoPosition };
 
     const existingArticle = await articleModel.getArticleById(articleId);
     let currentImages = existingArticle.images || [];
