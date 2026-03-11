@@ -87,9 +87,11 @@ const getArticleBySlugApiResponse = async (request, response) => {
       relatedArticles = [];
     }
 
+    const articleObj = article.toObject ? article.toObject() : article;
     response.json({
       article: {
-        ...article.toObject ? article.toObject() : article,
+        ...articleObj,
+        faqs: Array.isArray(articleObj.faqs) ? articleObj.faqs : [],
         views: article.views || 0,
         commentsCount,
         likes,
@@ -510,6 +512,25 @@ const editArticle = async (request, response) => {
     
     // Added author, embedVideo, embedVideoPosition to the update payload
     const updateData = { title, text, categoryId, author, embedVideo, embedVideoPosition };
+
+    // Handle FAQs from form
+    let faqQuestions = request.body.faqQuestions;
+    let faqAnswers = request.body.faqAnswers;
+    // Normalize to arrays
+    if (typeof faqQuestions === 'string') faqQuestions = [faqQuestions];
+    if (typeof faqAnswers === 'string') faqAnswers = [faqAnswers];
+    if (Array.isArray(faqQuestions) && Array.isArray(faqAnswers)) {
+      // Pair up questions and answers, ignore empty ones
+      updateData.faqs = faqQuestions.map((q, i) => {
+        const a = faqAnswers[i] || '';
+        if (q.trim() || a.trim()) {
+          return { question: q.trim(), answer: a.trim() };
+        }
+        return null;
+      }).filter(Boolean);
+    } else {
+      updateData.faqs = [];
+    }
 
     const existingArticle = await articleModel.getArticleById(articleId);
     let currentImages = existingArticle.images || [];

@@ -280,6 +280,20 @@ block layout-content
 
                     hr.styled-hr
 
+                    //- FAQs Section
+                    if article.faqs && article.faqs.length > 0
+                        .mb-4
+                            p.section-heading
+                                i.bi.bi-question-circle.me-2
+                                | FAQs
+                            .faq-list
+                                each faq, idx in article.faqs
+                                    .faq-block.border.rounded.p-3.mb-3.bg-light
+                                        .fw-bold.mb-1.text-primary FAQ #{idx+1}: #{faq.question}
+                                        if faq.answer
+                                            .text-dark.mb-0= faq.answer
+                    hr.styled-hr
+
                     //- Comments
                     .comments-section
 
