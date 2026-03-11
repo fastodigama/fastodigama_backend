@@ -79,7 +79,8 @@ const getArticleBySlugApiResponse = async (request, response) => {
           slug: obj.slug,
           images,
           author: obj.author,
-          categoryId: obj.categoryId
+          categoryId: obj.categoryId,
+          createdAt: obj.createdAt
         };
       });
     } catch (e) {

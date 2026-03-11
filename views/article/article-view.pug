@@ -370,3 +370,27 @@ block layout-content
                 alert('Failed to post reply');
             }
         }
+
+    //- Accordion for Frequently Asked Questions
+    .accordion.mt-5#faqAccordion
+        .accordion-item
+            h2.accordion-header#faqHeadingOne
+                button.accordion-button.collapsed(type="button", data-bs-toggle="collapse", data-bs-target="#faqCollapseOne", aria-expanded="false", aria-controls="faqCollapseOne")
+                    | What is the best way to embed a YouTube video?
+            .accordion-collapse.collapse#faqCollapseOne(aria-labelledby="faqHeadingOne", data-bs-parent="#faqAccordion")
+                .accordion-body
+                    | Use the YouTube embed code (iframe) in your article text. It will display the video on the frontend.
+        .accordion-item
+            h2.accordion-header#faqHeadingTwo
+                button.accordion-button.collapsed(type="button", data-bs-toggle="collapse", data-bs-target="#faqCollapseTwo", aria-expanded="false", aria-controls="faqCollapseTwo")
+                    | Can I just paste a YouTube link?
+            .accordion-collapse.collapse#faqCollapseTwo(aria-labelledby="faqHeadingTwo", data-bs-parent="#faqAccordion")
+                .accordion-body
+                    | Pasting a link will show a clickable link. To auto-embed, extra logic is needed.
+        .accordion-item
+            h2.accordion-header#faqHeadingThree
+                button.accordion-button.collapsed(type="button", data-bs-toggle="collapse", data-bs-target="#faqCollapseThree", aria-expanded="false", aria-controls="faqCollapseThree")
+                    | Can I add more FAQs?
+            .accordion-collapse.collapse#faqCollapseThree(aria-labelledby="faqHeadingThree", data-bs-parent="#faqAccordion")
+                .accordion-body
+                    | Yes, just add more accordion items in the template.
