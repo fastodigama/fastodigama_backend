@@ -162,24 +162,26 @@ block layout-content
         imageContainer.appendChild(newBlock);
       });
 
-      // --- 2. HANDLE ADDING MORE FAQS ---
+      // --- 2. HANDLE ADDING MORE FAQS (MATCH EDIT PAGE LOGIC) ---
       const addFaqBtn = document.getElementById('add-more-faqs');
       const faqContainer = document.getElementById('faq-container');
-      let faqCount = 1;
-      addFaqBtn.addEventListener('click', function() {
-        faqCount++;
-        const originalFaqBlock = faqContainer.querySelector('.faq-block');
-        const newFaqBlock = originalFaqBlock.cloneNode(true);
-        // Reset inputs in the cloned FAQ block
-        const inputs = newFaqBlock.querySelectorAll('input');
-        inputs.forEach(input => input.value = '');
-        // Update the question label number
-        const questionLabel = newFaqBlock.querySelector('.faq-question-label');
-        if (questionLabel) {
-          questionLabel.textContent = `FAQ Question ${faqCount}`;
-        }
-        faqContainer.appendChild(newFaqBlock);
-      });
+      if (addFaqBtn && faqContainer) {
+        addFaqBtn.addEventListener('click', function() {
+          const originalFaq = faqContainer.querySelector('.faq-block');
+          const newFaq = originalFaq.cloneNode(true);
+          // Reset inputs in the cloned block
+          newFaq.querySelectorAll('input').forEach(input => input.value = '');
+          // Update the label
+          const qLabel = newFaq.querySelector('.faq-question-label');
+          if (qLabel) {
+            // Count current blocks for numbering
+            const count = faqContainer.querySelectorAll('.faq-block').length + 1;
+            qLabel.textContent = `FAQ Question ${count}`;
+            qLabel.classList.remove('text-primary', 'fw-bold');
+          }
+          faqContainer.appendChild(newFaq);
+        });
+      }
 
       // --- 3. HANDLE FORM SUBMISSION & LOADING STATE ---
       const form = document.getElementById('add-article-form');

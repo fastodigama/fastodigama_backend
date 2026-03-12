@@ -189,7 +189,8 @@ async function addArticle(newArticle) {
       images: processedImages, // Use the processed images with guaranteed alt tags
       author: newArticle.author && newArticle.author.trim() !== "" ? newArticle.author : "Fadel Matar",
       embedVideo: newArticle.embedVideo || "",
-      embedVideoPosition: newArticle.embedVideoPosition || "inline"
+      embedVideoPosition: newArticle.embedVideoPosition || "inline",
+      faqs: Array.isArray(newArticle.faqs) ? newArticle.faqs : []
     });
 
     const result = await article.save();
