@@ -427,7 +427,25 @@ const addNewArticle = async (request, response) => {
   try {
     // Extracted author, embedVideo, embedVideoPosition from req.body
     const { title, text, categoryId, author, embedVideo, embedVideoPosition } = request.body; 
-    
+
+    // Handle FAQs from form
+    let faqQuestions = request.body.faqQuestions;
+    let faqAnswers = request.body.faqAnswers;
+    let faqs = [];
+    // Normalize to arrays
+    if (typeof faqQuestions === 'string') faqQuestions = [faqQuestions];
+    if (typeof faqAnswers === 'string') faqAnswers = [faqAnswers];
+    if (Array.isArray(faqQuestions) && Array.isArray(faqAnswers)) {
+      // Pair up questions and answers, ignore empty ones
+      faqs = faqQuestions.map((q, i) => {
+        const a = faqAnswers[i] || '';
+        if (q.trim() || a.trim()) {
+          return { question: q.trim(), answer: a.trim() };
+        }
+        return null;
+      }).filter(Boolean);
+    }
+
     const altTexts = request.body.alt 
       ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
       : [];
@@ -460,8 +478,8 @@ const addNewArticle = async (request, response) => {
       }));
     }
 
-    // Added author, embedVideo, embedVideoPosition to the payload sent to the model
-    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition });
+    // Added author, embedVideo, embedVideoPosition, faqs to the payload sent to the model
+    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition, faqs });
     if (result) return response.redirect("/admin/article");
 
   } catch (err) {
