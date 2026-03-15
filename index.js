@@ -172,6 +172,8 @@ app.post("/api/article/:slug/like", articles.likeArticleApi);
 app.post("/api/article/:slug/unlike", articles.unlikeArticleApi);
 app.get("/api/categories", categories.getCategoriesApiResponse);
 app.get("/api/category/:id", categories.getCategoryByIdApiResponse);
+// New: fetch category by slug (name)
+app.get("/api/category/slug/:slug", categories.getCategoryBySlugApiResponse);
 app.get("/api/categories/sorted", categories.getCategoriesSortedByOrder);
 
 // ===== VISITOR ROUTES =====

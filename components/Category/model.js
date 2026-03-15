@@ -7,14 +7,33 @@ import mongoose from "mongoose";
 const CategorySchema = new mongoose.Schema(
     {
         name: {type: String, required: true},
+        slug: {type: String, required: true, unique: true, index: true},
         order: {type: Number, default: 0},
     }
 );
+
+// Pre-save hook to auto-generate slug from name if not provided
+CategorySchema.pre('validate', function(next) {
+    if (!this.slug && this.name) {
+        this.slug = this.name
+            .toString()
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+    next();
+});
 
 // Create the Category model for database operations
 const CategoryModel = mongoose.model("Category", CategorySchema);
 
 // ===== DATABASE FUNCTIONS =====
+// Get one category by slug (case-insensitive)
+async function getCategoryBySlug(slug) {
+    return await CategoryModel.findOne({ slug: { $regex: new RegExp(`^${slug}$`, 'i') } });
+};
 // Get all categories sorted by order
 async function getCategoriesSortedByOrder() {
     return await CategoryModel.find({}).sort({ order: 1 });
@@ -95,9 +114,13 @@ async function deleteCategoryByName(categoryName) {
     return result;
 }
 
+export {
+    CategoryModel
+};
 export default {
     getCategories,
     getCategoryById,
+    getCategoryBySlug,
     initializeCategories,
     addCategory,
     updateCategoryById,

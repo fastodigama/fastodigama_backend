@@ -1,3 +1,17 @@
+// Get category by slug (name, case-insensitive)
+const getCategoryBySlugApiResponse = async (request, response) => {
+    try {
+        const { slug } = request.params;
+        const category = await categoryModel.getCategoryBySlug(slug);
+        if (!category) {
+            return response.status(404).json({ message: "Category not found" });
+        }
+        response.json(category);
+    } catch (error) {
+        console.error("Error fetching category by slug:", error);
+        response.status(500).json({ message: "Server Error fetching category by slug" });
+    }
+};
 import mongoose from "mongoose";
 import categoryModel from "./model.js";
 
@@ -119,5 +133,6 @@ export default {
     deleteCategory,
     getCategoriesApiResponse,
     getCategoryByIdApiResponse,
+    getCategoryBySlugApiResponse,
     getCategoriesSortedByOrder
 }
