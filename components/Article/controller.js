@@ -43,7 +43,7 @@ const getArticleBySlugApiResponse = async (request, response) => {
       return response.status(404).json({ message: "Article not found" });
     }
       // Increment views only if not a bot/crawler
-      const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex/i.test(userAgent);
+      const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node/i.test(userAgent);
       if (!isBot) {
         article = await articleModel.incrementArticleViewsById(article._id);
       }
@@ -347,7 +347,7 @@ const getArticleByIdApiResponse = async (request, response) => {
     const userAgent = request.get('User-Agent') || '';
     console.log(`[API] Fetching article by id: ${id} | User-Agent: ${userAgent}`);
     // Increment views atomically and return the updated document, only if not a bot/crawler
-    const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex/i.test(userAgent);
+    const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node/i.test(userAgent);
     let article;
     if (!isBot) {
       article = await articleModel.incrementArticleViewsById(id);
