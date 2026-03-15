@@ -5,6 +5,66 @@ block layout-content
         .row.justify-content-center
             .col-lg-11
                 if user
+                    // Article Stats Section
+                    .row.mb-4
+                        .col-md-6.col-lg-4.mb-3.mb-md-0
+                            .card.shadow-sm.border-0.bg-light
+                                .card-body.text-center
+                                    h5.mb-2.text-primary Articles Today
+                                    h2#todayCount.mb-1 0
+                                    small.text-muted Compared to yesterday:
+                                    span#yesterdayCount.text-success.ms-2 0
+                        .col-md-6.col-lg-8
+                            .card.shadow-sm.border-0.bg-light
+                                .card-body
+                                    h5.mb-3.text-primary Articles by Date
+                                    .d-flex.align-items-center.mb-3
+                                        input#articleDate.form-control(type="date" max=new Date().toISOString().slice(0,10))
+                                    ul#articlesByDateList.list-group
+                                        li.list-group-item.text-muted No articles for selected date
+
+                    script.
+                        // Fetch and display dashboard stats
+                        async function fetchStats() {
+                            try {
+                                const res = await fetch('/admin/article/dashboard-stats');
+                                const data = await res.json();
+                                document.getElementById('todayCount').textContent = data.todayCount;
+                                document.getElementById('yesterdayCount').textContent = data.yesterdayCount;
+                            } catch (e) {}
+                        }
+                        fetchStats();
+
+                        // Calendar filter for articles by date
+                        const dateInput = document.getElementById('articleDate');
+                        if (dateInput) {
+                            dateInput.value = new Date().toISOString().slice(0,10);
+                            async function fetchArticlesByDate(date) {
+                                try {
+                                    const res = await fetch(`/admin/article/by-date?date=${date}`);
+                                    const data = await res.json();
+                                    const list = document.getElementById('articlesByDateList');
+                                    list.innerHTML = '';
+                                    if (data.articles && data.articles.length > 0) {
+                                        data.articles.forEach(a => {
+                                            const li = document.createElement('li');
+                                            li.className = 'list-group-item';
+                                            li.innerHTML = `<b>${a.title}</b> <span class='text-muted small'>(${new Date(a.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</span>`;
+                                            list.appendChild(li);
+                                        });
+                                    } else {
+                                        const li = document.createElement('li');
+                                        li.className = 'list-group-item text-muted';
+                                        li.textContent = 'No articles for selected date';
+                                        list.appendChild(li);
+                                    }
+                                } catch (e) {}
+                            }
+                            fetchArticlesByDate(dateInput.value);
+                            dateInput.addEventListener('change', e => {
+                                fetchArticlesByDate(e.target.value);
+                            });
+                        }
                     .d-flex.flex-column.flex-md-row.justify-content-between.align-items-md-end.mb-5.pb-4.border-bottom
                         .mb-3.mb-md-0
                             h1.fw-bold.mb-2 FASTODIGAMA

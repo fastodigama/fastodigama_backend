@@ -312,6 +312,29 @@ async function incrementArticleViewsById(id) {
   ).populate("categoryId");
 }
 
+// Get count of articles created on a specific date (UTC)
+async function countArticlesByDate(date) {
+  // date: JS Date or string (YYYY-MM-DD)
+  const start = new Date(date);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 1);
+  return ArticleModel.countDocuments({
+    createdAt: { $gte: start, $lt: end }
+  });
+}
+
+// Get articles created on a specific date (UTC)
+async function getArticlesByDate(date) {
+  const start = new Date(date);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 1);
+  return ArticleModel.find({
+    createdAt: { $gte: start, $lt: end }
+  }).sort({ createdAt: -1 });
+}
+
 export default {
   getArticles,
   getArticleById,
@@ -327,5 +350,7 @@ export default {
   countByCategory,
   getByCategoryPaginated,
   countByCategoryAndSearch,
-  getByCategoryAndSearchPaginated
+  getByCategoryAndSearchPaginated,
+  countArticlesByDate,
+  getArticlesByDate
 }

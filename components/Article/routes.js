@@ -1,3 +1,4 @@
+
 import express from "express";
 
 // ===== ARTICLE ROUTES =====
@@ -6,7 +7,13 @@ import express from "express";
 const router = express.Router();
 
 import articles from "./controller.js";
-import { upload } from "./controller.js"; // <-- THIS is the missing line
+import { upload } from "./controller.js";
+
+// Dashboard stats endpoints
+// GET /admin/article/dashboard-stats
+router.get("/dashboard-stats", articles.getDashboardArticleStats);
+// GET /admin/article/by-date?date=YYYY-MM-DD
+router.get("/by-date", articles.getArticlesByDateApi);
 
 // Display all articles
 // GET /admin/article
