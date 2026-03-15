@@ -1,3 +1,4 @@
+# Triggering redeploy: .env is excluded from version control
 # Fastodigama Backend
 
 A Node.js/Express backend for a journaling website with article management, categories, and a comment system.
