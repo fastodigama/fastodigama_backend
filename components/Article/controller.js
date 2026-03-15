@@ -35,14 +35,14 @@ const getArticlesByDateApi = async (req, res) => {
 const getArticleBySlugApiResponse = async (request, response) => {
   try {
     const slug = request.params.slug;
-    console.log(`[API] Fetching article by slug: ${slug}`);
+    const userAgent = request.get('User-Agent') || '';
+    console.log(`[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}`);
     let article = await articleModel.getArticleBySlug(slug);
     if (!article) {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
       // Increment views only if not a bot/crawler
-      const userAgent = request.get('User-Agent') || '';
       const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex/i.test(userAgent);
       if (!isBot) {
         article = await articleModel.incrementArticleViewsById(article._id);
@@ -344,16 +344,16 @@ const getAllArticles = async (request, response) => {
 const getArticleByIdApiResponse = async (request, response) => {
   try {
     const id = request.params.id;
-    // Increment views atomically and return the updated document
-      // Increment views atomically and return the updated document, only if not a bot/crawler
-      const userAgent = request.get('User-Agent') || '';
-      const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex/i.test(userAgent);
-      let article;
-      if (!isBot) {
-        article = await articleModel.incrementArticleViewsById(id);
-      } else {
-        article = await articleModel.getArticleById(id);
-      }
+    const userAgent = request.get('User-Agent') || '';
+    console.log(`[API] Fetching article by id: ${id} | User-Agent: ${userAgent}`);
+    // Increment views atomically and return the updated document, only if not a bot/crawler
+    const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex/i.test(userAgent);
+    let article;
+    if (!isBot) {
+      article = await articleModel.incrementArticleViewsById(id);
+    } else {
+      article = await articleModel.getArticleById(id);
+    }
     if (!article) {
       return response.status(404).json({message: "Article not found"});
     }
