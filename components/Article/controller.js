@@ -43,8 +43,18 @@ const getArticleBySlugApiResponse = async (request, response) => {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
-    // Always increment views for every call
-    article = await articleModel.incrementArticleViewsById(article._id);
+    // ===== Session-based view counting =====
+    if (!request.session.viewedArticles) {
+      request.session.viewedArticles = {};
+    }
+
+    const articleIdStr = String(article._id);
+
+    if (!request.session.viewedArticles[articleIdStr]) {
+      article = await articleModel.incrementArticleViewsById(article._id);
+      request.session.viewedArticles[articleIdStr] = Date.now();
+    }
+    // ===== End session-based view counting =====
     // Count comments for this article
     const commentModel = (await import("../Comment/model.js")).default;
     let commentsCount = 0;
