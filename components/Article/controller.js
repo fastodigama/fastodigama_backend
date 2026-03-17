@@ -31,6 +31,181 @@ const getArticlesByDateApi = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch articles" });
   }
 };
+
+const DEFAULT_FRONTEND_URL = "https://fastodigama.com";
+const DEFAULT_FEED_LIMIT = 20;
+
+const escapeXml = (value = "") =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+const stripHtml = (value = "") =>
+  String(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const wrapCdata = (value = "") =>
+  String(value).replace(/]]>/g, "]]]]><![CDATA[>");
+
+const getFrontendUrl = () =>
+  (process.env.FRONTEND_URL || DEFAULT_FRONTEND_URL).replace(/\/+$/, "");
+
+const getApiBaseUrl = (request) =>
+  `${request.protocol}://${request.get("host")}`.replace(/\/+$/, "");
+
+const getFeedImage = (articleObj) => {
+  if (!Array.isArray(articleObj.images) || articleObj.images.length === 0) {
+    return null;
+  }
+
+  const primaryImage = articleObj.images[0];
+  if (!primaryImage) {
+    return null;
+  }
+
+  let imageUrl = primaryImage.url || primaryImage.key || "";
+  if (!imageUrl) {
+    return null;
+  }
+
+  if (!/^https?:\/\//i.test(imageUrl) && process.env.ARTICLE_IMAGE_BASE) {
+    const filename = primaryImage.key || imageUrl;
+    imageUrl = `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`;
+  }
+
+  return {
+    url: imageUrl,
+    alt: primaryImage.alt || articleObj.title || "Article image"
+  };
+};
+
+const getFeedItems = async () => {
+  const articles = await articleModel.getArticlesPaginated(0, DEFAULT_FEED_LIMIT);
+
+  return articles.map((article) => {
+    const articleObj = article.toObject ? article.toObject() : article;
+    const frontendUrl = getFrontendUrl();
+    const articleUrl = `${frontendUrl}/article/${articleObj.slug}`;
+    const htmlContent = marked.parse(String(articleObj.text || ""));
+    const plainText = stripHtml(htmlContent);
+    const summary =
+      plainText.length > 280 ? `${plainText.slice(0, 277).trim()}...` : plainText;
+
+    return {
+      title: articleObj.title || "Untitled",
+      url: articleUrl,
+      author: articleObj.author || "FASTODIGAMA",
+      publishedAt: articleObj.createdAt || new Date(),
+      updatedAt: articleObj.updatedAt || articleObj.createdAt || new Date(),
+      summary,
+      htmlContent,
+      id: String(articleObj._id || articleUrl),
+      image: getFeedImage(articleObj)
+    };
+  });
+};
+
+const buildRssXml = (items, request) => {
+  const frontendUrl = getFrontendUrl();
+  const apiBaseUrl = getApiBaseUrl(request);
+  const feedUrl = `${apiBaseUrl}/rss.xml`;
+  const lastUpdated = items.length > 0 ? new Date(items[0].updatedAt) : new Date();
+  const rssItems = items
+    .map(
+      (item) => `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(item.url)}</link>
+      <guid isPermaLink="true">${escapeXml(item.url)}</guid>
+      <description>${escapeXml(item.summary)}</description>
+${item.image ? `      <media:content url="${escapeXml(item.image.url)}" medium="image">
+        <media:title>${escapeXml(item.title)}</media:title>
+        <media:text>${escapeXml(item.image.alt)}</media:text>
+      </media:content>
+` : ""}      <content:encoded><![CDATA[${wrapCdata(item.htmlContent)}]]></content:encoded>
+      <author>${escapeXml(item.author)}</author>
+      <pubDate>${new Date(item.publishedAt).toUTCString()}</pubDate>
+    </item>`
+    )
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>FASTODIGAMA</title>
+    <link>${escapeXml(frontendUrl)}</link>
+    <description>${escapeXml("Latest articles from FASTODIGAMA")}</description>
+    <language>en</language>
+    <lastBuildDate>${lastUpdated.toUTCString()}</lastBuildDate>
+    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />
+${rssItems}
+  </channel>
+</rss>`;
+};
+
+const buildAtomXml = (items, request) => {
+  const frontendUrl = getFrontendUrl();
+  const apiBaseUrl = getApiBaseUrl(request);
+  const feedUrl = `${apiBaseUrl}/atom.xml`;
+  const updated = items.length > 0 ? new Date(items[0].updatedAt) : new Date();
+  const atomEntries = items
+    .map(
+      (item) => `  <entry>
+    <title>${escapeXml(item.title)}</title>
+    <id>${escapeXml(item.url)}</id>
+    <link href="${escapeXml(item.url)}" />
+    <updated>${new Date(item.updatedAt).toISOString()}</updated>
+    <published>${new Date(item.publishedAt).toISOString()}</published>
+    <summary>${escapeXml(item.summary)}</summary>
+    <author>
+      <name>${escapeXml(item.author)}</name>
+    </author>
+${item.image ? `    <media:content url="${escapeXml(item.image.url)}" medium="image">
+      <media:title>${escapeXml(item.title)}</media:title>
+      <media:text>${escapeXml(item.image.alt)}</media:text>
+    </media:content>
+` : ""}    <content type="html"><![CDATA[${wrapCdata(item.htmlContent)}]]></content>
+  </entry>`
+    )
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <title>FASTODIGAMA</title>
+  <id>${escapeXml(frontendUrl)}</id>
+  <link href="${escapeXml(frontendUrl)}" />
+  <link href="${escapeXml(feedUrl)}" rel="self" />
+  <updated>${updated.toISOString()}</updated>
+  <subtitle>${escapeXml("Latest articles from FASTODIGAMA")}</subtitle>
+${atomEntries}
+</feed>`;
+};
+
+const getRssFeed = async (request, response) => {
+  try {
+    const items = await getFeedItems();
+    response.set("Content-Type", "application/rss+xml; charset=utf-8");
+    response.send(buildRssXml(items, request));
+  } catch (error) {
+    console.error("RSS feed error:", error);
+    response.status(500).json({ message: "Failed to generate RSS feed" });
+  }
+};
+
+const getAtomFeed = async (request, response) => {
+  try {
+    const items = await getFeedItems();
+    response.set("Content-Type", "application/atom+xml; charset=utf-8");
+    response.send(buildAtomXml(items, request));
+  } catch (error) {
+    console.error("Atom feed error:", error);
+    response.status(500).json({ message: "Failed to generate Atom feed" });
+  }
+};
 // Get single article by slug
 const getArticleBySlugApiResponse = async (request, response) => {
  
@@ -745,6 +920,8 @@ export default {
   getArticlesApiResponse,
   getArticleByIdApiResponse,
   getArticleBySlugApiResponse,
+  getRssFeed,
+  getAtomFeed,
   likeArticleApi,
   unlikeArticleApi,
   getDashboardArticleStats,

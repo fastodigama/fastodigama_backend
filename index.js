@@ -164,6 +164,8 @@ app.use(
 );
 
 // ===== API ROUTES =====
+app.get("/rss.xml", articles.getRssFeed);
+app.get("/atom.xml", articles.getAtomFeed);
 app.get("/api/articles", articles.getArticlesApiResponse);
 // app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/article/:slug", articles.getArticleBySlugApiResponse);
