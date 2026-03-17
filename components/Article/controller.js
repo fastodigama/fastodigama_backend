@@ -33,7 +33,7 @@ const getArticlesByDateApi = async (req, res) => {
 };
 // Get single article by slug
 const getArticleBySlugApiResponse = async (request, response) => {
-  console.log('[API] getArticleBySlugApiResponse ENTERED');
+ 
   try {
     const slug = request.params.slug;
     const userAgent = request.get('User-Agent') || '';
