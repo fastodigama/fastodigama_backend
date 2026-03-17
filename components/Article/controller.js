@@ -33,6 +33,7 @@ const getArticlesByDateApi = async (req, res) => {
 };
 // Get single article by slug
 const getArticleBySlugApiResponse = async (request, response) => {
+  console.log('[API] getArticleBySlugApiResponse ENTERED');
   try {
     const slug = request.params.slug;
     const userAgent = request.get('User-Agent') || '';
@@ -42,11 +43,8 @@ const getArticleBySlugApiResponse = async (request, response) => {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
-      // Increment views only if not a bot/crawler
-      const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node/i.test(userAgent);
-      if (!isBot) {
-        article = await articleModel.incrementArticleViewsById(article._id);
-      }
+    // Always increment views for every call
+    article = await articleModel.incrementArticleViewsById(article._id);
     // Count comments for this article
     const commentModel = (await import("../Comment/model.js")).default;
     let commentsCount = 0;
