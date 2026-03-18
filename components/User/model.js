@@ -90,6 +90,7 @@ export {
     updateProfilePicture,
     getUserById,
     updateUserById,
+    resetPasswordById,
     markRepliesSeen,
     markLikesSeen
 };
@@ -108,6 +109,7 @@ export default {
     updateProfilePicture,
     getUserById,
     updateUserById,
+    resetPasswordById,
     markRepliesSeen,
     markLikesSeen
 };
