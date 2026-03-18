@@ -131,10 +131,20 @@ let sessionStore = undefined;
 
 if (process.env.REDIS_URL) {
   try {
-    const redisClient = createClient({ url: process.env.REDIS_URL });
+    const redisClient = createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        connectTimeout: 5000,
+        keepAlive: 5000,
+        reconnectStrategy: (retries) => Math.min(retries * 250, 5000),
+      },
+    });
     redisClient.on("error", (err) => console.error("Redis Client Error:", err));
     await redisClient.connect();
-    sessionStore = new RedisStore({ client: redisClient });
+    sessionStore = new RedisStore({
+      client: redisClient,
+      disableTouch: true,
+    });
     console.log("✓ Redis session store connected");
   } catch (error) {
     console.warn(

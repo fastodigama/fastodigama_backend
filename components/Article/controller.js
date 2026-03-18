@@ -34,6 +34,9 @@ const getArticlesByDateApi = async (req, res) => {
 
 const DEFAULT_FRONTEND_URL = "https://fastodigama.com";
 const DEFAULT_FEED_LIMIT = 20;
+const VIEWED_ARTICLES_COOKIE = "fd_article_views";
+const VIEWED_ARTICLES_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
+const MAX_TRACKED_VIEWED_ARTICLES = 200;
 
 const escapeXml = (value = "") =>
   String(value)
@@ -71,6 +74,49 @@ const isNonHumanFetcher = (userAgent = "") =>
 const shouldCountAsReaderView = (request) => {
   const rawUserAgent = request.get("User-Agent") || "";
   return !isNonHumanFetcher(rawUserAgent);
+};
+
+const getViewedArticlesCookie = (request) => {
+  const viewedArticlesCookie = request.cookies?.[VIEWED_ARTICLES_COOKIE];
+
+  if (!viewedArticlesCookie || typeof viewedArticlesCookie !== "string") {
+    return {};
+  }
+
+  try {
+    const parsedCookie = JSON.parse(viewedArticlesCookie);
+    return parsedCookie && typeof parsedCookie === "object" ? parsedCookie : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const pruneViewedArticles = (viewedArticles) => {
+  const entries = Object.entries(viewedArticles)
+    .filter(([, viewedAt]) => Number.isFinite(viewedAt))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MAX_TRACKED_VIEWED_ARTICLES);
+
+  return Object.fromEntries(entries);
+};
+
+const markArticleAsViewed = (request, response, articleId) => {
+  const viewedArticles = getViewedArticlesCookie(request);
+  viewedArticles[articleId] = Date.now();
+
+  const prunedViewedArticles = pruneViewedArticles(viewedArticles);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  response.cookie(
+    VIEWED_ARTICLES_COOKIE,
+    JSON.stringify(prunedViewedArticles),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProduction,
+      maxAge: VIEWED_ARTICLES_COOKIE_MAX_AGE_MS
+    }
+  );
 };
 
 const getFeedImage = (articleObj) => {
@@ -237,18 +283,14 @@ const getArticleBySlugApiResponse = async (request, response) => {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
     }
-    // ===== Session-based view counting =====
-    if (!request.session.viewedArticles) {
-      request.session.viewedArticles = {};
-    }
-
     const articleIdStr = String(article._id);
+    const viewedArticles = getViewedArticlesCookie(request);
 
-    if (shouldCountView && !request.session.viewedArticles[articleIdStr]) {
+    if (shouldCountView && !viewedArticles[articleIdStr]) {
       article = await articleModel.incrementArticleViewsById(article._id);
-      request.session.viewedArticles[articleIdStr] = Date.now();
+      markArticleAsViewed(request, response, articleIdStr);
     }
-    // ===== End session-based view counting =====
+    // ===== End cookie-based view counting =====
     // Count comments for this article
     const commentModel = (await import("../Comment/model.js")).default;
     let commentsCount = 0;
