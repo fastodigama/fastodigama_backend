@@ -58,6 +58,21 @@ const getFrontendUrl = () =>
 const getApiBaseUrl = (request) =>
   `${request.protocol}://${request.get("host")}`.replace(/\/+$/, "");
 
+const getEffectiveUserAgent = (request) =>
+  request.get("X-Forwarded-User-Agent") ||
+  request.get("User-Agent") ||
+  "";
+
+const isNonHumanFetcher = (userAgent = "") =>
+  /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node|vercel|next\.js|undici/i.test(
+    userAgent
+  );
+
+const shouldCountAsReaderView = (request) => {
+  const rawUserAgent = request.get("User-Agent") || "";
+  return !isNonHumanFetcher(rawUserAgent);
+};
+
 const getFeedImage = (articleObj) => {
   if (!Array.isArray(articleObj.images) || articleObj.images.length === 0) {
     return null;
@@ -211,8 +226,12 @@ const getArticleBySlugApiResponse = async (request, response) => {
  
   try {
     const slug = request.params.slug;
-    const userAgent = request.get('User-Agent') || '';
-    console.log(`[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}`);
+    const userAgent = getEffectiveUserAgent(request);
+    const rawUserAgent = request.get("User-Agent") || "";
+    const shouldCountView = shouldCountAsReaderView(request);
+    console.log(
+      `[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}`
+    );
     let article = await articleModel.getArticleBySlug(slug);
     if (!article) {
       console.warn(`[API] Article not found for slug: ${slug}`);
@@ -225,7 +244,7 @@ const getArticleBySlugApiResponse = async (request, response) => {
 
     const articleIdStr = String(article._id);
 
-    if (!request.session.viewedArticles[articleIdStr]) {
+    if (shouldCountView && !request.session.viewedArticles[articleIdStr]) {
       article = await articleModel.incrementArticleViewsById(article._id);
       request.session.viewedArticles[articleIdStr] = Date.now();
     }
@@ -527,10 +546,13 @@ const getAllArticles = async (request, response) => {
 const getArticleByIdApiResponse = async (request, response) => {
   try {
     const id = request.params.id;
-    const userAgent = request.get('User-Agent') || '';
-    console.log(`[API] Fetching article by id: ${id} | User-Agent: ${userAgent}`);
+    const userAgent = getEffectiveUserAgent(request);
+    const rawUserAgent = request.get("User-Agent") || "";
+    console.log(
+      `[API] Fetching article by id: ${id} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}`
+    );
     // Increment views atomically and return the updated document, only if not a bot/crawler
-    const isBot = /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node/i.test(userAgent);
+    const isBot = !shouldCountAsReaderView(request);
     let article;
     if (!isBot) {
       article = await articleModel.incrementArticleViewsById(id);
