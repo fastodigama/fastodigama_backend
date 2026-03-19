@@ -8,7 +8,7 @@ block layout-content
                     h1.h3.mb-4.text-center Edit Article
 
                     // Form sends updated data to /admin/article/edit/submit
-                    form(action="/admin/article/edit/submit", method="post", enctype="multipart/form-data")
+                    form#edit-article-form(action="/admin/article/edit/submit", method="post", enctype="multipart/form-data", autocomplete="off")
                         // Hidden field: article ID
                         input(type="hidden", name="articleId", value=editArticle._id)
 
@@ -42,8 +42,10 @@ block layout-content
                                 id="article-text",
                                 name="text",
                                 rows="10",
+                                style="min-height: 200px",
+                                autocomplete="off",
                                 required
-                            ) #{editArticle.text}
+                            )= editArticle.text
 
                         // Category dropdown (preloaded)
                         .mb-3
@@ -117,7 +119,9 @@ block layout-content
                         // Buttons
                         .d-flex.justify-content-end.gap-2.mt-4
                             a.btn.btn-secondary(href="/admin/article") Cancel
-                            button.btn.btn-dark(type="submit") Save Changes
+                            button#edit-submit-btn.btn.btn-dark(type="submit")
+                                span#edit-submit-spinner.spinner-border.spinner-border-sm.d-none.me-2(role="status", aria-hidden="true")
+                                span#edit-submit-text Save Changes
 
                         // FAQs (optional)
                         .mb-4
@@ -185,6 +189,19 @@ block layout-content
     //- Image clone and delete script
     script.
         document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('edit-article-form');
+            const submitBtn = document.getElementById('edit-submit-btn');
+            const submitSpinner = document.getElementById('edit-submit-spinner');
+            const submitText = document.getElementById('edit-submit-text');
+
+            if (form && submitBtn && submitSpinner && submitText) {
+                form.addEventListener('submit', function() {
+                    submitBtn.disabled = true;
+                    submitSpinner.classList.remove('d-none');
+                    submitText.textContent = 'Saving...';
+                });
+            }
+
             // 1. Logic for adding more image blocks
             const addBtn = document.getElementById('add-more-images');
             const container = document.getElementById('image-container');
