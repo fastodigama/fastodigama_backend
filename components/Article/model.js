@@ -286,7 +286,7 @@ async function deleteArticleById(id) {
     await commentModel.deleteCommentsByArticleId(id);
 
     // Delete all likes for this article
-    const { default: likeModel } = await import("../Like/model.js");
+    const likeModel = await import("../Like/model.js");
     await likeModel.deleteLikesByArticleId(id);
 
     // Remove the article from database

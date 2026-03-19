@@ -317,6 +317,7 @@ async function anonymizeUserComments(userId) {
 }
 
 export default {
+    deleteCommentsByArticleId,
     createComment,
     getCommentsByArticle,
     getCommentReplies,
