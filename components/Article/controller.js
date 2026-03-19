@@ -66,6 +66,25 @@ const getEffectiveUserAgent = (request) =>
   request.get("User-Agent") ||
   "";
 
+const getClientIpDetails = (request) => {
+  const forwardedForHeader = request.get("X-Forwarded-For") || "";
+  const forwardedIps = forwardedForHeader
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+
+  const clientIp =
+    forwardedIps[0] ||
+    request.ip ||
+    request.socket?.remoteAddress ||
+    "";
+
+  return {
+    clientIp,
+    forwardedForHeader
+  };
+};
+
 const isNonHumanFetcher = (userAgent = "") =>
   /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node|vercel|next\.js|undici/i.test(
     userAgent
@@ -274,9 +293,10 @@ const getArticleBySlugApiResponse = async (request, response) => {
     const slug = request.params.slug;
     const userAgent = getEffectiveUserAgent(request);
     const rawUserAgent = request.get("User-Agent") || "";
+    const { clientIp, forwardedForHeader } = getClientIpDetails(request);
     const shouldCountView = shouldCountAsReaderView(request);
     console.log(
-      `[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}`
+      `[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
     );
     let article = await articleModel.getArticleBySlug(slug);
     if (!article) {
@@ -590,8 +610,9 @@ const getArticleByIdApiResponse = async (request, response) => {
     const id = request.params.id;
     const userAgent = getEffectiveUserAgent(request);
     const rawUserAgent = request.get("User-Agent") || "";
+    const { clientIp, forwardedForHeader } = getClientIpDetails(request);
     console.log(
-      `[API] Fetching article by id: ${id} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}`
+      `[API] Fetching article by id: ${id} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
     );
     // Increment views atomically and return the updated document, only if not a bot/crawler
     const isBot = !shouldCountAsReaderView(request);
