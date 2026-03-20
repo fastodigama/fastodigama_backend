@@ -483,6 +483,7 @@ import categoryModel from "../Category/model.js";
 import commentModel from "../Comment/model.js";
 import { marked } from "marked";
 import multer from "multer";
+import { buildArticleUrl, queueIndexNowSubmission } from "../config/indexNow.js";
 import { s3 } from "../config/r2.js";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -491,6 +492,19 @@ const upload = multer({
   storage: multer.memoryStorage(), 
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
 });
+
+const queueArticleIndexNow = (slug, action) => {
+  const articleUrl = buildArticleUrl(slug);
+
+  if (!articleUrl) {
+    console.warn(
+      `[IndexNow] Skipping article ${action}: unable to build public URL for slug="${slug || ""}"`
+    );
+    return;
+  }
+
+  queueIndexNowSubmission([articleUrl], `article ${action}`);
+};
 
 
 // ===== ARTICLE CONTROLLER =====
@@ -805,7 +819,10 @@ const addNewArticle = async (request, response) => {
 
     // Added author, embedVideo, embedVideoPosition, faqs to the payload sent to the model
     const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition, faqs });
-    if (result) return response.redirect("/admin/article");
+    if (result) {
+      queueArticleIndexNow(result.slug, "create");
+      return response.redirect("/admin/article");
+    }
 
   } catch (err) {
     console.error("Error adding article with Sharp:", err);
@@ -815,8 +832,10 @@ const addNewArticle = async (request, response) => {
 
 // Delete an article by ID
 const deleteArticle = async (request, response) => {
+  const existingArticle = await articleModel.getArticleById(request.query.articleId);
   let result = await articleModel.deleteArticleById(request.query.articleId);
-  if (result) {
+  if (result?.deletedCount === 1) {
+    queueArticleIndexNow(existingArticle?.slug, "delete");
     response.redirect("/admin/article");
   } else {
     response.render("article/article-list", {
@@ -927,6 +946,8 @@ const editArticle = async (request, response) => {
     const result = await articleModel.editArticlebyId(articleId, updateData);
 
     if (result) {
+      const updatedArticle = await articleModel.getArticleById(articleId);
+      queueArticleIndexNow(updatedArticle?.slug, "update");
       return response.redirect("/admin/article");
     }
 
