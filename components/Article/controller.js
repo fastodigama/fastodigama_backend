@@ -1,18 +1,17 @@
+import { getAppTimeZone, getCurrentDateInTimeZone, shiftDateString } from "../config/timezone.js";
+
 // Dashboard stats: get article counts for today and yesterday
 const getDashboardArticleStats = async (req, res) => {
   try {
-    const now = new Date();
-    const today = new Date(now);
-    today.setUTCHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setUTCDate(today.getUTCDate() - 1);
+    const today = getCurrentDateInTimeZone();
+    const yesterday = shiftDateString(today, -1);
 
     const [todayCount, yesterdayCount] = await Promise.all([
       articleModel.countArticlesByDate(today),
       articleModel.countArticlesByDate(yesterday)
     ]);
 
-    res.json({ todayCount, yesterdayCount });
+    res.json({ todayCount, yesterdayCount, timeZone: getAppTimeZone(), today });
   } catch (err) {
     console.error("Dashboard stats error:", err);
     res.status(500).json({ error: "Failed to fetch stats" });
@@ -25,7 +24,7 @@ const getArticlesByDateApi = async (req, res) => {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: "Missing date" });
     const articles = await articleModel.getArticlesByDate(date);
-    res.json({ articles });
+    res.json({ articles, timeZone: getAppTimeZone(), date });
   } catch (err) {
     console.error("Articles by date error:", err);
     res.status(500).json({ error: "Failed to fetch articles" });

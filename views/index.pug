@@ -19,11 +19,14 @@ block layout-content
                                 .card-body
                                     h5.mb-3.text-primary Articles by Date
                                     .d-flex.align-items-center.mb-3
-                                        input#articleDate.form-control(type="date" max=new Date().toISOString().slice(0,10))
+                                        input#articleDate.form-control(type="date" max=currentDateInTimeZone value=currentDateInTimeZone)
                                     ul#articlesByDateList.list-group
                                         li.list-group-item.text-muted No articles for selected date
 
                     script.
+                        const appTimeZone = !{JSON.stringify(appTimezone)};
+                        const currentDateInAppTimeZone = !{JSON.stringify(currentDateInTimeZone)};
+
                         // Fetch and display dashboard stats
                         async function fetchStats() {
                             try {
@@ -38,7 +41,8 @@ block layout-content
                         // Calendar filter for articles by date
                         const dateInput = document.getElementById('articleDate');
                         if (dateInput) {
-                            dateInput.value = new Date().toISOString().slice(0,10);
+                            dateInput.max = currentDateInAppTimeZone;
+                            dateInput.value = currentDateInAppTimeZone;
                             async function fetchArticlesByDate(date) {
                                 try {
                                     const res = await fetch(`/admin/article/by-date?date=${date}`);
@@ -49,7 +53,12 @@ block layout-content
                                         data.articles.forEach(a => {
                                             const li = document.createElement('li');
                                             li.className = 'list-group-item';
-                                            li.innerHTML = `<b>${a.title}</b> <span class='text-muted small'>(${new Date(a.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</span>`;
+                                            const articleTime = new Date(a.createdAt).toLocaleTimeString([], {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                timeZone: appTimeZone
+                                            });
+                                            li.innerHTML = `<b>${a.title}</b> <span class='text-muted small'>(${articleTime})</span>`;
                                             list.appendChild(li);
                                         });
                                     } else {

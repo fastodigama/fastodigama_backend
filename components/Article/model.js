@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../config/r2.js"; // Adjust the path if your folder structure is different
+import { getAppTimeZone, getUtcRangeForDateInTimeZone } from "../config/timezone.js";
 
 // Helper to generate slug from title
 function generateSlug(title) {
@@ -312,24 +313,17 @@ async function incrementArticleViewsById(id) {
   ).populate("categoryId");
 }
 
-// Get count of articles created on a specific date (UTC)
-async function countArticlesByDate(date) {
-  // date: JS Date or string (YYYY-MM-DD)
-  const start = new Date(date);
-  start.setUTCHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 1);
+// Get count of articles created on a specific date in the app timezone
+async function countArticlesByDate(date, timeZone = getAppTimeZone()) {
+  const { start, end } = getUtcRangeForDateInTimeZone(date, timeZone);
   return ArticleModel.countDocuments({
     createdAt: { $gte: start, $lt: end }
   });
 }
 
-// Get articles created on a specific date (UTC)
-async function getArticlesByDate(date) {
-  const start = new Date(date);
-  start.setUTCHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setUTCDate(start.getUTCDate() + 1);
+// Get articles created on a specific date in the app timezone
+async function getArticlesByDate(date, timeZone = getAppTimeZone()) {
+  const { start, end } = getUtcRangeForDateInTimeZone(date, timeZone);
   return ArticleModel.find({
     createdAt: { $gte: start, $lt: end }
   }).sort({ createdAt: -1 });
