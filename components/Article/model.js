@@ -230,11 +230,24 @@ async function editArticlebyId(id, articleData) {
             }));
         }
 
+        const hasEmbedVideo = Object.prototype.hasOwnProperty.call(articleData, "embedVideo");
+        const hasEmbedVideoPosition = Object.prototype.hasOwnProperty.call(articleData, "embedVideoPosition");
+
+        // Preserve existing values only when the field is omitted entirely.
+        // If the edit form submits an empty string for embedVideo, that means
+        // the user intentionally cleared the stored video.
+        const normalizedEmbedVideo = hasEmbedVideo
+            ? String(articleData.embedVideo ?? "").trim()
+            : existingArticle.embedVideo || "";
+        const normalizedEmbedVideoPosition = hasEmbedVideoPosition
+            ? (articleData.embedVideoPosition || "inline")
+            : (existingArticle.embedVideoPosition || "inline");
+
         // 1. Update the Database FIRST
         const result = await ArticleModel.updateOne({ _id: id }, { $set: {
             ...articleData,
-            embedVideo: articleData.embedVideo || existingArticle.embedVideo || "",
-            embedVideoPosition: articleData.embedVideoPosition || existingArticle.embedVideoPosition || "inline"
+            embedVideo: normalizedEmbedVideo,
+            embedVideoPosition: normalizedEmbedVideoPosition
         } });
 
         // 2. ONLY if the database update worked, clean up R2

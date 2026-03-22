@@ -170,13 +170,19 @@ block layout-content
                         // Embed Video (optional)
                         .mb-3
                             label.form-label(for="embedVideo") Embed Video (YouTube iframe or link, optional)
-                            input.form-control(
-                                type="text",
-                                id="embedVideo",
-                                name="embedVideo",
-                                value=editArticle.embedVideo || "",
-                                placeholder="Paste YouTube embed code or link (optional)"
-                            )
+                            .input-group
+                                input.form-control(
+                                    type="text",
+                                    id="embedVideo",
+                                    name="embedVideo",
+                                    value=editArticle.embedVideo || "",
+                                    placeholder="Paste YouTube embed code or link (optional)"
+                                )
+                                button#delete-video-btn.btn.btn-outline-danger(
+                                    type="button",
+                                    disabled=!editArticle.embedVideo
+                                ) Delete Video
+                            .form-text.text-muted Clearing the field or using Delete Video will remove the saved YouTube embed on save.
                         // Video Position (hero/inline)
                         .mb-3
                             label.form-label(for="embedVideoPosition") Video Position
@@ -193,6 +199,9 @@ block layout-content
             const submitBtn = document.getElementById('edit-submit-btn');
             const submitSpinner = document.getElementById('edit-submit-spinner');
             const submitText = document.getElementById('edit-submit-text');
+            const embedVideoInput = document.getElementById('embedVideo');
+            const embedVideoPositionSelect = document.getElementById('embedVideoPosition');
+            const deleteVideoBtn = document.getElementById('delete-video-btn');
 
             if (form && submitBtn && submitSpinner && submitText) {
                 form.addEventListener('submit', function() {
@@ -200,6 +209,24 @@ block layout-content
                     submitSpinner.classList.remove('d-none');
                     submitText.textContent = 'Saving...';
                 });
+            }
+
+            if (embedVideoInput && deleteVideoBtn) {
+                const syncDeleteVideoButton = () => {
+                    deleteVideoBtn.disabled = !embedVideoInput.value.trim();
+                };
+
+                deleteVideoBtn.addEventListener('click', function() {
+                    embedVideoInput.value = '';
+                    if (embedVideoPositionSelect) {
+                        embedVideoPositionSelect.value = 'inline';
+                    }
+                    syncDeleteVideoButton();
+                    embedVideoInput.focus();
+                });
+
+                embedVideoInput.addEventListener('input', syncDeleteVideoButton);
+                syncDeleteVideoButton();
             }
 
             // 1. Logic for adding more image blocks
