@@ -122,7 +122,7 @@ app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
 // ===== SESSION CONFIGURATION =====
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 
 const isProduction = process.env.NODE_ENV === "production";
 

@@ -122,6 +122,23 @@ function saveSession(req) {
   });
 }
 
+function logSessionDebug(req, label, extra = {}) {
+  console.log("[SESSION_DEBUG]", JSON.stringify({
+    label,
+    sessionId: req.sessionID || null,
+    loggedIn: Boolean(req.session?.loggedIn),
+    sessionUser: req.session?.user || null,
+    cookieHeaderPresent: Boolean(req.headers.cookie),
+    cookieNames: Object.keys(req.cookies || {}),
+    forwardedProto: req.get("x-forwarded-proto") || null,
+    secure: req.secure,
+    host: req.get("host") || null,
+    origin: req.get("origin") || null,
+    referer: req.get("referer") || null,
+    ...extra,
+  }));
+}
+
 function normalizeProfilePictureForResponse(profilePicture) {
   if (!profilePicture) {
     return null;
@@ -179,6 +196,7 @@ async function importGoogleProfilePictureToR2(user, googlePhotoUrl) {
 // API: Get current user
 // ==============================
 const apiGetUser = async (req, res) => {
+  logSessionDebug(req, "api_get_user_entry");
   if (!req.session.loggedIn || !req.session.user) {
     return res
       .status(401)
@@ -534,6 +552,9 @@ const googleAuthCallback = async (req, res) => {
 
     const successRedirect = getSafeGoogleReturnTo(req.session.googleReturnTo);
     delete req.session.googleReturnTo;
+    logSessionDebug(req, "google_callback_after_session", {
+      redirectUrl: successRedirect,
+    });
     console.log("[PROFILE_PICTURE][google_sync_result]", JSON.stringify({
       email: syncedUser.user,
       accountAction: existingUser ? "existing_user" : "created_user",
