@@ -90,6 +90,7 @@ export {
     resetPassword,
     getUserByEmail,
     findOrCreateGoogleUser,
+    syncGoogleProfileNames,
     syncGoogleProfilePicture,
     savePasswordResetToken,
     consumePasswordResetToken,
@@ -113,6 +114,7 @@ export default {
     resetPassword,
     getUserByEmail,
     findOrCreateGoogleUser,
+    syncGoogleProfileNames,
     syncGoogleProfilePicture,
     savePasswordResetToken,
     consumePasswordResetToken,
@@ -318,6 +320,32 @@ async function findOrCreateGoogleUser({ email, firstName, lastName }) {
     });
 
     return await newUser.save();
+}
+
+async function syncGoogleProfileNames(user, firstName, lastName) {
+    if (!user) {
+        return user;
+    }
+
+    const normalizedFirstName = String(firstName || "").trim();
+    const normalizedLastName = String(lastName || "").trim();
+    let shouldSave = false;
+
+    if ((!user.firstName || !String(user.firstName).trim()) && normalizedFirstName) {
+        user.firstName = normalizedFirstName;
+        shouldSave = true;
+    }
+
+    if ((!user.lastName || !String(user.lastName).trim()) && normalizedLastName) {
+        user.lastName = normalizedLastName;
+        shouldSave = true;
+    }
+
+    if (shouldSave) {
+        await user.save();
+    }
+
+    return user;
 }
 
 function isValidExternalProfilePicture(value) {
