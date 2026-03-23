@@ -54,7 +54,12 @@ function establishUserSession(req, userEmail, role) {
       req.session.loggedIn = true;
       req.session.user = userEmail;
       req.session.role = role;
-      resolve();
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          return reject(saveErr);
+        }
+        resolve();
+      });
     });
   });
 }
