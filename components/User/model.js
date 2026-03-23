@@ -67,6 +67,8 @@ const UserSchema = new mongoose.Schema({
     nickname: { type: String, unique: true, sparse: true },
     role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
     profilePicture: { type: String, default: '' },
+    resetPasswordTokenHash: { type: String, default: null },
+    resetPasswordExpiresAt: { type: Date, default: null },
     lastRepliesSeenAt: { type: Date, default: null },
     lastLikesSeenAt: { type: Date, default: null }
 });
@@ -89,6 +91,8 @@ export {
     getUserByEmail,
     findOrCreateGoogleUser,
     syncGoogleProfilePicture,
+    savePasswordResetToken,
+    consumePasswordResetToken,
     updateProfilePicture,
     getUserById,
     updateUserById,
@@ -110,6 +114,8 @@ export default {
     getUserByEmail,
     findOrCreateGoogleUser,
     syncGoogleProfilePicture,
+    savePasswordResetToken,
+    consumePasswordResetToken,
     updateProfilePicture,
     getUserById,
     updateUserById,
@@ -356,6 +362,35 @@ async function syncGoogleProfilePicture(user, googlePhotoUrl) {
     user.profilePicture = googlePhotoUrl.trim();
     await user.save();
     return user;
+}
+
+async function savePasswordResetToken(email, tokenHash, expiresAt) {
+    const normalizedEmail = email.toLowerCase();
+    return await User.findOneAndUpdate(
+        { user: normalizedEmail },
+        {
+            resetPasswordTokenHash: tokenHash,
+            resetPasswordExpiresAt: expiresAt,
+        },
+        { new: true }
+    );
+}
+
+async function consumePasswordResetToken(tokenHash, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    return await User.findOneAndUpdate(
+        {
+            resetPasswordTokenHash: tokenHash,
+            resetPasswordExpiresAt: { $gt: new Date() },
+        },
+        {
+            password: hashedPassword,
+            resetPasswordTokenHash: null,
+            resetPasswordExpiresAt: null,
+        },
+        { new: true }
+    );
 }
 
 async function markRepliesSeen(userId) {

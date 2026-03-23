@@ -122,23 +122,6 @@ function saveSession(req) {
   });
 }
 
-function logSessionDebug(req, label, extra = {}) {
-  console.log("[SESSION_DEBUG]", JSON.stringify({
-    label,
-    sessionId: req.sessionID || null,
-    loggedIn: Boolean(req.session?.loggedIn),
-    sessionUser: req.session?.user || null,
-    cookieHeaderPresent: Boolean(req.headers.cookie),
-    cookieNames: Object.keys(req.cookies || {}),
-    forwardedProto: req.get("x-forwarded-proto") || null,
-    secure: req.secure,
-    host: req.get("host") || null,
-    origin: req.get("origin") || null,
-    referer: req.get("referer") || null,
-    ...extra,
-  }));
-}
-
 function normalizeProfilePictureForResponse(profilePicture) {
   if (!profilePicture) {
     return null;
@@ -192,11 +175,60 @@ async function importGoogleProfilePictureToR2(user, googlePhotoUrl) {
   return fileName;
 }
 
+function buildPasswordResetUrl(token) {
+  const resetBaseUrl =
+    process.env.RESET_PASSWORD_URL_BASE ||
+    process.env.RESET_PASSWORD_PAGE_URL ||
+    `${process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || "http://localhost:3000"}/reset-password`;
+
+  const resetUrl = new URL(resetBaseUrl);
+  resetUrl.searchParams.set("token", token);
+  return resetUrl.toString();
+}
+
+async function sendPasswordResetEmail(email, resetUrl) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+  if (!resendApiKey) {
+    console.log("[PASSWORD_RESET] RESEND_API_KEY not set, reset link generated only", JSON.stringify({
+      email,
+      resetUrl,
+    }));
+    return false;
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: fromEmail,
+      to: email,
+      subject: "Reset your Fastodigama password",
+      html: `
+        <p>You requested a password reset for your Fastodigama account.</p>
+        <p><a href="${resetUrl}">Reset your password</a></p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <p>This link expires in 30 minutes.</p>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Resend API error: ${response.status} ${errorText}`);
+  }
+
+  return true;
+}
+
 // ==============================
 // API: Get current user
 // ==============================
 const apiGetUser = async (req, res) => {
-  logSessionDebug(req, "api_get_user_entry");
   if (!req.session.loggedIn || !req.session.user) {
     return res
       .status(401)
@@ -214,11 +246,6 @@ const apiGetUser = async (req, res) => {
   }
 
   const profilePicture = normalizeProfilePictureForResponse(user.profilePicture);
-  console.log("[PROFILE_PICTURE][api_user_response]", JSON.stringify({
-    email: user.user,
-    storedProfilePicture: user.profilePicture || null,
-    returnedProfilePicture: profilePicture,
-  }));
   res.json({
     success: true,
     _id: user._id,
@@ -418,6 +445,114 @@ const apiLogin = async (req, res) => {
   }
 };
 
+const apiForgotPassword = async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required",
+    });
+  }
+
+  try {
+    const user = await userModel.getUserByEmail(email);
+    if (user && user.password) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(rawToken)
+        .digest("hex");
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
+
+      await userModel.savePasswordResetToken(
+        email,
+        tokenHash,
+        expiresAt
+      );
+
+      const resetUrl = buildPasswordResetUrl(rawToken);
+      try {
+        const emailSent = await sendPasswordResetEmail(email, resetUrl);
+        console.log("[PASSWORD_RESET] Reset link generated", JSON.stringify({
+          email,
+          resetUrl,
+          expiresAt: expiresAt.toISOString(),
+          emailSent,
+        }));
+      } catch (mailErr) {
+        console.error("PASSWORD RESET EMAIL ERROR:", mailErr);
+        console.log("[PASSWORD_RESET] Reset link generated", JSON.stringify({
+          email,
+          resetUrl,
+          expiresAt: expiresAt.toISOString(),
+          emailSent: false,
+        }));
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "If an account exists for that email, a reset link has been generated.",
+    });
+  } catch (err) {
+    console.error("FORGOT PASSWORD ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+};
+
+const apiResetPassword = async (req, res) => {
+  const token = String(req.body?.token || "").trim();
+  const newPassword = String(req.body?.newPassword || "");
+
+  if (!token || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Token and new password are required",
+    });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 8 characters",
+    });
+  }
+
+  try {
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await userModel.consumePasswordResetToken(
+      tokenHash,
+      newPassword
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset link is invalid or has expired",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (err) {
+    console.error("RESET PASSWORD ERROR:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+};
+
 const googleAuthStart = async (req, res) => {
   const {
     clientId,
@@ -520,12 +655,6 @@ const googleAuthCallback = async (req, res) => {
       return res.redirect(frontendErrorRedirect);
     }
 
-    console.log("[PROFILE_PICTURE][google_userinfo]", JSON.stringify({
-      email,
-      googlePicture: googleUser.picture || null,
-      verified: isVerified,
-    }));
-
     const existingUser = await userModel.getUserByEmail(email);
     const user = await userModel.findOrCreateGoogleUser({
       email,
@@ -550,15 +679,6 @@ const googleAuthCallback = async (req, res) => {
 
     const successRedirect = getSafeGoogleReturnTo(req.session.googleReturnTo);
     await establishUserSession(req, syncedUser.user, syncedUser.role);
-    logSessionDebug(req, "google_callback_after_session", {
-      redirectUrl: successRedirect,
-    });
-    console.log("[PROFILE_PICTURE][google_sync_result]", JSON.stringify({
-      email: syncedUser.user,
-      accountAction: existingUser ? "existing_user" : "created_user",
-      storedProfilePicture: syncedUser.profilePicture || null,
-      importedToR2: Boolean(importedGoogleProfilePicture),
-    }));
 
     res.redirect(successRedirect);
   } catch (err) {
@@ -925,6 +1045,8 @@ export {
   editUser,
   deleteUser,
   apiLogin,
+  apiForgotPassword,
+  apiResetPassword,
   googleAuthStart,
   googleAuthCallback,
   apiLogout,

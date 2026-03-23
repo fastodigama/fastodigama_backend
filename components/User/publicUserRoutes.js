@@ -13,6 +13,9 @@ router.get("/auth/google/callback", userController.googleAuthCallback);
 router.get("/register", userController.registerForm);
 router.post("/register", userController.register);
 router.get("/logout", userController.logout);
+router.post("/forgot-password", userController.apiForgotPassword);
+router.post("/api/forgot-password", userController.apiForgotPassword);
+router.post("/api/reset-password", userController.apiResetPassword);
 
 
 
