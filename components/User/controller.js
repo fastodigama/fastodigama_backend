@@ -548,10 +548,8 @@ const googleAuthCallback = async (req, res) => {
       importedGoogleProfilePicture || ""
     );
 
-    await establishUserSession(req, syncedUser.user, syncedUser.role);
-
     const successRedirect = getSafeGoogleReturnTo(req.session.googleReturnTo);
-    delete req.session.googleReturnTo;
+    await establishUserSession(req, syncedUser.user, syncedUser.role);
     logSessionDebug(req, "google_callback_after_session", {
       redirectUrl: successRedirect,
     });
