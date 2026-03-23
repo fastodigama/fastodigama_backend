@@ -71,6 +71,29 @@ block layout-content
               button#add-more-faqs.btn.btn-outline-secondary.btn-sm(type="button")
                 | + Add Another Question
 
+            // 6.1. Sources (optional)
+            .mb-4
+              label.form-label.fw-bold Article Sources (Optional)
+              #sources-container
+                .source-block.border.rounded.p-3.mb-3.bg-light
+                  .row
+                    .col-md-6.mb-2.mb-md-0
+                      label.form-label.small.fw-bold.text-primary.source-title-label Source Title 1
+                      input.form-control(
+                        type="text",
+                        name="sourceTitles",
+                        placeholder="e.g., World Bank Report 2026"
+                      )
+                    .col-md-6
+                      label.form-label.small Source URL
+                      input.form-control(
+                        type="url",
+                        name="sourceUrls",
+                        placeholder="https://example.com/report"
+                      )
+              button#add-more-sources.btn.btn-outline-secondary.btn-sm(type="button")
+                | + Add Another Source
+
             // 4. Category
             .mb-3
               label.form-label(for="cat") Select Category
@@ -180,6 +203,24 @@ block layout-content
             qLabel.classList.remove('text-primary', 'fw-bold');
           }
           faqContainer.appendChild(newFaq);
+        });
+      }
+
+      // --- 2b. HANDLE ADDING MORE SOURCES ---
+      const addSourceBtn = document.getElementById('add-more-sources');
+      const sourcesContainer = document.getElementById('sources-container');
+      if (addSourceBtn && sourcesContainer) {
+        addSourceBtn.addEventListener('click', function() {
+          const originalSource = sourcesContainer.querySelector('.source-block');
+          const newSource = originalSource.cloneNode(true);
+          newSource.querySelectorAll('input').forEach(input => input.value = '');
+          const titleLabel = newSource.querySelector('.source-title-label');
+          if (titleLabel) {
+            const count = sourcesContainer.querySelectorAll('.source-block').length + 1;
+            titleLabel.textContent = `Source Title ${count}`;
+            titleLabel.classList.remove('text-primary', 'fw-bold');
+          }
+          sourcesContainer.appendChild(newSource);
         });
       }
 

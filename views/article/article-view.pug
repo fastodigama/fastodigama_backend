@@ -292,6 +292,18 @@ block layout-content
                                         .fw-bold.mb-1.text-primary FAQ #{idx+1}: #{faq.question}
                                         if faq.answer
                                             .text-dark.mb-0= faq.answer
+                    if article.sources && article.sources.length > 0
+                        hr.styled-hr
+                        .mb-4
+                            p.section-heading
+                                i.bi.bi-link-45deg.me-2
+                                | Sources
+                            .list-group
+                                each source, idx in article.sources
+                                    .list-group-item
+                                        .fw-semibold.mb-1 Source #{idx+1}: #{source.title || 'Untitled Source'}
+                                        if source.url
+                                            a(href=source.url, target="_blank", rel="noopener noreferrer")= source.url
                     hr.styled-hr
 
                     //- Comments

@@ -61,6 +61,13 @@ const ArticleSchema = new mongoose.Schema(
         answer: { type: String }
       }
     ],
+    // Optional sources field: array of {title, url}
+    sources: [
+      {
+        title: { type: String },
+        url: { type: String }
+      }
+    ],
   },
   { timestamps: true },
 );
@@ -191,7 +198,8 @@ async function addArticle(newArticle) {
       author: newArticle.author && newArticle.author.trim() !== "" ? newArticle.author : "Fadel Matar",
       embedVideo: newArticle.embedVideo || "",
       embedVideoPosition: newArticle.embedVideoPosition || "inline",
-      faqs: Array.isArray(newArticle.faqs) ? newArticle.faqs : []
+      faqs: Array.isArray(newArticle.faqs) ? newArticle.faqs : [],
+      sources: Array.isArray(newArticle.sources) ? newArticle.sources : []
     });
 
     const result = await article.save();

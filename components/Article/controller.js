@@ -199,6 +199,28 @@ const getFeedItems = async () => {
   });
 };
 
+const normalizeFormFieldArray = (value) => {
+  if (typeof value === "undefined") return [];
+  return Array.isArray(value) ? value : [value];
+};
+
+const buildArticleSources = (sourceTitles, sourceUrls) => {
+  const titles = normalizeFormFieldArray(sourceTitles);
+  const urls = normalizeFormFieldArray(sourceUrls);
+  const maxLength = Math.max(titles.length, urls.length);
+
+  return Array.from({ length: maxLength }, (_, index) => {
+    const title = String(titles[index] || "").trim();
+    const url = String(urls[index] || "").trim();
+
+    if (!title && !url) {
+      return null;
+    }
+
+    return { title, url };
+  }).filter(Boolean);
+};
+
 const buildRssXml = (items, request) => {
   const frontendUrl = getFrontendUrl();
   const apiBaseUrl = getApiBaseUrl(request);
@@ -784,6 +806,11 @@ const addNewArticle = async (request, response) => {
       }).filter(Boolean);
     }
 
+    const sources = buildArticleSources(
+      request.body.sourceTitles,
+      request.body.sourceUrls
+    );
+
     const altTexts = request.body.alt 
       ? (Array.isArray(request.body.alt) ? request.body.alt : [request.body.alt]) 
       : [];
@@ -816,8 +843,8 @@ const addNewArticle = async (request, response) => {
       }));
     }
 
-    // Added author, embedVideo, embedVideoPosition, faqs to the payload sent to the model
-    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition, faqs });
+    // Added author, embedVideo, embedVideoPosition, faqs, sources to the payload sent to the model
+    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition, faqs, sources });
     if (result) {
       queueArticleIndexNow(result.slug, "create");
       return response.redirect("/admin/article");
@@ -892,6 +919,11 @@ const editArticle = async (request, response) => {
     } else {
       updateData.faqs = [];
     }
+
+    updateData.sources = buildArticleSources(
+      request.body.sourceTitles,
+      request.body.sourceUrls
+    );
 
     const existingArticle = await articleModel.getArticleById(articleId);
     let currentImages = existingArticle.images || [];
