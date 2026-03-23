@@ -645,11 +645,16 @@ const googleAuthCallback = async (req, res) => {
       firstName: googleUser.given_name || googleUser.name || "Google",
       lastName: googleUser.family_name || "",
     });
+    const nameSyncedUser = await userModel.syncGoogleProfileNames(
+      user,
+      googleUser.given_name || googleUser.name || "",
+      googleUser.family_name || ""
+    );
     let importedGoogleProfilePicture = null;
 
     try {
       importedGoogleProfilePicture = await importGoogleProfilePictureToR2(
-        user,
+        nameSyncedUser,
         googleUser.picture || ""
       );
     } catch (pictureErr) {
@@ -657,7 +662,7 @@ const googleAuthCallback = async (req, res) => {
     }
 
     const syncedUser = await userModel.syncGoogleProfilePicture(
-      user,
+      nameSyncedUser,
       importedGoogleProfilePicture || ""
     );
 
@@ -926,11 +931,11 @@ const apiDeleteUserAccount = async (req, res) => {
     });
   }
 
-  const { confirmPassword } = req.body;
-  if (!confirmPassword) {
+  const confirmText = String(req.body?.confirmText || "").trim();
+  if (confirmText !== "DELETE") {
     return res.status(400).json({ 
       success: false, 
-      message: "Password confirmation required" 
+      message: "Please confirm account deletion by sending confirmText=DELETE" 
     });
   }
 
@@ -940,19 +945,6 @@ const apiDeleteUserAccount = async (req, res) => {
       return res.status(404).json({ 
         success: false, 
         message: "User not found" 
-      });
-    }
-
-    // Verify password before deletion
-    const authStatus = await userModel.authenticateUser(
-      req.session.user,
-      confirmPassword
-    );
-
-    if (!authStatus) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid password" 
       });
     }
 
