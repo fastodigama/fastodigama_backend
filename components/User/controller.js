@@ -191,10 +191,6 @@ async function sendPasswordResetEmail(email, resetUrl) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
   if (!resendApiKey) {
-    console.log("[PASSWORD_RESET] RESEND_API_KEY not set, reset link generated only", JSON.stringify({
-      email,
-      resetUrl,
-    }));
     return false;
   }
 
@@ -473,21 +469,9 @@ const apiForgotPassword = async (req, res) => {
 
       const resetUrl = buildPasswordResetUrl(rawToken);
       try {
-        const emailSent = await sendPasswordResetEmail(email, resetUrl);
-        console.log("[PASSWORD_RESET] Reset link generated", JSON.stringify({
-          email,
-          resetUrl,
-          expiresAt: expiresAt.toISOString(),
-          emailSent,
-        }));
+        await sendPasswordResetEmail(email, resetUrl);
       } catch (mailErr) {
         console.error("PASSWORD RESET EMAIL ERROR:", mailErr);
-        console.log("[PASSWORD_RESET] Reset link generated", JSON.stringify({
-          email,
-          resetUrl,
-          expiresAt: expiresAt.toISOString(),
-          emailSent: false,
-        }));
       }
     }
 
