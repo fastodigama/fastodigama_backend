@@ -87,6 +87,8 @@ export {
     getAllUsers,
     resetPassword,
     getUserByEmail,
+    findOrCreateGoogleUser,
+    syncGoogleProfilePicture,
     updateProfilePicture,
     getUserById,
     updateUserById,
@@ -106,6 +108,8 @@ export default {
     getAllUsers,
     resetPassword,
     getUserByEmail,
+    findOrCreateGoogleUser,
+    syncGoogleProfilePicture,
     updateProfilePicture,
     getUserById,
     updateUserById,
@@ -136,6 +140,7 @@ async function authenticateUser(username, pw) {
     
     // If user doesn't exist, return false
     if (!user) return false;
+    if (!user.password) return false;
     
     // Compare the provided password with the stored hashed password
     // bcrypt.compare() returns true if passwords match, false otherwise
@@ -261,6 +266,92 @@ async function resetPassword(username, newPassword) {
 //GET User firstname, last name after login
 async function getUserByEmail(email) {
     return await User.findOne({user: email.toLowerCase()});
+}
+
+function slugifyNicknamePart(value) {
+    return String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "")
+        .trim();
+}
+
+async function generateUniqueNickname(firstName, lastName, email) {
+    const emailPrefix = String(email || "").split("@")[0];
+    const base =
+        slugifyNicknamePart(`${firstName}${lastName}`) ||
+        slugifyNicknamePart(emailPrefix) ||
+        `user${Date.now()}`;
+
+    let candidate = base.slice(0, 24) || `user${Date.now()}`;
+    let suffix = 0;
+
+    while (await User.findOne({ nickname: candidate })) {
+        suffix += 1;
+        const suffixText = String(suffix);
+        const trimmedBase = base.slice(0, Math.max(1, 24 - suffixText.length));
+        candidate = `${trimmedBase}${suffixText}`;
+    }
+
+    return candidate;
+}
+
+async function findOrCreateGoogleUser({ email, firstName, lastName }) {
+    const normalizedEmail = email.toLowerCase();
+    const existingUser = await User.findOne({ user: normalizedEmail });
+    if (existingUser) {
+        return existingUser;
+    }
+
+    const nickname = await generateUniqueNickname(firstName, lastName, normalizedEmail);
+    const newUser = new User({
+        user: normalizedEmail,
+        firstName,
+        lastName,
+        nickname,
+        role: "user",
+    });
+
+    return await newUser.save();
+}
+
+function isValidExternalProfilePicture(value) {
+    if (!value || typeof value !== "string") {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(value.trim());
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
+function shouldRefreshFromGoogle(profilePicture) {
+    if (!profilePicture || String(profilePicture).trim() === "") {
+        return true;
+    }
+
+    const normalized = String(profilePicture).trim();
+    if (!isValidExternalProfilePicture(normalized)) {
+        return true;
+    }
+
+    return normalized.includes("googleusercontent.com");
+}
+
+async function syncGoogleProfilePicture(user, googlePhotoUrl) {
+    if (!user || !isValidExternalProfilePicture(googlePhotoUrl)) {
+        return user;
+    }
+
+    if (!shouldRefreshFromGoogle(user.profilePicture)) {
+        return user;
+    }
+
+    user.profilePicture = googlePhotoUrl.trim();
+    await user.save();
+    return user;
 }
 
 async function markRepliesSeen(userId) {

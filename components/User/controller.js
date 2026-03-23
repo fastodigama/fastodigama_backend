@@ -26,11 +26,120 @@ const apiUpdateUserProfile = async (req, res) => {
 import userModel from "./model.js";
 import multer from "multer";
 import sharp from "sharp";
+import crypto from "crypto";
+import axios from "axios";
 import { s3 } from "../config/r2.js";
 import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
+
+function buildFrontendRedirectUrl(status, message) {
+  const fallbackUrl = process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || "/";
+  const redirectUrl = new URL(fallbackUrl);
+  redirectUrl.searchParams.set("auth", status);
+  if (message) {
+    redirectUrl.searchParams.set("message", message);
+  }
+  return redirectUrl.toString();
+}
+
+function establishUserSession(req, userEmail, role) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => {
+      if (err) {
+        return reject(err);
+      }
+
+      req.session.loggedIn = true;
+      req.session.user = userEmail;
+      req.session.role = role;
+      resolve();
+    });
+  });
+}
+
+function getGoogleOAuthConfig() {
+  return {
+    clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+  };
+}
+
+function getAllowedFrontendOrigin() {
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.FRONTEND_BASE_URL ||
+    process.env.GOOGLE_AUTH_SUCCESS_REDIRECT ||
+    "/";
+
+  try {
+    return new URL(frontendUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getSafeGoogleReturnTo(returnTo) {
+  const fallbackUrl =
+    process.env.GOOGLE_AUTH_SUCCESS_REDIRECT ||
+    process.env.FRONTEND_URL ||
+    process.env.FRONTEND_BASE_URL ||
+    "/";
+
+  if (!returnTo) {
+    return fallbackUrl;
+  }
+
+  try {
+    const parsedUrl = new URL(String(returnTo));
+    const allowedOrigin = getAllowedFrontendOrigin();
+
+    if (!allowedOrigin || parsedUrl.origin !== allowedOrigin) {
+      return fallbackUrl;
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return fallbackUrl;
+  }
+}
+
+function saveSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.save((err) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    });
+  });
+}
+
+function normalizeProfilePictureForResponse(profilePicture) {
+  if (!profilePicture) {
+    return null;
+  }
+
+  const normalized = String(profilePicture).trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+    try {
+      const parsedUrl = new URL(normalized);
+      if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+        return parsedUrl.toString();
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return `${process.env.PROFILE_IMAGE_BASE}/${normalized}`;
+}
 
 // ==============================
 // API: Get current user
@@ -52,11 +161,12 @@ const apiGetUser = async (req, res) => {
       .json({ success: false, message: "User not found" });
   }
 
-  // Always return profilePicture as CDN URL if present, even if only filename is stored
-  let profilePicture = user.profilePicture || null;
-  if (profilePicture && !profilePicture.startsWith('http')) {
-    profilePicture = `${process.env.PROFILE_IMAGE_BASE}/${profilePicture}`;
-  }
+  const profilePicture = normalizeProfilePictureForResponse(user.profilePicture);
+  console.log("[PROFILE_PICTURE][api_user_response]", JSON.stringify({
+    email: user.user,
+    storedProfilePicture: user.profilePicture || null,
+    returnedProfilePicture: profilePicture,
+  }));
   res.json({
     success: true,
     _id: user._id,
@@ -66,6 +176,8 @@ const apiGetUser = async (req, res) => {
     nickname: user.nickname,
     role: user.role,
     profilePicture,
+    avatar: profilePicture,
+    picture: profilePicture,
   });
 };
 
@@ -179,6 +291,9 @@ const login = async (req, res) => {
       );
 
     if (authStatus) {
+      const redirectUrl =
+        req.session.redirectUrl || "/user";
+
       const user =
         await userModel.getUserByEmail(
           req.body.u
@@ -191,12 +306,11 @@ const login = async (req, res) => {
         });
       }
 
-      req.session.loggedIn = true;
-      req.session.user = req.body.u;
-      req.session.role = user.role;
-
-      const redirectUrl =
-        req.session.redirectUrl || "/user";
+      await establishUserSession(
+        req,
+        user.user,
+        user.role
+      );
 
       delete req.session.redirectUrl;
       res.redirect(redirectUrl);
@@ -233,9 +347,7 @@ const apiLogin = async (req, res) => {
         message: "Invalid email or password"
       });
     }
-    req.session.loggedIn = true;
-    req.session.user = email;
-    req.session.role = user.role;
+    await establishUserSession(req, user.user, user.role);
     res.json({
       success: true,
       email: user.user,
@@ -251,6 +363,142 @@ const apiLogin = async (req, res) => {
       success: false,
       message: "Server error. Please try again later."
     });
+  }
+};
+
+const googleAuthStart = async (req, res) => {
+  const {
+    clientId,
+    redirectUri,
+  } = getGoogleOAuthConfig();
+
+  if (!clientId || !redirectUri) {
+    return res.status(500).json({
+      success: false,
+      message: "Google OAuth is not configured",
+    });
+  }
+
+  const state = crypto.randomBytes(24).toString("hex");
+  req.session.googleOAuthState = state;
+  req.session.googleReturnTo = getSafeGoogleReturnTo(
+    req.query.returnTo || req.get("referer")
+  );
+  await saveSession(req);
+
+  const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", redirectUri);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("scope", "openid email profile");
+  authUrl.searchParams.set("state", state);
+  authUrl.searchParams.set("prompt", "select_account");
+
+  res.redirect(authUrl.toString());
+};
+
+const googleAuthCallback = async (req, res) => {
+  const {
+    code,
+    state,
+    error,
+  } = req.query;
+
+  const frontendErrorRedirect = buildFrontendRedirectUrl(
+    "error",
+    "google_auth_failed"
+  );
+
+  if (error) {
+    return res.redirect(frontendErrorRedirect);
+  }
+
+  if (!code || !state || state !== req.session.googleOAuthState) {
+    return res.redirect(frontendErrorRedirect);
+  }
+
+  delete req.session.googleOAuthState;
+
+  const {
+    clientId,
+    clientSecret,
+    redirectUri,
+  } = getGoogleOAuthConfig();
+
+  if (!clientId || !clientSecret || !redirectUri) {
+    return res.redirect(frontendErrorRedirect);
+  }
+
+  try {
+    const tokenResponse = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        code: String(code),
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const accessToken = tokenResponse.data?.access_token;
+    if (!accessToken) {
+      return res.redirect(frontendErrorRedirect);
+    }
+
+    const googleUserResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const googleUser = googleUserResponse.data;
+    const email = googleUser?.email?.toLowerCase();
+    const isVerified = googleUser?.verified_email === true;
+
+    if (!email || !isVerified) {
+      return res.redirect(frontendErrorRedirect);
+    }
+
+    console.log("[PROFILE_PICTURE][google_userinfo]", JSON.stringify({
+      email,
+      googlePicture: googleUser.picture || null,
+      verified: isVerified,
+    }));
+
+    const existingUser = await userModel.getUserByEmail(email);
+    const user = await userModel.findOrCreateGoogleUser({
+      email,
+      firstName: googleUser.given_name || googleUser.name || "Google",
+      lastName: googleUser.family_name || "",
+    });
+    const syncedUser = await userModel.syncGoogleProfilePicture(
+      user,
+      googleUser.picture || ""
+    );
+
+    await establishUserSession(req, syncedUser.user, syncedUser.role);
+
+    const successRedirect = getSafeGoogleReturnTo(req.session.googleReturnTo);
+    delete req.session.googleReturnTo;
+    console.log("[PROFILE_PICTURE][google_sync_result]", JSON.stringify({
+      email: syncedUser.user,
+      accountAction: existingUser ? "existing_user" : "created_user",
+      storedProfilePicture: syncedUser.profilePicture || null,
+    }));
+
+    res.redirect(successRedirect);
+  } catch (err) {
+    console.error("GOOGLE AUTH ERROR:", err?.response?.data || err);
+    res.redirect(frontendErrorRedirect);
   }
 };
 
@@ -612,6 +860,8 @@ export {
   editUser,
   deleteUser,
   apiLogin,
+  googleAuthStart,
+  googleAuthCallback,
   apiLogout,
   apiGetUser,
   uploadProfilePicture,

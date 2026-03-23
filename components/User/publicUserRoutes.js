@@ -1,9 +1,6 @@
 
 import express from "express";
 import * as userController from "./controller.js";
-import crypto from "crypto";
-import axios from "axios";
-import { User } from "./model.js";
 
 const router = express.Router();
 
@@ -11,6 +8,8 @@ const router = express.Router();
 router.get("/user", userController.getUser);
 router.get("/login", userController.loginForm);
 router.post("/login", userController.login);
+router.get("/auth/google", userController.googleAuthStart);
+router.get("/auth/google/callback", userController.googleAuthCallback);
 router.get("/register", userController.registerForm);
 router.post("/register", userController.register);
 router.get("/logout", userController.logout);
