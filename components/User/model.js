@@ -333,6 +333,10 @@ function shouldRefreshFromGoogle(profilePicture) {
     }
 
     const normalized = String(profilePicture).trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+        return false;
+    }
+
     if (!isValidExternalProfilePicture(normalized)) {
         return true;
     }

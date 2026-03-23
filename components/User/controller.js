@@ -141,6 +141,35 @@ function normalizeProfilePictureForResponse(profilePicture) {
   return `${process.env.PROFILE_IMAGE_BASE}/${normalized}`;
 }
 
+async function importGoogleProfilePictureToR2(user, googlePhotoUrl) {
+  if (!user || !googlePhotoUrl) {
+    return null;
+  }
+
+  const response = await axios.get(googlePhotoUrl, {
+    responseType: "arraybuffer",
+    timeout: 10000,
+    maxRedirects: 5,
+  });
+
+  const fileName = `profile-${user._id}-${Date.now()}-${crypto.randomUUID()}.webp`;
+  const buffer = await sharp(Buffer.from(response.data))
+    .resize(400, 400, { fit: "cover" })
+    .webp({ quality: 85 })
+    .toBuffer();
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_PROFILE_BUCKET_NAME,
+      Key: fileName,
+      Body: buffer,
+      ContentType: "image/webp",
+    })
+  );
+
+  return fileName;
+}
+
 // ==============================
 // API: Get current user
 // ==============================
@@ -355,7 +384,7 @@ const apiLogin = async (req, res) => {
       lastName: user.lastName,
       nickname: user.nickname,
       role: user.role,
-      profilePicture: user.profilePicture || null,
+      profilePicture: normalizeProfilePictureForResponse(user.profilePicture),
     });
   } catch (err) {
     console.error(err);
@@ -480,9 +509,20 @@ const googleAuthCallback = async (req, res) => {
       firstName: googleUser.given_name || googleUser.name || "Google",
       lastName: googleUser.family_name || "",
     });
+    let importedGoogleProfilePicture = null;
+
+    try {
+      importedGoogleProfilePicture = await importGoogleProfilePictureToR2(
+        user,
+        googleUser.picture || ""
+      );
+    } catch (pictureErr) {
+      console.error("GOOGLE PROFILE IMPORT ERROR:", pictureErr.message);
+    }
+
     const syncedUser = await userModel.syncGoogleProfilePicture(
       user,
-      googleUser.picture || ""
+      importedGoogleProfilePicture || ""
     );
 
     await establishUserSession(req, syncedUser.user, syncedUser.role);
@@ -493,6 +533,7 @@ const googleAuthCallback = async (req, res) => {
       email: syncedUser.user,
       accountAction: existingUser ? "existing_user" : "created_user",
       storedProfilePicture: syncedUser.profilePicture || null,
+      importedToR2: Boolean(importedGoogleProfilePicture),
     }));
 
     res.redirect(successRedirect);
