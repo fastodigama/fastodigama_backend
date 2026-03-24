@@ -58,3 +58,14 @@ export {
   deleteLikesByArticleId,
   deleteManyByUserId
 };
+
+export default {
+  Like,
+  likeArticle,
+  unlikeArticle,
+  isArticleLikedByUser,
+  getLikedArticlesByUser,
+  getUsersWhoLikedArticle,
+  deleteLikesByArticleId,
+  deleteManyByUserId
+};
