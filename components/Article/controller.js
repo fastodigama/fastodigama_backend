@@ -94,14 +94,91 @@ const getClientCountry = (request) => {
   return country && country !== "XX" ? country : "";
 };
 
-const isNonHumanFetcher = (userAgent = "") =>
-  /bot|crawl|spider|slurp|bing|duckduck|baidu|yandex|node|vercel|next\.js|undici/i.test(
-    userAgent
+const NON_HUMAN_USER_AGENT_RE =
+  /bot|crawl|spider|slurp|bingpreview|duckduck|baidu|yandex|headless|lighthouse|pagespeed|curl|wget|python-requests|python\/|axios|postman|insomnia|go-http-client|java\/|libwww-perl|ruby|php|node|undici|vercel|next\.js/i;
+
+const getRequestClassifierSignals = (request) => {
+  const rawUserAgent = request.get("User-Agent") || "";
+  const forwardedUserAgent = request.get("X-Forwarded-User-Agent") || "";
+  const effectiveUserAgent =
+    forwardedUserAgent || rawUserAgent || "";
+  const accept = request.get("Accept") || "";
+  const acceptLanguage = request.get("Accept-Language") || "";
+  const secFetchMode = request.get("Sec-Fetch-Mode") || "";
+  const secFetchDest = request.get("Sec-Fetch-Dest") || "";
+  const secFetchSite = request.get("Sec-Fetch-Site") || "";
+  const secChUa = request.get("Sec-CH-UA") || "";
+  const secChUaMobile = request.get("Sec-CH-UA-Mobile") || "";
+  const secChUaPlatform = request.get("Sec-CH-UA-Platform") || "";
+
+  return {
+    rawUserAgent,
+    forwardedUserAgent,
+    effectiveUserAgent,
+    accept,
+    acceptLanguage,
+    secFetchMode,
+    secFetchDest,
+    secFetchSite,
+    secChUa,
+    secChUaMobile,
+    secChUaPlatform
+  };
+};
+
+const isNonHumanFetcher = (request) => {
+  const {
+    rawUserAgent,
+    forwardedUserAgent,
+    effectiveUserAgent,
+    accept,
+    acceptLanguage,
+    secFetchMode,
+    secFetchDest,
+    secFetchSite,
+    secChUa,
+    secChUaMobile,
+    secChUaPlatform
+  } = getRequestClassifierSignals(request);
+
+  const rawLooksAutomated = NON_HUMAN_USER_AGENT_RE.test(rawUserAgent);
+  const effectiveLooksAutomated =
+    effectiveUserAgent && NON_HUMAN_USER_AGENT_RE.test(effectiveUserAgent);
+  const browserLikeUserAgent = /mozilla\/5\.0/i.test(effectiveUserAgent);
+  const acceptsHtml = /text\/html|application\/xhtml\+xml/i.test(accept);
+  const hasBrowserHeaders = Boolean(
+    acceptLanguage ||
+      secChUa ||
+      secChUaMobile ||
+      secChUaPlatform ||
+      secFetchSite ||
+      secFetchMode === "navigate" ||
+      secFetchDest === "document"
   );
 
+  if (!rawUserAgent && !forwardedUserAgent) {
+    return true;
+  }
+
+  if (effectiveLooksAutomated) {
+    return true;
+  }
+
+  // A proxy may fetch server-side with "node"/"undici" while preserving the
+  // original browser UA in X-Forwarded-User-Agent. Treat those as browser views.
+  if (rawLooksAutomated && browserLikeUserAgent && (acceptsHtml || hasBrowserHeaders)) {
+    return false;
+  }
+
+  if (browserLikeUserAgent && (acceptsHtml || hasBrowserHeaders)) {
+    return false;
+  }
+
+  return rawLooksAutomated || (!acceptsHtml && !hasBrowserHeaders);
+};
+
 const shouldCountAsReaderView = (request) => {
-  const rawUserAgent = request.get("User-Agent") || "";
-  return !isNonHumanFetcher(rawUserAgent);
+  return !isNonHumanFetcher(request);
 };
 
 const getViewedArticlesCookie = (request) => {
