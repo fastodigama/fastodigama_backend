@@ -95,7 +95,7 @@ const getClientCountry = (request) => {
 };
 
 const NON_HUMAN_USER_AGENT_RE =
-  /bot|crawl|crawler|spider|slurp|bingpreview|duckduck|baidu|yandex|headless|lighthouse|pagespeed|curl|wget|python-requests|python\/|axios|postman|insomnia|go-http-client|java\/|libwww-perl|ruby|php|node|undici|vercel|next\.js|facebookexternalhit|meta-externalagent|meta-externalfetcher|twitterbot|slackbot|discordbot|whatsapp|telegrambot|linkedinbot|embedly|quora link preview|vkshare|skypeuripreview|google-read-aloud|applebot|chatgpt-user|gptbot|claudebot|ccbot|amazonbot|perplexitybot|bytespider/i;
+  /bot|crawl|spider|slurp|bingpreview|duckduck|baidu|yandex|headless|lighthouse|pagespeed|curl|wget|python-requests|python\/|axios|postman|insomnia|go-http-client|java\/|libwww-perl|ruby|php|node|undici|vercel|next\.js/i;
 
 const getRequestClassifierSignals = (request) => {
   const rawUserAgent = request.get("User-Agent") || "";
@@ -179,10 +179,6 @@ const isNonHumanFetcher = (request) => {
 
 const shouldCountAsReaderView = (request) => {
   return !isNonHumanFetcher(request);
-};
-
-const getViewCountDecision = (request) => {
-  return shouldCountAsReaderView(request) ? "counted" : "skipped-non-human";
 };
 
 const getViewedArticlesCookie = (request) => {
@@ -408,9 +404,8 @@ const getArticleBySlugApiResponse = async (request, response) => {
     const { clientIp, forwardedForHeader } = getClientIpDetails(request);
     const clientCountry = getClientCountry(request);
     const shouldCountView = shouldCountAsReaderView(request);
-    const countDecision = getViewCountDecision(request);
     console.log(
-      `[API] Fetching article by slug: ${slug} | View-Decision: ${countDecision} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${clientCountry ? ` | Country: ${clientCountry}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
+      `[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${clientCountry ? ` | Country: ${clientCountry}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
     );
     let article = await articleModel.getArticleBySlug(slug);
     if (!article) {
@@ -740,9 +735,8 @@ const getArticleByIdApiResponse = async (request, response) => {
     const rawUserAgent = request.get("User-Agent") || "";
     const { clientIp, forwardedForHeader } = getClientIpDetails(request);
     const clientCountry = getClientCountry(request);
-    const countDecision = getViewCountDecision(request);
     console.log(
-      `[API] Fetching article by id: ${id} | View-Decision: ${countDecision} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${clientCountry ? ` | Country: ${clientCountry}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
+      `[API] Fetching article by id: ${id} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${clientCountry ? ` | Country: ${clientCountry}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
     );
     // Increment views atomically and return the updated document, only if not a bot/crawler
     const isBot = !shouldCountAsReaderView(request);
