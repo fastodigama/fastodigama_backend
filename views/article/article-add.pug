@@ -7,13 +7,6 @@ block layout-content
         .card-body.p-4
           h1.h3.mb-4.text-center Add New Article
 
-          .alert.alert-warning.d-none#article-draft-alert(role="alert")
-            .d-flex.flex-column.flex-md-row.align-items-md-center.justify-content-between.gap-2
-              span You have an unsaved article draft from this browser. Text and selections can be restored, but uploaded image files cannot.
-              .d-flex.gap-2
-                button#restore-article-draft.btn.btn-sm.btn-dark(type="button") Restore Draft
-                button#discard-article-draft.btn.btn-sm.btn-outline-dark(type="button") Discard
-
           //- Form targeting your Express submission route
           form#add-article-form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
             
@@ -68,6 +61,18 @@ block layout-content
             // 3. Article Text
             .mb-3
               label.form-label(for="article-text") Article Text
+              .card.border-0.bg-light.mb-2
+                .card-body.py-2
+                  .d-flex.flex-wrap.gap-2.article-markdown-toolbar(data-target="article-text")
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bold") Bold
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="italic") Italic
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="quote") Quote
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="heading") Heading
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="link") Link
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bullets") Bullets
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="numbered") Numbered List
+                    button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="table") Table
+              .form-text.mb-2 Use Markdown for formatting like bold, italics, quotes, headings, links, and lists.
               textarea.form-control(
                 id="article-text",
                 name="text",
@@ -193,9 +198,6 @@ block layout-content
       // --- 1. HANDLE ADDING MORE IMAGES ---
       const addImageBtn = document.getElementById('add-more-images');
       const imageContainer = document.getElementById('image-container');
-      const draftAlert = document.getElementById('article-draft-alert');
-      const restoreDraftBtn = document.getElementById('restore-article-draft');
-      const discardDraftBtn = document.getElementById('discard-article-draft');
       let imageCount = 1; // Keep track of the number of images
 
       addImageBtn.addEventListener('click', function() {
@@ -244,6 +246,72 @@ block layout-content
       // --- 2b. HANDLE ADDING MORE SOURCES ---
       const addSourceBtn = document.getElementById('add-more-sources');
       const sourcesContainer = document.getElementById('sources-container');
+      const markdownToolbar = document.querySelector('.article-markdown-toolbar');
+      const articleTextarea = document.getElementById('article-text');
+
+      const wrapSelection = (textarea, before, after = before, fallback = 'text') => {
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        const selected = textarea.value.slice(start, end) || fallback;
+        const replacement = `${before}${selected}${after}`;
+        textarea.setRangeText(replacement, start, end, 'select');
+        textarea.focus();
+      };
+
+      const prefixLines = (textarea, prefix, fallback = 'List item') => {
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        const selected = textarea.value.slice(start, end) || fallback;
+        const replacement = selected
+          .split('\n')
+          .map((line, index) => `${typeof prefix === 'function' ? prefix(index) : prefix}${line || fallback}`)
+          .join('\n');
+        textarea.setRangeText(replacement, start, end, 'select');
+        textarea.focus();
+      };
+
+      if (markdownToolbar && articleTextarea) {
+        markdownToolbar.addEventListener('click', function(event) {
+          const button = event.target.closest('[data-md-action]');
+          if (!button) return;
+
+          const action = button.getAttribute('data-md-action');
+          switch (action) {
+            case 'bold':
+              wrapSelection(articleTextarea, '**', '**', 'bold text');
+              break;
+            case 'italic':
+              wrapSelection(articleTextarea, '*', '*', 'italic text');
+              break;
+            case 'quote':
+              prefixLines(articleTextarea, '> ', 'Quoted text');
+              break;
+            case 'heading':
+              prefixLines(articleTextarea, '## ', 'Heading');
+              break;
+            case 'link':
+              wrapSelection(articleTextarea, '[', '](https://example.com)', 'link text');
+              break;
+            case 'bullets':
+              prefixLines(articleTextarea, '- ', 'List item');
+              break;
+            case 'numbered':
+              prefixLines(articleTextarea, (index) => `${index + 1}. `, 'List item');
+              break;
+            case 'table':
+              wrapSelection(
+                articleTextarea,
+                '',
+                '',
+                '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |'
+              );
+              break;
+          }
+
+          saveDraft();
+        });
+      }
+
       if (addSourceBtn && sourcesContainer) {
         addSourceBtn.addEventListener('click', function() {
           const originalSource = sourcesContainer.querySelector('.source-block');
@@ -309,9 +377,6 @@ block layout-content
 
       const clearDraft = () => {
         localStorage.removeItem(draftKey);
-        if (draftAlert) {
-          draftAlert.classList.add('d-none');
-        }
       };
 
       const restoreDraft = () => {
@@ -339,10 +404,6 @@ block layout-content
           applyNamedValues('sourceTitles', data.sourceTitles || []);
           applyNamedValues('sourceUrls', data.sourceUrls || []);
           applyNamedValues('alt', data.alt || []);
-
-          if (draftAlert) {
-            draftAlert.classList.add('d-none');
-          }
         } catch (error) {
           console.error('Failed to restore article draft:', error);
         }
@@ -366,19 +427,12 @@ block layout-content
         // Show the spinner and change the text
         submitSpinner.classList.remove('d-none');
         submitText.textContent = 'Optimizing & Uploading...';
+        clearDraft();
       });
 
       window.addEventListener('beforeunload', saveDraft);
 
-      if (localStorage.getItem(draftKey) && draftAlert) {
-        draftAlert.classList.remove('d-none');
-      }
-
-      if (restoreDraftBtn) {
-        restoreDraftBtn.addEventListener('click', restoreDraft);
-      }
-
-      if (discardDraftBtn) {
-        discardDraftBtn.addEventListener('click', clearDraft);
+      if (localStorage.getItem(draftKey)) {
+        restoreDraft();
       }
     });

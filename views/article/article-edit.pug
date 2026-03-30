@@ -60,6 +60,18 @@ block layout-content
                         //- Article text field
                         .mb-3
                             label.form-label(for="article-text") Article Text
+                            .card.border-0.bg-light.mb-2
+                                .card-body.py-2
+                                    .d-flex.flex-wrap.gap-2.article-markdown-toolbar(data-target="article-text")
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bold") Bold
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="italic") Italic
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="quote") Quote
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="heading") Heading
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="link") Link
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bullets") Bullets
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="numbered") Numbered List
+                                        button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="table") Table
+                            .form-text.mb-2 Use Markdown for formatting like bold, italics, quotes, headings, links, and lists.
                             textarea.form-control(
                                 id="article-text",
                                 name="text",
@@ -266,6 +278,69 @@ block layout-content
             const embedVideoInput = document.getElementById('embedVideo');
             const embedVideoPositionSelect = document.getElementById('embedVideoPosition');
             const deleteVideoBtn = document.getElementById('delete-video-btn');
+            const markdownToolbar = document.querySelector('.article-markdown-toolbar');
+            const articleTextarea = document.getElementById('article-text');
+
+            const wrapSelection = (textarea, before, after = before, fallback = 'text') => {
+                const start = textarea.selectionStart ?? 0;
+                const end = textarea.selectionEnd ?? 0;
+                const selected = textarea.value.slice(start, end) || fallback;
+                const replacement = `${before}${selected}${after}`;
+                textarea.setRangeText(replacement, start, end, 'select');
+                textarea.focus();
+            };
+
+            const prefixLines = (textarea, prefix, fallback = 'List item') => {
+                const start = textarea.selectionStart ?? 0;
+                const end = textarea.selectionEnd ?? 0;
+                const selected = textarea.value.slice(start, end) || fallback;
+                const replacement = selected
+                    .split('\n')
+                    .map((line, index) => `${typeof prefix === 'function' ? prefix(index) : prefix}${line || fallback}`)
+                    .join('\n');
+                textarea.setRangeText(replacement, start, end, 'select');
+                textarea.focus();
+            };
+
+            if (markdownToolbar && articleTextarea) {
+                markdownToolbar.addEventListener('click', function(event) {
+                    const button = event.target.closest('[data-md-action]');
+                    if (!button) return;
+
+                    const action = button.getAttribute('data-md-action');
+                    switch (action) {
+                        case 'bold':
+                            wrapSelection(articleTextarea, '**', '**', 'bold text');
+                            break;
+                        case 'italic':
+                            wrapSelection(articleTextarea, '*', '*', 'italic text');
+                            break;
+                        case 'quote':
+                            prefixLines(articleTextarea, '> ', 'Quoted text');
+                            break;
+                        case 'heading':
+                            prefixLines(articleTextarea, '## ', 'Heading');
+                            break;
+                        case 'link':
+                            wrapSelection(articleTextarea, '[', '](https://example.com)', 'link text');
+                            break;
+                        case 'bullets':
+                            prefixLines(articleTextarea, '- ', 'List item');
+                            break;
+                        case 'numbered':
+                            prefixLines(articleTextarea, (index) => `${index + 1}. `, 'List item');
+                            break;
+                        case 'table':
+                            wrapSelection(
+                                articleTextarea,
+                                '',
+                                '',
+                                '| Column 1 | Column 2 |\n| --- | --- |\n| Value 1 | Value 2 |'
+                            );
+                            break;
+                    }
+                });
+            }
 
             if (form && submitBtn && submitSpinner && submitText) {
                 form.addEventListener('submit', function() {
