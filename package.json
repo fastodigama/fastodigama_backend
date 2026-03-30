@@ -20,7 +20,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ./index.js"
+    "dev": "nodemon ./index.js",
+    "migrate:article-authors": "node ./scripts/migrate-article-authors.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",

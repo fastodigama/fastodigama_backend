@@ -1,0 +1,67 @@
+extends ../common/layout
+
+block layout-content
+  .row.justify-content-center
+    .col-lg-8
+      .card.shadow-sm
+        .card-body.p-4
+          h1.h3.mb-4.text-center Edit Author
+
+          if err
+            .alert.alert-danger= err
+
+          form(action="/admin/author/edit/submit", method="post", enctype="multipart/form-data", autocomplete="off")
+            input(type="hidden", name="authorId", value=author._id)
+
+            .mb-3
+              label.form-label(for="name") Name
+              input.form-control(type="text", id="name", name="name", value=author.name, required)
+
+            .mb-3
+              label.form-label(for="jobTitle") Job Title
+              input.form-control(type="text", id="jobTitle", name="jobTitle", value=author.jobTitle || "")
+
+            .mb-3
+              label.form-label(for="bio") Bio
+              textarea.form-control(id="bio", name="bio", rows="6")= author.bio || ""
+
+            if author.photo && author.photo.url
+              .mb-3
+                label.form-label Current Photo
+                .mt-2.col-sm-6.col-md-4.col-lg-3.p-0
+                  img.img-fluid.rounded.w-100(src=author.photo.url, alt=author.photo.alt || author.name)
+
+            .row.g-3
+              .col-12
+                label.form-label(for="photo") Replace Photo
+                input.form-control(type="file", id="photo", name="photo", accept="image/*")
+                .form-text Photo alt text will automatically use the author name.
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="email") Email
+                input.form-control(type="email", id="email", name="email", value=author.email || "")
+              .col-md-6
+                .form-check.mt-4.pt-2
+                  input.form-check-input(type="checkbox", id="isActive", name="isActive", checked=author.isActive)
+                  label.form-check-label(for="isActive") Active author
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="website") Website
+                input.form-control(type="url", id="website", name="website", value=(author.socialLinks && author.socialLinks.website) || "")
+              .col-md-6
+                label.form-label(for="twitter") Twitter/X
+                input.form-control(type="url", id="twitter", name="twitter", value=(author.socialLinks && author.socialLinks.twitter) || "")
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="linkedin") LinkedIn
+                input.form-control(type="url", id="linkedin", name="linkedin", value=(author.socialLinks && author.socialLinks.linkedin) || "")
+              .col-md-6
+                label.form-label(for="instagram") Instagram
+                input.form-control(type="url", id="instagram", name="instagram", value=(author.socialLinks && author.socialLinks.instagram) || "")
+
+            .d-flex.justify-content-end.gap-2.mt-4
+              a.btn.btn-secondary(href="/admin/author") Cancel
+              button.btn.btn-dark(type="submit") Save Changes

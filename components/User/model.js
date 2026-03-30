@@ -16,7 +16,7 @@ async function getUserById(id) {
 
 // Update user information by ID (admin only)
 // Returns true if successful, false if user not found or username taken
-async function updateUserById(id, newUsername, firstName, lastName, newNickname) {
+async function updateUserById(id, newUsername, firstName, lastName, newNickname, newRole) {
     // Normalize email to lowercase
     newUsername = newUsername.toLowerCase();
     // Check if new username or nickname already exists (only if changing)
@@ -32,7 +32,13 @@ async function updateUserById(id, newUsername, firstName, lastName, newNickname)
     }
     let result = await User.updateOne(
         { _id: id },
-        { user: newUsername, firstName, lastName, ...(newNickname && { nickname: newNickname }) }
+        {
+            user: newUsername,
+            firstName,
+            lastName,
+            ...(newNickname && { nickname: newNickname }),
+            ...(newRole && { role: newRole })
+        }
     );
     return result.modifiedCount === 1;
 }
@@ -65,7 +71,7 @@ const UserSchema = new mongoose.Schema({
     firstName: { type: String },
     lastName: { type: String },
     nickname: { type: String, unique: true, sparse: true },
-    role: { type: String, enum: ["user", "editor", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "author", "admin"], default: "user" },
     profilePicture: { type: String, default: '' },
     resetPasswordTokenHash: { type: String, default: null },
     resetPasswordExpiresAt: { type: Date, default: null },
@@ -167,7 +173,7 @@ async function getUser(username) {
 
 // Create a new user account
 // Returns true if successful, false if user already exists
-async function addUser(username, pw, f_Name, l_name, nick_name) {
+async function addUser(username, pw, f_Name, l_name, nick_name, role = "user") {
     try {
         // Normalize email to lowercase
         username = username.toLowerCase();
@@ -196,7 +202,8 @@ async function addUser(username, pw, f_Name, l_name, nick_name) {
             password: hashedPassword,
             firstName: f_Name,
             lastName: l_name,
-            nickname: nick_name
+            nickname: nick_name,
+            role: ["user", "author", "admin"].includes(role) ? role : "user"
         });
 
         // Save user to database

@@ -24,16 +24,38 @@ block layout-content
                             )
 
                         //- 🌟 NEW: Author field
-                        .mb-3
-                            label.form-label(for="author") Author
-                            input.form-control(
-                                type="text",
-                                id="author",
-                                name="author",
-                                value=editArticle.author || "Fadel Matar",
-                                placeholder="e.g., Fadel Matar & AI",
-                                required
-                            )
+                        if lockedAuthor
+                            .mb-3
+                                label.form-label Author
+                                input.form-control(
+                                    type="text",
+                                    value=lockedAuthor.name,
+                                    readonly
+                                )
+                                input(type="hidden", id="authorId", name="authorId", value=lockedAuthor._id)
+                                input(type="hidden", id="author", name="author", value=lockedAuthor.name)
+                                .form-text This article will stay assigned to your linked author profile.
+                        else
+                            .mb-3
+                                label.form-label(for="authorId") Author
+                                select.form-select(id="authorId", name="authorId")
+                                    option(value="") Select an author
+                                    each item in authors
+                                        option(
+                                            value=item._id,
+                                            selected=(editArticle.authorId && String(item._id) === String(editArticle.authorId._id))
+                                        )= item.name
+                                .form-text Choose an existing author record. If left empty, the legacy author name below will be used.
+
+                            .mb-3
+                                label.form-label(for="author") Legacy Author Name
+                                input.form-control(
+                                    type="text",
+                                    id="author",
+                                    name="author",
+                                    value=editArticle.author || "",
+                                    placeholder="Optional if no author is selected above"
+                                )
 
                         //- Article text field
                         .mb-3
@@ -42,7 +64,6 @@ block layout-content
                                 id="article-text",
                                 name="text",
                                 rows="10",
-                                style="min-height: 200px",
                                 autocomplete="off",
                                 required
                             )= editArticle.text
@@ -66,7 +87,7 @@ block layout-content
                                     each image, index in editArticle.images
                                         .col-md-4.image-card(data-image-index=index, data-image-key=image.key, data-article-id=editArticle._id)
                                             .card.position-relative.h-100
-                                                img.card-img-top(src=image.url, alt=image.alt || editArticle.title, style="height: 150px; object-fit: cover;")
+                                                img.card-img-top(src=image.url, alt=image.alt || editArticle.title)
                                                 .card-body.p-3.d-flex.flex-column
                                                     label.form-label.small.text-muted Edit Caption:
                                                     

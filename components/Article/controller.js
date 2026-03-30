@@ -5,10 +5,12 @@ const getDashboardArticleStats = async (req, res) => {
   try {
     const today = getCurrentDateInTimeZone();
     const yesterday = shiftDateString(today, -1);
+    const lockedAuthor = await getLockedAuthorForRequest(req);
+    const articleScope = buildArticleOwnershipQuery(lockedAuthor);
 
     const [todayCount, yesterdayCount] = await Promise.all([
-      articleModel.countArticlesByDate(today),
-      articleModel.countArticlesByDate(yesterday)
+      articleModel.countArticlesByDate(today, getAppTimeZone(), articleScope),
+      articleModel.countArticlesByDate(yesterday, getAppTimeZone(), articleScope)
     ]);
 
     res.json({ todayCount, yesterdayCount, timeZone: getAppTimeZone(), today });
@@ -23,7 +25,9 @@ const getArticlesByDateApi = async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: "Missing date" });
-    const articles = await articleModel.getArticlesByDate(date);
+    const lockedAuthor = await getLockedAuthorForRequest(req);
+    const articleScope = buildArticleOwnershipQuery(lockedAuthor);
+    const articles = await articleModel.getArticlesByDate(date, getAppTimeZone(), articleScope);
     res.json({ articles, timeZone: getAppTimeZone(), date });
   } catch (err) {
     console.error("Articles by date error:", err);
@@ -265,7 +269,7 @@ const getFeedItems = async () => {
     return {
       title: articleObj.title || "Untitled",
       url: articleUrl,
-      author: articleObj.author || "FASTODIGAMA",
+      author: getArticleAuthorName(articleObj),
       publishedAt: articleObj.createdAt || new Date(),
       updatedAt: articleObj.updatedAt || articleObj.createdAt || new Date(),
       summary,
@@ -576,8 +580,10 @@ const unlikeArticleApi = async (request, response) => {
   }
 };
 import mongoose from "mongoose";
-import articleModel from "./model.js";
+import articleModel, { ArticleModel } from "./model.js";
 import categoryModel from "../Category/model.js";
+import authorModel from "../Author/model.js";
+import userModel from "../User/model.js";
 import commentModel from "../Comment/model.js";
 import { marked } from "marked";
 import multer from "multer";
@@ -590,6 +596,47 @@ const upload = multer({
   storage: multer.memoryStorage(), 
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
 });
+
+const getArticleAuthorName = (article) =>
+  article?.authorId?.name || article?.author || "FASTODIGAMA";
+
+const getLockedAuthorForRequest = async (request) => {
+  if (request.session?.role !== "author") {
+    return null;
+  }
+
+  const user = await userModel.getUserByEmail(request.session?.user);
+  const linkedAuthor = user?._id
+    ? await authorModel.getAuthorByUserId(user._id)
+    : await authorModel.getAuthorByEmail(request.session?.user);
+  if (linkedAuthor) {
+    return {
+      _id: linkedAuthor._id,
+      name: linkedAuthor.name,
+      isLinkedProfile: true
+    };
+  }
+
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+
+  return {
+    _id: null,
+    name: fullName || user?.nickname || user?.user || "Author",
+    isLinkedProfile: false
+  };
+};
+
+const buildArticleOwnershipQuery = (lockedAuthor) => {
+  if (!lockedAuthor) {
+    return {};
+  }
+
+  if (lockedAuthor._id) {
+    return { authorId: lockedAuthor._id };
+  }
+
+  return { author: lockedAuthor.name };
+};
 
 const queueArticleIndexNow = (slug, action) => {
   const articleUrl = buildArticleUrl(slug);
@@ -616,23 +663,30 @@ const getArticlesApiResponse = async (request, response) => {
 
     const search = request.query.search || "";
     const category = request.query.category || "";
+    const lockedAuthor = await getLockedAuthorForRequest(request);
+    const ownershipQuery = buildArticleOwnershipQuery(lockedAuthor);
+    const searchConditions = search
+      ? {
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { text: { $regex: search, $options: "i" } }
+          ]
+        }
+      : {};
+    const categoryCondition = category ? { categoryId: category } : {};
+    const articleQuery = {
+      ...ownershipQuery,
+      ...categoryCondition,
+      ...searchConditions
+    };
 
-    let totalArticles;
-    let articles;
-
-    if (category && search) {
-      totalArticles = await articleModel.countByCategoryAndSearch(category, search);
-      articles = await articleModel.getByCategoryAndSearchPaginated(category, search, skip, limit);
-    } else if (category) {
-      totalArticles = await articleModel.countByCategory(category);
-      articles = await articleModel.getByCategoryPaginated(category, skip, limit);
-    } else if (search) {
-      totalArticles = await articleModel.countSearchArticles(search);
-      articles = await articleModel.searchArticlesPaginated(search, skip, limit);
-    } else {
-      totalArticles = await articleModel.countArticles();
-      articles = await articleModel.getArticlesPaginated(skip, limit);
-    }
+    const totalArticles = await ArticleModel.countDocuments(articleQuery);
+    const articles = await ArticleModel.find(articleQuery)
+      .populate("categoryId")
+      .populate("authorId")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const totalPages = Math.ceil(totalArticles / limit);
 
@@ -693,23 +747,30 @@ const getAllArticles = async (request, response) => {
 
   const search = request.query.search || "";
   const category = request.query.category || "";
+  const lockedAuthor = await getLockedAuthorForRequest(request);
+  const ownershipQuery = buildArticleOwnershipQuery(lockedAuthor);
+  const searchConditions = search
+    ? {
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { text: { $regex: search, $options: "i" } }
+        ]
+      }
+    : {};
+  const categoryCondition = category ? { categoryId: category } : {};
+  const articleQuery = {
+    ...ownershipQuery,
+    ...categoryCondition,
+    ...searchConditions
+  };
 
-  let totalArticles;
-  let articles;
-
-  if (category && search) {
-    totalArticles = await articleModel.countByCategoryAndSearch(category, search);
-    articles = await articleModel.getByCategoryAndSearchPaginated(category, search, skip, limit);
-  } else if (category) {
-    totalArticles = await articleModel.countByCategory(category);
-    articles = await articleModel.getByCategoryPaginated(category, skip, limit);
-  } else if (search) {
-    totalArticles = await articleModel.countSearchArticles(search);
-    articles = await articleModel.searchArticlesPaginated(search, skip, limit);
-  } else {
-    totalArticles = await articleModel.countArticles();
-    articles = await articleModel.getArticlesPaginated(skip, limit);
-  }
+  const totalArticles = await ArticleModel.countDocuments(articleQuery);
+  const articles = await ArticleModel.find(articleQuery)
+    .populate("categoryId")
+    .populate("authorId")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
   const totalPages = Math.ceil(totalArticles / limit);
   const categories = await categoryModel.getCategories();
@@ -855,7 +916,15 @@ const viewArticle = async (request, response) => {
 // Show the form to add a new article
 const addArticleForm = async (request, response) => {
   const categories = await categoryModel.getCategories();
-  response.render("article/article-add", { title: "Article Add", categories, currentPath: request.originalUrl.split('?')[0] });
+  const authors = await authorModel.getActiveAuthors();
+  const lockedAuthor = await getLockedAuthorForRequest(request);
+  response.render("article/article-add", {
+    title: "Article Add",
+    categories,
+    authors,
+    lockedAuthor,
+    currentPath: request.originalUrl.split('?')[0]
+  });
 };
 
 
@@ -863,7 +932,11 @@ const addArticleForm = async (request, response) => {
 const addNewArticle = async (request, response) => {
   try {
     // Extracted author, embedVideo, embedVideoPosition from req.body
-    const { title, text, categoryId, author, embedVideo, embedVideoPosition } = request.body; 
+    const { title, text, categoryId, authorId, author, embedVideo, embedVideoPosition } = request.body; 
+    const lockedAuthor = await getLockedAuthorForRequest(request);
+    const selectedAuthor = lockedAuthor?._id
+      ? await authorModel.getAuthorById(lockedAuthor._id)
+      : (authorId ? await authorModel.getAuthorById(authorId) : null);
 
     // Handle FAQs from form
     let faqQuestions = request.body.faqQuestions;
@@ -921,7 +994,18 @@ const addNewArticle = async (request, response) => {
     }
 
     // Added author, embedVideo, embedVideoPosition, faqs, sources to the payload sent to the model
-    const result = await articleModel.addArticle({ title, text, categoryId, author, images, embedVideo, embedVideoPosition, faqs, sources });
+    const result = await articleModel.addArticle({
+      title,
+      text,
+      categoryId,
+      authorId: selectedAuthor?._id || lockedAuthor?._id || null,
+      author: lockedAuthor?.name || selectedAuthor?.name || author,
+      images,
+      embedVideo,
+      embedVideoPosition,
+      faqs,
+      sources
+    });
     if (result) {
       queueArticleIndexNow(result.slug, "create");
       return response.redirect("/admin/article");
@@ -960,10 +1044,14 @@ const editArticleForm = async (request, response) => {
   }
 
   const categories = await categoryModel.getCategories();
+  const authors = await authorModel.getActiveAuthors();
+  const lockedAuthor = await getLockedAuthorForRequest(request);
   response.render("article/article-edit", {
     title: "Article Edit",
     editArticle,
     categories,
+    authors,
+    lockedAuthor,
     currentPath: request.originalUrl.split('?')[0],
   });
 };
@@ -973,10 +1061,22 @@ const editArticleForm = async (request, response) => {
 const editArticle = async (request, response) => {
   try {
     // Extracted author from req.body
-    const { articleId, title, text, categoryId, author, embedVideo, embedVideoPosition, existingImageKeys, existingImageAlts } = request.body;
+    const { articleId, title, text, categoryId, authorId, author, embedVideo, embedVideoPosition, existingImageKeys, existingImageAlts } = request.body;
+    const lockedAuthor = await getLockedAuthorForRequest(request);
+    const selectedAuthor = lockedAuthor?._id
+      ? await authorModel.getAuthorById(lockedAuthor._id)
+      : (authorId ? await authorModel.getAuthorById(authorId) : null);
     
     // Added author, embedVideo, embedVideoPosition to the update payload
-    const updateData = { title, text, categoryId, author, embedVideo, embedVideoPosition };
+    const updateData = {
+      title,
+      text,
+      categoryId,
+      authorId: selectedAuthor?._id || lockedAuthor?._id || null,
+      author: lockedAuthor?.name || selectedAuthor?.name || author,
+      embedVideo,
+      embedVideoPosition
+    };
 
     // Handle FAQs from form
     let faqQuestions = request.body.faqQuestions;

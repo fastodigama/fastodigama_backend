@@ -22,10 +22,14 @@ const ArticleSchema = new mongoose.Schema(
     title: { type: String, required: true },
     slug: { type: String, unique: true },
     text: { type: String, required: true },
+    authorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Author",
+      default: null
+    },
     author: {
       type: String,
-      required: true,
-      default: "Fadel Matar"
+      default: ""
     },
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -79,17 +83,20 @@ const ArticleModel = mongoose.model("Article", ArticleSchema);
 // Get all articles with their category information
 async function getArticles() {
   // .populate("categoryId") = fetch category name instead of just ID
-  return await ArticleModel.find({}).populate("categoryId").sort({ createdAt: -1});
+  return await ArticleModel.find({})
+    .populate("categoryId")
+    .populate("authorId")
+    .sort({ createdAt: -1});
 };
 
 // Get one article by ID
 async function getArticleById(id) {
-  return await ArticleModel.findById(id).populate("categoryId");
+  return await ArticleModel.findById(id).populate("categoryId").populate("authorId");
 };
 
 // Get one article by slug
 async function getArticleBySlug(slug) {
-  return await ArticleModel.findOne({ slug }).populate("categoryId");
+  return await ArticleModel.findOne({ slug }).populate("categoryId").populate("authorId");
 }
 
 // Count all Articles
@@ -101,6 +108,7 @@ const countArticles = () => {
 const getArticlesPaginated = (skip, limit) => {
   return ArticleModel.find()
       .populate("categoryId")
+      .populate("authorId")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -125,6 +133,7 @@ const searchArticlesPaginated = (search, skip, limit) => {
         ]
     })
     .populate("categoryId")
+    .populate("authorId")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -138,6 +147,7 @@ const countByCategory = (categoryId) => {
 const getByCategoryPaginated = (categoryId, skip, limit) => {
     return ArticleModel.find({ categoryId })
         .populate("categoryId")
+        .populate("authorId")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -164,6 +174,7 @@ const getByCategoryAndSearchPaginated = (categoryId, search, skip, limit) => {
         ]
     })
     .populate("categoryId")
+    .populate("authorId")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -193,9 +204,10 @@ async function addArticle(newArticle) {
       title: String(newArticle.title),
       slug,
       text: String(newArticle.text),
+      authorId: newArticle.authorId || null,
       categoryId: newArticle.categoryId,
       images: processedImages, // Use the processed images with guaranteed alt tags
-      author: newArticle.author && newArticle.author.trim() !== "" ? newArticle.author : "Fadel Matar",
+      author: newArticle.author && newArticle.author.trim() !== "" ? newArticle.author : "",
       embedVideo: newArticle.embedVideo || "",
       embedVideoPosition: newArticle.embedVideoPosition || "inline",
       faqs: Array.isArray(newArticle.faqs) ? newArticle.faqs : [],
@@ -331,25 +343,28 @@ async function incrementArticleViewsById(id) {
     id,
     { $inc: { views: 1 } },
     { new: true }
-  ).populate("categoryId");
+  ).populate("categoryId").populate("authorId");
 }
 
 // Get count of articles created on a specific date in the app timezone
-async function countArticlesByDate(date, timeZone = getAppTimeZone()) {
+async function countArticlesByDate(date, timeZone = getAppTimeZone(), extraQuery = {}) {
   const { start, end } = getUtcRangeForDateInTimeZone(date, timeZone);
   return ArticleModel.countDocuments({
+    ...extraQuery,
     createdAt: { $gte: start, $lt: end }
   });
 }
 
 // Get articles created on a specific date in the app timezone
-async function getArticlesByDate(date, timeZone = getAppTimeZone()) {
+async function getArticlesByDate(date, timeZone = getAppTimeZone(), extraQuery = {}) {
   const { start, end } = getUtcRangeForDateInTimeZone(date, timeZone);
   return ArticleModel.find({
+    ...extraQuery,
     createdAt: { $gte: start, $lt: end }
   }).sort({ createdAt: -1 });
 }
 
+export { ArticleModel };
 export default {
   getArticles,
   getArticleById,

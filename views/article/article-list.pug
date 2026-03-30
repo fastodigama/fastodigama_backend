@@ -43,7 +43,7 @@ block layout-content
                                 strong #{article.title}
                             br
                             small.text-muted 
-                                | Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} 
+                                | Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} | Author: #{article.authorId ? article.authorId.name : (article.author || 'Unknown')} 
                                 |  • Created: #{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : 'N/A'}
 
                         td.text-center
@@ -70,7 +70,7 @@ block layout-content
                         h5.card-title.mb-1 #{article.title}
 
                     small.text-muted.d-block.mb-2
-                        | Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} 
+                        | Category: #{article.categoryId ? article.categoryId.name : 'Uncategorized'} | Author: #{article.authorId ? article.authorId.name : (article.author || 'Unknown')} 
                         |  • Created: #{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : 'N/A'}
 
                     p.card-text.text-muted.text-truncate #{article.text}

@@ -1,0 +1,147 @@
+extends ../common/layout
+
+block layout-content
+  .row.justify-content-center
+    .col-lg-8
+      .card.shadow-sm
+        .card-body.p-4
+          h1.h3.mb-4.text-center Add Author
+
+          .alert.alert-warning.d-none#author-draft-alert(role="alert")
+            .d-flex.flex-column.flex-md-row.align-items-md-center.justify-content-between.gap-2
+              span You have an unsaved author draft from this browser. Photo files cannot be restored, but text fields can.
+              .d-flex.gap-2
+                button#restore-author-draft.btn.btn-sm.btn-dark(type="button") Restore Draft
+                button#discard-author-draft.btn.btn-sm.btn-outline-dark(type="button") Discard
+
+          if err
+            .alert.alert-danger= err
+
+          form#author-add-form(action="/admin/author/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
+            .mb-3
+              label.form-label(for="name") Name
+              input.form-control(type="text", id="name", name="name", required)
+
+            .mb-3
+              label.form-label(for="jobTitle") Job Title
+              input.form-control(type="text", id="jobTitle", name="jobTitle", placeholder="Editor, Columnist, Analyst...")
+
+            .mb-3
+              label.form-label(for="bio") Bio
+              textarea.form-control(id="bio", name="bio", rows="6", placeholder="Short author biography")
+
+            .row.g-3
+              .col-12
+                label.form-label(for="photo") Photo
+                input.form-control(type="file", id="photo", name="photo", accept="image/*")
+                .form-text Photo alt text will automatically use the author name.
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="email") Email
+                input.form-control(type="email", id="email", name="email")
+              .col-md-6
+                .form-check.mt-4.pt-2
+                  input.form-check-input(type="checkbox", id="isActive", name="isActive", checked)
+                  label.form-check-label(for="isActive") Active author
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="website") Website
+                input.form-control(type="url", id="website", name="website")
+              .col-md-6
+                label.form-label(for="twitter") Twitter/X
+                input.form-control(type="url", id="twitter", name="twitter")
+
+            .row.g-3.mt-1
+              .col-md-6
+                label.form-label(for="linkedin") LinkedIn
+                input.form-control(type="url", id="linkedin", name="linkedin")
+              .col-md-6
+                label.form-label(for="instagram") Instagram
+                input.form-control(type="url", id="instagram", name="instagram")
+
+            .d-flex.justify-content-end.gap-2.mt-4
+              a.btn.btn-secondary(href="/admin/author") Cancel
+              button.btn.btn-dark(type="submit") Save Author
+
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('author-add-form');
+      const alertBox = document.getElementById('author-draft-alert');
+      const restoreBtn = document.getElementById('restore-author-draft');
+      const discardBtn = document.getElementById('discard-author-draft');
+      const draftKey = 'fastodigama.author.add.draft';
+
+      if (!form) return;
+
+      const serializableFields = Array.from(form.elements).filter((field) => {
+        return field.name && field.type !== 'file' && field.type !== 'submit' && field.type !== 'button';
+      });
+
+      const collectDraft = () => {
+        const draft = {};
+
+        serializableFields.forEach((field) => {
+          if (field.type === 'checkbox') {
+            draft[field.name] = field.checked;
+            return;
+          }
+
+          draft[field.name] = field.value;
+        });
+
+        return draft;
+      };
+
+      const saveDraft = () => {
+        localStorage.setItem(draftKey, JSON.stringify({
+          savedAt: Date.now(),
+          data: collectDraft()
+        }));
+      };
+
+      const restoreDraft = () => {
+        const rawDraft = localStorage.getItem(draftKey);
+        if (!rawDraft) return;
+
+        try {
+          const parsed = JSON.parse(rawDraft);
+          const data = parsed && parsed.data ? parsed.data : {};
+
+          serializableFields.forEach((field) => {
+            if (!(field.name in data)) return;
+
+            if (field.type === 'checkbox') {
+              field.checked = Boolean(data[field.name]);
+              return;
+            }
+
+            field.value = data[field.name] || '';
+          });
+
+          alertBox.classList.add('d-none');
+        } catch (error) {
+          console.error('Failed to restore author draft:', error);
+        }
+      };
+
+      const clearDraft = () => {
+        localStorage.removeItem(draftKey);
+        alertBox.classList.add('d-none');
+      };
+
+      serializableFields.forEach((field) => {
+        const eventName = field.tagName === 'SELECT' || field.type === 'checkbox' ? 'change' : 'input';
+        field.addEventListener(eventName, saveDraft);
+      });
+
+      window.addEventListener('beforeunload', saveDraft);
+
+      if (localStorage.getItem(draftKey)) {
+        alertBox.classList.remove('d-none');
+      }
+
+      restoreBtn.addEventListener('click', restoreDraft);
+      discardBtn.addEventListener('click', clearDraft);
+    });

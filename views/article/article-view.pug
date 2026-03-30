@@ -232,10 +232,25 @@ block layout-content
                                 span.article-meta-pill
                                     i.bi.bi-folder2
                                     = article.categoryId ? article.categoryId.name : 'Uncategorized'
+                                span.article-meta-pill
+                                    i.bi.bi-person
+                                    = article.authorId ? article.authorId.name : (article.author || 'FASTODIGAMA')
                                 if article.createdAt
                                     span.article-meta-pill
                                         i.bi.bi-calendar3
                                         = new Date(article.createdAt).toLocaleDateString()
+
+                            if article.authorId
+                                .mt-3.p-3.rounded(style="background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);")
+                                    .d-flex.align-items-center.gap-3.flex-wrap
+                                        if article.authorId.photo && article.authorId.photo.url
+                                            img.rounded-circle(src=article.authorId.photo.url, alt=article.authorId.photo.alt || article.authorId.name, style="width:64px;height:64px;object-fit:cover;border:2px solid rgba(255,255,255,.4);")
+                                        .flex-grow-1
+                                            .fw-semibold= article.authorId.name
+                                            if article.authorId.jobTitle
+                                                .small(style="opacity:.85;")= article.authorId.jobTitle
+                                            if article.authorId.bio
+                                                p.mb-0.small.mt-1(style="opacity:.95;")= article.authorId.bio
 
                         //- Action buttons
                         .action-strip.align-self-md-center

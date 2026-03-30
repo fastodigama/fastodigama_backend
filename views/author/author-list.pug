@@ -1,0 +1,46 @@
+extends ../common/layout
+
+block layout-content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.mb-0 Authors
+
+  if info
+    .alert.alert-info= info
+
+  if err
+    .alert.alert-danger= err
+
+  .alert.alert-secondary
+    | Author profiles are created automatically when an admin assigns the `author` role to a user. Use this page to edit existing author profiles only.
+
+  .row.g-3
+    each author in authors
+      .col-12
+        .card.shadow-sm.border-0
+          .card-body
+            .row.g-3.align-items-start
+              .col-12.col-sm-3.col-lg-2
+                if author.photo && author.photo.url
+                  img.img-fluid.rounded.w-100(src=author.photo.url, alt=author.photo.alt || author.name)
+                else
+                  .bg-light.text-muted.rounded.d-flex.align-items-center.justify-content-center.p-4.h-100 No photo
+              .col-12.col-sm-9.col-lg-7
+                .d-flex.flex-column.gap-2
+                  div
+                    .fw-semibold.fs-5= author.name
+                    if author.jobTitle
+                      .text-muted.small= author.jobTitle
+                  p.text-muted.mb-0= author.bio || "No bio yet"
+              .col-12.col-lg-3
+                .d-flex.flex-column.flex-sm-row.flex-lg-column.align-items-start.align-items-lg-stretch.gap-2
+                  div
+                    if author.isActive
+                      span.badge.text-bg-success Active
+                    else
+                      span.badge.text-bg-secondary Inactive
+                  form(action="/admin/author/edit", method="get", class="w-100")
+                    input(type="hidden", name="authorId", value=author._id)
+                    button.btn.btn-info.w-100(type="submit") Edit
+                  form(action="/admin/author/delete", method="get", class="w-100", onsubmit=`return confirm("Delete this author and the linked user account? Existing articles will keep the author name but lose the profile link.")`)
+                    input(type="hidden", name="authorId", value=author._id)
+                    button.btn.btn-danger.w-100(type="submit") Delete

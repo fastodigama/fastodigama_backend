@@ -24,6 +24,7 @@ router.post("/api/user/profile-picture", userController.uploadProfilePicture);
 
 // API: Update user firstname and lastname (authenticated users only)
 router.post("/api/user/profile", userController.apiUpdateUserProfile);
+router.post("/user/author-profile", ...userController.updateOwnAuthorProfile);
 
 // GDPR API: Export user data (Right to Portability)
 router.get("/api/user/export", userController.apiExportUserData);

@@ -14,7 +14,9 @@ import publicUserRoutes from "./components/User/publicUserRoutes.js";
 import adminUserRoutes from "./components/User/adminUserRoutes.js";
 
 import requireAdmin from "./components/User/requireAdmin.js";
+import requireAuthorOrAdmin from "./components/User/requireAuthorOrAdmin.js";
 import articleRouter from "./components/Article/routes.js";
+import authorRouter from "./components/Author/routes.js";
 import categoryRouter from "./components/Category/routes.js";
 import commentRouter from "./components/Comment/routes.js";
 import consentRouter from "./components/Consent/routes.js";
@@ -22,6 +24,7 @@ import likeRouter from "./components/Like/routes.js";
 import pollRouter from "./components/Poll/routes.js";
 
 import articles from "./components/Article/controller.js";
+import authors from "./components/Author/controller.js";
 import categories from "./components/Category/controller.js";
 
 
@@ -173,12 +176,19 @@ app.use(
   }),
 );
 
+app.use((req, res, next) => {
+  app.locals.user = req.session?.loggedIn ? req.session.user : null;
+  app.locals.role = req.session?.loggedIn ? (req.session.role || null) : null;
+  next();
+});
+
 // ===== API ROUTES =====
 app.get("/rss.xml", articles.getRssFeed);
 app.get("/atom.xml", articles.getAtomFeed);
 app.get("/api/articles", articles.getArticlesApiResponse);
 // app.get("/api/article/:id", articles.getArticleByIdApiResponse);
 app.get("/api/article/:slug", articles.getArticleBySlugApiResponse);
+app.get("/api/authors", authors.getAuthorsApiResponse);
 // Like/unlike endpoints
 app.post("/api/article/:slug/like", articles.likeArticleApi);
 app.post("/api/article/:slug/unlike", articles.unlikeArticleApi);
@@ -197,7 +207,6 @@ app.use("/api/poll", pollRouter);
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
   if (req.session.loggedIn) {
-    app.locals.user = req.session.user;
     next();
   } else {
     if (req.method === "GET") {
@@ -211,7 +220,6 @@ app.use("/admin", (req, res, next) => {
 
 app.use("/user", (req, res, next) => {
   if (req.session.loggedIn) {
-    app.locals.user = req.session.user;
     next();
   } else {
     if (req.method === "GET") {
@@ -224,12 +232,12 @@ app.use("/user", (req, res, next) => {
 });
 
 app.use("/logout", (req, res, next) => {
-  app.locals.user = null;
   next();
 });
 
 // ===== ROUTES =====
-app.use("/admin/article", requireAdmin, articleRouter);
+app.use("/admin/article", requireAuthorOrAdmin, articleRouter);
+app.use("/admin/author", requireAdmin, authorRouter);
 app.use("/admin/category", requireAdmin, categoryRouter);
 app.use("/admin/poll", requireAdmin, pollRouter);
 

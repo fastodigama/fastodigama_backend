@@ -7,6 +7,13 @@ block layout-content
         .card-body.p-4
           h1.h3.mb-4.text-center Add New Article
 
+          .alert.alert-warning.d-none#article-draft-alert(role="alert")
+            .d-flex.flex-column.flex-md-row.align-items-md-center.justify-content-between.gap-2
+              span You have an unsaved article draft from this browser. Text and selections can be restored, but uploaded image files cannot.
+              .d-flex.gap-2
+                button#restore-article-draft.btn.btn-sm.btn-dark(type="button") Restore Draft
+                button#discard-article-draft.btn.btn-sm.btn-outline-dark(type="button") Discard
+
           //- Form targeting your Express submission route
           form#add-article-form(action="/admin/article/add/submit", method="post", enctype="multipart/form-data", autocomplete="off")
             
@@ -22,18 +29,40 @@ block layout-content
                 required
               )
 
-            // 2. Author Field (New)
-            .mb-3
-              label.form-label(for="author") Author
-              input.form-control(
-                type="text",
-                id="author",
-                name="author",
-                value="Fadel Matar",
-                placeholder="e.g., Fadel Matar & AI",
-                autocomplete="off",
-                required
-              )
+            // 2. Author
+            if lockedAuthor
+              .mb-3
+                label.form-label Author
+                input.form-control(
+                  type="text",
+                  value=lockedAuthor.name,
+                  readonly
+                )
+                input(type="hidden", id="authorId", name="authorId", value=lockedAuthor._id)
+                input(type="hidden", id="author", name="author", value=lockedAuthor.name)
+                .form-text This article will be published under your linked author profile.
+            else
+              .mb-3
+                label.form-label(for="authorId") Author
+                select.form-select(
+                  id="authorId",
+                  name="authorId"
+                )
+                  option(value="") Select an author
+                  each item in authors
+                    option(value=item._id)= item.name
+                .form-text Choose an existing author record. If left empty, the legacy author name below will be used.
+
+              .mb-3
+                label.form-label(for="author") Legacy Author Name
+                input.form-control(
+                  type="text",
+                  id="author",
+                  name="author",
+                  value="",
+                  placeholder="Optional if no author is selected above",
+                  autocomplete="off"
+                )
 
 
             // 3. Article Text
@@ -44,7 +73,6 @@ block layout-content
                 name="text",
                 rows="10",
                 placeholder="Write your full article here...",
-                style="min-height: 200px",
                 autocomplete="off"
               )
 
@@ -160,9 +188,14 @@ block layout-content
   // 🌟 SCRIPT TO HANDLE DYNAMIC IMAGES AND LOADING STATE
   script.
     document.addEventListener('DOMContentLoaded', function() {
+      const draftKey = 'fastodigama.article.add.draft';
+
       // --- 1. HANDLE ADDING MORE IMAGES ---
       const addImageBtn = document.getElementById('add-more-images');
       const imageContainer = document.getElementById('image-container');
+      const draftAlert = document.getElementById('article-draft-alert');
+      const restoreDraftBtn = document.getElementById('restore-article-draft');
+      const discardDraftBtn = document.getElementById('discard-article-draft');
       let imageCount = 1; // Keep track of the number of images
 
       addImageBtn.addEventListener('click', function() {
@@ -183,6 +216,7 @@ block layout-content
         }
 
         imageContainer.appendChild(newBlock);
+        saveDraft();
       });
 
       // --- 2. HANDLE ADDING MORE FAQS (MATCH EDIT PAGE LOGIC) ---
@@ -203,6 +237,7 @@ block layout-content
             qLabel.classList.remove('text-primary', 'fw-bold');
           }
           faqContainer.appendChild(newFaq);
+          saveDraft();
         });
       }
 
@@ -221,6 +256,7 @@ block layout-content
             titleLabel.classList.remove('text-primary', 'fw-bold');
           }
           sourcesContainer.appendChild(newSource);
+          saveDraft();
         });
       }
 
@@ -230,6 +266,100 @@ block layout-content
       const submitSpinner = document.getElementById('submit-spinner');
       const submitText = document.getElementById('submit-text');
 
+      const ensureBlockCount = (container, addButton, selector, desiredCount) => {
+        if (!container || !addButton) return;
+
+        while (container.querySelectorAll(selector).length < desiredCount) {
+          addButton.click();
+        }
+      };
+
+      const collectNamedValues = (name) =>
+        Array.from(form.querySelectorAll(`[name="${name}"]`)).map((field) => field.value || '');
+
+      const applyNamedValues = (name, values) => {
+        const fields = Array.from(form.querySelectorAll(`[name="${name}"]`));
+        fields.forEach((field, index) => {
+          field.value = values[index] || '';
+        });
+      };
+
+      const collectDraft = () => ({
+        title: document.getElementById('title')?.value || '',
+        authorId: document.getElementById('authorId')?.value || '',
+        author: document.getElementById('author')?.value || '',
+        text: document.getElementById('article-text')?.value || '',
+        categoryId: document.getElementById('cat')?.value || '',
+        embedVideo: document.getElementById('embedVideo')?.value || '',
+        embedVideoPosition: document.getElementById('embedVideoPosition')?.value || 'inline',
+        faqQuestions: collectNamedValues('faqQuestions'),
+        faqAnswers: collectNamedValues('faqAnswers'),
+        sourceTitles: collectNamedValues('sourceTitles'),
+        sourceUrls: collectNamedValues('sourceUrls'),
+        alt: collectNamedValues('alt'),
+        imageBlockCount: imageContainer ? imageContainer.querySelectorAll('.image-block').length : 1
+      });
+
+      const saveDraft = () => {
+        localStorage.setItem(draftKey, JSON.stringify({
+          savedAt: Date.now(),
+          data: collectDraft()
+        }));
+      };
+
+      const clearDraft = () => {
+        localStorage.removeItem(draftKey);
+        if (draftAlert) {
+          draftAlert.classList.add('d-none');
+        }
+      };
+
+      const restoreDraft = () => {
+        const rawDraft = localStorage.getItem(draftKey);
+        if (!rawDraft) return;
+
+        try {
+          const parsed = JSON.parse(rawDraft);
+          const data = parsed && parsed.data ? parsed.data : {};
+
+          ensureBlockCount(faqContainer, addFaqBtn, '.faq-block', Math.max(1, (data.faqQuestions || []).length, (data.faqAnswers || []).length));
+          ensureBlockCount(sourcesContainer, addSourceBtn, '.source-block', Math.max(1, (data.sourceTitles || []).length, (data.sourceUrls || []).length));
+          ensureBlockCount(imageContainer, addImageBtn, '.image-block', Math.max(1, data.imageBlockCount || (data.alt || []).length || 1));
+
+          if (document.getElementById('title')) document.getElementById('title').value = data.title || '';
+          if (document.getElementById('authorId')) document.getElementById('authorId').value = data.authorId || '';
+          if (document.getElementById('author')) document.getElementById('author').value = data.author || '';
+          if (document.getElementById('article-text')) document.getElementById('article-text').value = data.text || '';
+          if (document.getElementById('cat')) document.getElementById('cat').value = data.categoryId || '';
+          if (document.getElementById('embedVideo')) document.getElementById('embedVideo').value = data.embedVideo || '';
+          if (document.getElementById('embedVideoPosition')) document.getElementById('embedVideoPosition').value = data.embedVideoPosition || 'inline';
+
+          applyNamedValues('faqQuestions', data.faqQuestions || []);
+          applyNamedValues('faqAnswers', data.faqAnswers || []);
+          applyNamedValues('sourceTitles', data.sourceTitles || []);
+          applyNamedValues('sourceUrls', data.sourceUrls || []);
+          applyNamedValues('alt', data.alt || []);
+
+          if (draftAlert) {
+            draftAlert.classList.add('d-none');
+          }
+        } catch (error) {
+          console.error('Failed to restore article draft:', error);
+        }
+      };
+
+      Array.from(form.elements).forEach((field) => {
+        if (!field.name || field.type === 'file' || field.type === 'submit' || field.type === 'button') {
+          return;
+        }
+
+        const eventName = field.tagName === 'SELECT' ? 'change' : 'input';
+        field.addEventListener(eventName, saveDraft);
+        if (field.type === 'checkbox') {
+          field.addEventListener('change', saveDraft);
+        }
+      });
+
       form.addEventListener('submit', function(e) {
         // Disable the button to prevent double-clicks
         submitBtn.disabled = true;
@@ -237,4 +367,18 @@ block layout-content
         submitSpinner.classList.remove('d-none');
         submitText.textContent = 'Optimizing & Uploading...';
       });
+
+      window.addEventListener('beforeunload', saveDraft);
+
+      if (localStorage.getItem(draftKey) && draftAlert) {
+        draftAlert.classList.remove('d-none');
+      }
+
+      if (restoreDraftBtn) {
+        restoreDraftBtn.addEventListener('click', restoreDraft);
+      }
+
+      if (discardDraftBtn) {
+        discardDraftBtn.addEventListener('click', clearDraft);
+      }
     });

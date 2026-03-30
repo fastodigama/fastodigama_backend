@@ -15,10 +15,11 @@ block layout-content
                 //- Table headers
                 thead.table-dark
                     tr
-                        th(style="width: 35%") Username
-                        th(style="width: 30%") First Name
-                        th(style="width: 30%") Last Name
-                        th.text-center(style="width: 5%") Actions
+                        th(style="width: 28%") Username
+                        th(style="width: 22%") First Name
+                        th(style="width: 22%") Last Name
+                        th(style="width: 13%") Role
+                        th.text-center(style="width: 15%") Actions
                 //- Table body: Loop through each user
                 tbody
                     each user in users
@@ -30,6 +31,13 @@ block layout-content
                                 #{user.firstName}
                             td
                                 #{user.lastName}
+                            td
+                                if user.role === 'admin'
+                                    span.badge.text-bg-dark Admin
+                                else if user.role === 'author'
+                                    span.badge.text-bg-primary Author
+                                else
+                                    span.badge.text-bg-secondary User
                             td.text-center
                                 .d-flex.gap-1.justify-content-center
                                     a.btn.btn-sm.btn-dark.fw-light.px-2.py-1.fs-7(href=`/admin/users/reset/${user._id}`) Reset

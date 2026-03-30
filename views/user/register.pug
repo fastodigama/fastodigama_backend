@@ -25,6 +25,13 @@ block layout-content
                 .mb-3 
                     label.form-label(for="nickName") NickName 
                     input.form-control(type="text", id="nickName", name="nickName")  
+                if canAssignRole
+                    .mb-3
+                        label.form-label(for="role") Role
+                        select.form-select(id="role", name="role")
+                            option(value="user" selected=selectedRole === "user") User
+                            option(value="author" selected=selectedRole === "author") Author
+                            option(value="admin" selected=selectedRole === "admin") Admin
                 //- Password field
                 .mb-3
                     label.form-label(for="pw") Password

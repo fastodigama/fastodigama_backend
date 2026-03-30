@@ -1,3 +1,4 @@
+import { getAppTimeZone, getCurrentDateInTimeZone } from "../config/timezone.js";
 // ==============================
 // API: Update current user's firstname and lastname
 // ==============================
@@ -24,6 +25,7 @@ const apiUpdateUserProfile = async (req, res) => {
   }
 };
 import userModel from "./model.js";
+import authorModel from "../Author/model.js";
 import multer from "multer";
 import sharp from "sharp";
 import crypto from "crypto";
@@ -264,6 +266,83 @@ const profileUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+const authorProfileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+async function buildAuthorProfilePhoto(file, authorName) {
+  if (!file) return undefined;
+
+  const slugBase = String(authorName || "author")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "") || "author";
+
+  const fileName = `author-${slugBase}-${Date.now()}.webp`;
+  const buffer = await sharp(file.buffer)
+    .resize(600, 600, { fit: "cover" })
+    .webp({ quality: 82 })
+    .toBuffer();
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_PROFILE_BUCKET_NAME || process.env.R2_BUCKET_NAME,
+      Key: fileName,
+      Body: buffer,
+      ContentType: "image/webp",
+    })
+  );
+
+  const baseUrl = process.env.PROFILE_IMAGE_BASE || process.env.ARTICLE_IMAGE_BASE || "";
+
+  return {
+    url: baseUrl ? `${baseUrl}/${encodeURIComponent(fileName)}` : fileName,
+    key: fileName,
+    alt: String(authorName || "").trim()
+  };
+}
+
+async function syncLinkedAuthorPhoto(user, photoValue) {
+  if (!user) {
+    return;
+  }
+
+  const author = await authorModel.getAuthorByUserIdOrEmail(user);
+  if (!author) {
+    return;
+  }
+
+  const normalizedValue = String(photoValue || "").trim();
+  if (!normalizedValue) {
+    return;
+  }
+
+  const isExternal = normalizedValue.startsWith("http://") || normalizedValue.startsWith("https://");
+  await authorModel.updateAuthorById(author._id, {
+    name: author.name,
+    userId: user._id,
+    bio: author.bio,
+    jobTitle: author.jobTitle,
+    email: author.email || user.user,
+    website: author.socialLinks?.website,
+    twitter: author.socialLinks?.twitter,
+    linkedin: author.socialLinks?.linkedin,
+    instagram: author.socialLinks?.instagram,
+    photo: {
+      url: isExternal
+        ? normalizedValue
+        : `${process.env.PROFILE_IMAGE_BASE}/${encodeURIComponent(normalizedValue)}`,
+      key: isExternal ? "" : normalizedValue,
+      alt: author.name
+    },
+    isActive: author.isActive
+  });
+}
+
 // ==============================
 // Upload Profile Picture
 // ==============================
@@ -318,6 +397,7 @@ const uploadProfilePicture = [
         user._id,
         fileName
       );
+      await syncLinkedAuthorPhoto(user, fileName);
 
       const profileUrl = `${process.env.PROFILE_IMAGE_BASE}/${fileName}`;
       res.json({
@@ -344,11 +424,72 @@ const uploadProfilePicture = [
 // ==============================
 
 const getUser = async (req, res) => {
+  const appTimezone = getAppTimeZone();
+  const currentUser = await userModel.getUserByEmail(req.session.user);
+  const authorProfile = currentUser?.role === "author"
+    ? await authorModel.getAuthorByUserIdOrEmail(currentUser)
+    : null;
+
   res.render("user/user", {
     currentPath: req.path,
     title: "My Account",
+    appTimezone,
+    currentDateInTimeZone: getCurrentDateInTimeZone(appTimezone),
+    authorProfile,
+    currentUser
   });
 };
+
+const updateOwnAuthorProfile = [
+  authorProfileUpload.single("photo"),
+  async (req, res) => {
+    if (!req.session.loggedIn || req.session.role !== "author") {
+      return res.status(403).redirect("/user");
+    }
+
+    try {
+      const user = await userModel.getUserByEmail(req.session.user);
+      if (!user) {
+        return res.redirect("/user");
+      }
+
+      const author = await authorModel.ensureAuthorProfileForUser(user);
+      if (!author) {
+        return res.redirect("/user");
+      }
+
+      const photo = req.file
+        ? await buildAuthorProfilePhoto(req.file, author.name)
+        : undefined;
+
+      if (photo) {
+        await userModel.updateProfilePicture(
+          user._id,
+          photo.key || photo.url || ""
+        );
+      }
+
+      await authorModel.updateAuthorById(author._id, {
+        name: author.name,
+        userId: user._id,
+        bio: req.body.bio,
+        jobTitle: req.body.jobTitle,
+        email: author.email || user.user,
+        website: req.body.website,
+        twitter: req.body.twitter,
+        linkedin: req.body.linkedin,
+        instagram: req.body.instagram,
+        photo,
+        isActive: true
+      });
+
+      return res.redirect("/user");
+    } catch (error) {
+      console.error("AUTHOR PROFILE UPDATE ERROR:", error);
+      return res.redirect("/user");
+    }
+  }
+];
 
 const loginForm = async (req, res) => {
   res.render("user/login", {
@@ -696,6 +837,8 @@ const apiLogout = async (req, res) => {
 const registerForm = async (req, res) => {
   res.render("user/register", {
     currentPath: req.path,
+    canAssignRole: req.session?.role === "admin",
+    selectedRole: "user"
   });
 };
 
@@ -706,8 +849,11 @@ const register = async (req, res) => {
     firstName,
     lastName,
     nickName,
+    role
   } =
     req.body;
+
+  const requestedRole = req.session?.role === "admin" ? role : "user";
 
   let result =
     await userModel.addUser(
@@ -715,10 +861,15 @@ const register = async (req, res) => {
       pw,
       firstName,
       lastName,
-      nickName
+      nickName,
+      requestedRole
     );
 
   if (result) {
+    if (requestedRole === "author") {
+      const createdUser = await userModel.getUserByEmail(u);
+      await authorModel.ensureAuthorProfileForUser(createdUser);
+    }
     res.redirect("/login");
   } else {
     // Return 409 Conflict status for duplicate email
@@ -782,6 +933,7 @@ const editUserForm = async (
   res.render("user/user-edit", {
     title: "Edit User",
     user,
+    availableRoles: ["user", "author", "admin"]
   });
 };
 
@@ -791,16 +943,27 @@ const editUser = async (req, res) => {
     req.body.newUsername,
     req.body.firstName,
     req.body.lastName,
-    req.body.newNickName
+    req.body.newNickName,
+    req.body.role
   );
+
+  if (req.body.role === "author") {
+    const updatedUser = await userModel.getUserById(req.params.id);
+    await authorModel.ensureAuthorProfileForUser(updatedUser);
+  }
 
   res.redirect("/admin/users");
 };
 
 const deleteUser = async (req, res) => {
-  await userModel.deleteUserById(
-    req.params.id
-  );
+  const user = await userModel.getUserById(req.params.id);
+  const linkedAuthor = await authorModel.getAuthorByUserIdOrEmail(user);
+
+  if (linkedAuthor) {
+    await authorModel.deleteAuthorById(linkedAuthor._id);
+  } else {
+    await userModel.deleteUserById(req.params.id);
+  }
 
   res.redirect("/admin/users");
 };
@@ -1030,6 +1193,7 @@ export {
   uploadProfilePicture,
   streamProfileImage,
   apiUpdateUserProfile,
+  updateOwnAuthorProfile,
   apiExportUserData,
   apiDeleteUserAccount,
 };

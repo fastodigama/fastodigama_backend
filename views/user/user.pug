@@ -1,7 +1,123 @@
 extends ../common/layout
 
 block layout-content
-    //- User profile/account page (shown to logged-in users)
-    .main-content 
-    h1.page-title Hello, #{user}
-    
+    .container.py-5
+        .d-flex.flex-column.flex-md-row.justify-content-between.align-items-md-end.mb-4.pb-3.border-bottom
+            div
+                h1.fw-bold.mb-2 My Account
+                p.text-muted.mb-0 Hello, #{user}
+
+        .row.mb-4
+            .col-md-6.col-lg-4.mb-3.mb-md-0
+                .card.shadow-sm.border-0.bg-light
+                    .card-body.text-center
+                        h5.mb-2.text-primary Articles Today
+                        h2#todayCount.mb-1 0
+                        small.text-muted Compared to yesterday:
+                        span#yesterdayCount.text-success.ms-2 0
+            .col-md-6.col-lg-8
+                .card.shadow-sm.border-0.bg-light
+                    .card-body
+                        h5.mb-3.text-primary Articles by Date
+                        .d-flex.align-items-center.mb-3
+                            input#articleDate.form-control(type="date" max=currentDateInTimeZone value=currentDateInTimeZone)
+                        ul#articlesByDateList.list-group
+                            li.list-group-item.text-muted No articles for selected date
+
+        if currentUser && currentUser.role === 'author'
+            .card.shadow-sm.border-0
+                .card-body.p-4
+                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-md-center.mb-4.gap-2
+                        div
+                            h4.mb-1 Author Profile
+                            p.text-muted.mb-0 Update the public profile shown on your articles.
+
+                    form(action="/user/author-profile", method="post", enctype="multipart/form-data", autocomplete="off")
+                        .row.g-4
+                            .col-lg-4
+                                if authorProfile && authorProfile.photo && authorProfile.photo.url
+                                    .row
+                                        .col-sm-8.col-md-6.col-lg-12
+                                            img.img-fluid.rounded.shadow-sm.mb-3.w-100(src=authorProfile.photo.url, alt=(authorProfile.photo.alt || authorProfile.name))
+                                .mb-3
+                                    label.form-label(for="photo") Profile Photo
+                                    input.form-control(type="file", id="photo", name="photo", accept="image/*")
+                                    .form-text Photo alt text uses your author name automatically.
+                            .col-lg-8
+                                .mb-3
+                                    label.form-label Name
+                                    input.form-control(type="text", value=(authorProfile && authorProfile.name) || [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' '), readonly)
+                                .mb-3
+                                    label.form-label(for="jobTitle") Job Title
+                                    input.form-control(type="text", id="jobTitle", name="jobTitle", value=(authorProfile && authorProfile.jobTitle) || "")
+                                .mb-3
+                                    label.form-label(for="bio") Bio
+                                    textarea.form-control(id="bio", name="bio", rows="6")= (authorProfile && authorProfile.bio) || ""
+                                .row.g-3
+                                    .col-md-6
+                                        label.form-label(for="website") Website
+                                        input.form-control(type="url", id="website", name="website", value=(authorProfile && authorProfile.socialLinks && authorProfile.socialLinks.website) || "")
+                                    .col-md-6
+                                        label.form-label(for="twitter") Twitter/X
+                                        input.form-control(type="url", id="twitter", name="twitter", value=(authorProfile && authorProfile.socialLinks && authorProfile.socialLinks.twitter) || "")
+                                    .col-md-6
+                                        label.form-label(for="linkedin") LinkedIn
+                                        input.form-control(type="url", id="linkedin", name="linkedin", value=(authorProfile && authorProfile.socialLinks && authorProfile.socialLinks.linkedin) || "")
+                                    .col-md-6
+                                        label.form-label(for="instagram") Instagram
+                                        input.form-control(type="url", id="instagram", name="instagram", value=(authorProfile && authorProfile.socialLinks && authorProfile.socialLinks.instagram) || "")
+
+                        .mt-4
+                            button.btn.btn-dark(type="submit") Save Author Profile
+
+    script.
+        const appTimeZone = !{JSON.stringify(appTimezone)};
+        const currentDateInAppTimeZone = !{JSON.stringify(currentDateInTimeZone)};
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/admin/article/dashboard-stats');
+                const data = await res.json();
+                document.getElementById('todayCount').textContent = data.todayCount;
+                document.getElementById('yesterdayCount').textContent = data.yesterdayCount;
+            } catch (e) {}
+        }
+        fetchStats();
+
+        const dateInput = document.getElementById('articleDate');
+        if (dateInput) {
+            dateInput.max = currentDateInAppTimeZone;
+            dateInput.value = currentDateInAppTimeZone;
+
+            async function fetchArticlesByDate(date) {
+                try {
+                    const res = await fetch(`/admin/article/by-date?date=${date}`);
+                    const data = await res.json();
+                    const list = document.getElementById('articlesByDateList');
+                    list.innerHTML = '';
+                    if (data.articles && data.articles.length > 0) {
+                        data.articles.forEach(a => {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item';
+                            const articleTime = new Date(a.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZone: appTimeZone
+                            });
+                            li.innerHTML = `<b>${a.title}</b> <span class='text-muted small'>(${articleTime})</span>`;
+                            list.appendChild(li);
+                        });
+                    } else {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item text-muted';
+                        li.textContent = 'No articles for selected date';
+                        list.appendChild(li);
+                    }
+                } catch (e) {}
+            }
+
+            fetchArticlesByDate(dateInput.value);
+            dateInput.addEventListener('change', e => {
+                fetchArticlesByDate(e.target.value);
+            });
+        }

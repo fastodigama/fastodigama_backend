@@ -66,6 +66,19 @@ block layout-content
                                     required
                                 )
 
+                            .mb-3
+                                label.form-label(for="role") Role
+                                select.form-select(
+                                    id="role",
+                                    name="role",
+                                    required
+                                )
+                                    each item in availableRoles
+                                        option(
+                                            value=item,
+                                            selected=user.role === item
+                                        )= item.charAt(0).toUpperCase() + item.slice(1)
+
                             .d-flex.gap-2
                                 button.btn.btn-dark(type="submit") Update User
                                 a.btn.btn-outline-dark(href="/admin/users") Cancel
