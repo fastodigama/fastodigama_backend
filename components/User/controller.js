@@ -802,10 +802,21 @@ const googleAuthCallback = async (req, res) => {
       console.error("GOOGLE PROFILE IMPORT ERROR:", pictureErr.message);
     }
 
-    const syncedUser = await userModel.syncGoogleProfilePicture(
-      nameSyncedUser,
-      importedGoogleProfilePicture || ""
-    );
+    let syncedUser = nameSyncedUser;
+
+    if (importedGoogleProfilePicture) {
+      await userModel.updateProfilePicture(
+        nameSyncedUser._id,
+        importedGoogleProfilePicture
+      );
+      syncedUser = await userModel.getUserById(nameSyncedUser._id);
+      await syncLinkedAuthorPhoto(syncedUser, importedGoogleProfilePicture);
+    } else {
+      syncedUser = await userModel.syncGoogleProfilePicture(
+        nameSyncedUser,
+        googleUser.picture || ""
+      );
+    }
 
     const successRedirect = getSafeGoogleReturnTo(req.session.googleReturnTo);
     await establishUserSession(req, syncedUser.user, syncedUser.role);
