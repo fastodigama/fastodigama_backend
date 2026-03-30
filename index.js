@@ -206,16 +206,23 @@ app.use("/api/poll", pollRouter);
 
 // ===== AUTH MIDDLEWARE =====
 app.use("/admin", (req, res, next) => {
-  if (req.session.loggedIn) {
-    next();
-  } else {
+  if (!req.session.loggedIn) {
     if (req.method === "GET") {
       req.session.redirectUrl = req.originalUrl;
     } else {
       req.session.redirectUrl = req.get("referer") || "/admin/article";
     }
-    res.redirect("/login");
+    return res.redirect("/login");
   }
+
+  if (!["admin", "author"].includes(req.session.role)) {
+    return res.status(403).render("common/unauthorized", {
+      title: "Not Authorized",
+      currentPath: req.path,
+    });
+  }
+
+  next();
 });
 
 app.use("/user", (req, res, next) => {

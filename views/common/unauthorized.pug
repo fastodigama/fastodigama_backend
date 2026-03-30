@@ -1,0 +1,12 @@
+extends layout
+
+block layout-content
+  .row.justify-content-center
+    .col-lg-6
+      .card.shadow-sm.border-0
+        .card-body.p-4.p-md-5.text-center
+          h1.h3.mb-3 Not Authorized
+          p.text-muted.mb-4 You do not have permission to access this area.
+          .d-flex.flex-column.flex-sm-row.justify-content-center.gap-2
+            a.btn.btn-dark(href="/user") Go to My Account
+            a.btn.btn-outline-secondary(href="/") Back Home
