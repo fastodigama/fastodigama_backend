@@ -63,6 +63,7 @@ const editAuthorForm = async (request, response) => {
   response.render("author/author-edit", {
     title: "Author Edit",
     author,
+    formData: null,
     currentPath: request.originalUrl.split("?")[0]
   });
 };
@@ -91,6 +92,7 @@ const editAuthor = async (request, response) => {
     return response.render("author/author-edit", {
       err: "Error updating author",
       author,
+      formData: request.body,
       currentPath: request.originalUrl.split("?")[0]
     });
   } catch (error) {
@@ -99,6 +101,7 @@ const editAuthor = async (request, response) => {
     return response.render("author/author-edit", {
       err: "Failed to update author",
       author,
+      formData: request.body,
       currentPath: request.originalUrl.split("?")[0]
     });
   }

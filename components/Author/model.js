@@ -14,6 +14,13 @@ const normalizeSlug = (value = "") =>
 const AuthorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    translations: {
+      ar: {
+        name: { type: String, trim: true, default: "" },
+        bio: { type: String, default: "" },
+        jobTitle: { type: String, default: "" },
+      },
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -144,6 +151,13 @@ async function addAuthor(authorData) {
   try {
     const author = new AuthorModel({
       name: String(authorData.name || "").trim(),
+      translations: {
+        ar: {
+          name: String(authorData.arabicName || "").trim(),
+          bio: String(authorData.arabicBio || "").trim(),
+          jobTitle: String(authorData.arabicJobTitle || "").trim(),
+        },
+      },
       userId: authorData.userId || null,
       bio: String(authorData.bio || "").trim(),
       photo: authorData.photo || undefined,
@@ -193,6 +207,13 @@ async function updateAuthorById(id, authorData) {
       id,
       {
         name: String(authorData.name || "").trim(),
+        translations: {
+          ar: {
+            name: String(authorData.arabicName || "").trim(),
+            bio: String(authorData.arabicBio || "").trim(),
+            jobTitle: String(authorData.arabicJobTitle || "").trim(),
+          },
+        },
         userId: authorData.userId || existingAuthor.userId || null,
         bio: String(authorData.bio || "").trim(),
         photo: nextPhoto,

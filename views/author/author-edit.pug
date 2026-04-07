@@ -15,15 +15,27 @@ block layout-content
 
             .mb-3
               label.form-label(for="name") Name
-              input.form-control(type="text", id="name", name="name", value=author.name, required)
+              input.form-control(type="text", id="name", name="name", value=(formData && formData.name) || author.name, required)
+
+            .mb-3
+              label.form-label(for="arabicName") Arabic Name
+              input.form-control(type="text", id="arabicName", name="arabicName", dir="rtl", value=(formData && formData.arabicName) || (author.translations && author.translations.ar && author.translations.ar.name) || "", placeholder="Optional Arabic display name")
 
             .mb-3
               label.form-label(for="jobTitle") Job Title
-              input.form-control(type="text", id="jobTitle", name="jobTitle", value=author.jobTitle || "")
+              input.form-control(type="text", id="jobTitle", name="jobTitle", value=(formData && formData.jobTitle) || author.jobTitle || "")
+
+            .mb-3
+              label.form-label(for="arabicJobTitle") Arabic Job Title
+              input.form-control(type="text", id="arabicJobTitle", name="arabicJobTitle", dir="rtl", value=(formData && formData.arabicJobTitle) || (author.translations && author.translations.ar && author.translations.ar.jobTitle) || "", placeholder="Optional Arabic job title")
 
             .mb-3
               label.form-label(for="bio") Bio
-              textarea.form-control(id="bio", name="bio", rows="6")= author.bio || ""
+              textarea.form-control(id="bio", name="bio", rows="6")= (formData && formData.bio) || author.bio || ""
+
+            .mb-3
+              label.form-label(for="arabicBio") Arabic Bio
+              textarea.form-control(id="arabicBio", name="arabicBio", dir="rtl", rows="6")= (formData && formData.arabicBio) || (author.translations && author.translations.ar && author.translations.ar.bio) || ""
 
             if author.photo && author.photo.url
               .mb-3
@@ -40,27 +52,27 @@ block layout-content
             .row.g-3.mt-1
               .col-md-6
                 label.form-label(for="email") Email
-                input.form-control(type="email", id="email", name="email", value=author.email || "")
+                input.form-control(type="email", id="email", name="email", value=(formData && formData.email) || author.email || "")
               .col-md-6
                 .form-check.mt-4.pt-2
-                  input.form-check-input(type="checkbox", id="isActive", name="isActive", checked=author.isActive)
+                  input.form-check-input(type="checkbox", id="isActive", name="isActive", checked=((formData && formData.isActive) ? true : (!formData && author.isActive)))
                   label.form-check-label(for="isActive") Active author
 
             .row.g-3.mt-1
               .col-md-6
                 label.form-label(for="website") Website
-                input.form-control(type="url", id="website", name="website", value=(author.socialLinks && author.socialLinks.website) || "")
+                input.form-control(type="url", id="website", name="website", value=(formData && formData.website) || (author.socialLinks && author.socialLinks.website) || "")
               .col-md-6
                 label.form-label(for="twitter") Twitter/X
-                input.form-control(type="url", id="twitter", name="twitter", value=(author.socialLinks && author.socialLinks.twitter) || "")
+                input.form-control(type="url", id="twitter", name="twitter", value=(formData && formData.twitter) || (author.socialLinks && author.socialLinks.twitter) || "")
 
             .row.g-3.mt-1
               .col-md-6
                 label.form-label(for="linkedin") LinkedIn
-                input.form-control(type="url", id="linkedin", name="linkedin", value=(author.socialLinks && author.socialLinks.linkedin) || "")
+                input.form-control(type="url", id="linkedin", name="linkedin", value=(formData && formData.linkedin) || (author.socialLinks && author.socialLinks.linkedin) || "")
               .col-md-6
                 label.form-label(for="instagram") Instagram
-                input.form-control(type="url", id="instagram", name="instagram", value=(author.socialLinks && author.socialLinks.instagram) || "")
+                input.form-control(type="url", id="instagram", name="instagram", value=(formData && formData.instagram) || (author.socialLinks && author.socialLinks.instagram) || "")
 
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/author") Cancel
