@@ -23,6 +23,18 @@ block layout-content
                                 required
                             )
 
+                        .mb-3
+                            label.form-label(for="arabicTitle") Arabic Title
+                            input.form-control(
+                                type="text",
+                                id="arabicTitle",
+                                name="arabicTitle",
+                                dir="rtl",
+                                value=(editArticle && editArticle.translations && editArticle.translations.ar && editArticle.translations.ar.title) || "",
+                                placeholder="Optional Arabic title"
+                            )
+                            .form-text Leave blank to auto-translate with OpenAI.
+
                         //- 🌟 NEW: Author field
                         if lockedAuthor
                             .mb-3
@@ -79,6 +91,18 @@ block layout-content
                                 autocomplete="off",
                                 required
                             )= editArticle.text
+
+                        .mb-3
+                            label.form-label(for="arabic-article-text") Arabic Article Text
+                            .form-text.mb-2 Optional manual Arabic body. Leave blank to auto-translate with OpenAI.
+                            textarea.form-control(
+                                id="arabic-article-text",
+                                name="arabicText",
+                                rows="10",
+                                dir="rtl",
+                                autocomplete="off",
+                                placeholder="اكتب النص العربي هنا..."
+                            )= (editArticle && editArticle.translations && editArticle.translations.ar && editArticle.translations.ar.text) || ""
 
                         // Category dropdown (preloaded)
                         .mb-3

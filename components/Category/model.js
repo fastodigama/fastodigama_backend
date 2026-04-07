@@ -106,6 +106,7 @@ async function addCategory(newCategory) {
         let category = new CategoryModel({
             name: String(newCategory.name),
             slug,
+            order: Number.isFinite(Number(newCategory.order)) ? Number(newCategory.order) : 0,
             translations: newCategory.translations?.ar
                 ? {
                     ar: {
@@ -128,20 +129,18 @@ async function addCategory(newCategory) {
 // Update a category name by finding it with its ID
 // Parameters: id (MongoDB _id), newName (new category name)
 
-async function updateCategoryById(id, newName) {
+async function updateCategoryById(id, newName, order = 0, arabicTranslation = null) {
     // Find the category by ID and update the name and order fields
     let updateObj = {
         name: newName,
         slug: await ensureUniqueCategorySlug(newName, "en", id)
     };
-    if (arguments.length > 2) {
-        updateObj.order = arguments[2];
-    }
-    if (arguments.length > 3 && arguments[3]) {
+    updateObj.order = Number.isFinite(Number(order)) ? Number(order) : 0;
+    if (arabicTranslation) {
         updateObj["translations"] = {
             ar: {
-                name: String(arguments[3].name || ""),
-                slug: await ensureUniqueCategorySlug(arguments[3].slug || arguments[3].name, "ar", id)
+                name: String(arabicTranslation.name || ""),
+                slug: await ensureUniqueCategorySlug(arabicTranslation.slug || arabicTranslation.name, "ar", id)
             }
         };
     }

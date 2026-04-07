@@ -19,8 +19,22 @@ block layout-content
                 name="title",
                 placeholder="Add hook title",
                 autocomplete="off",
-                required
+                required,
+                value=(formData && formData.title) || ""
               )
+
+            .mb-3
+              label.form-label(for="arabicTitle") Arabic Title
+              input.form-control(
+                type="text",
+                id="arabicTitle",
+                name="arabicTitle",
+                dir="rtl",
+                placeholder="Optional Arabic title",
+                autocomplete="off",
+                value=(formData && formData.arabicTitle) || ""
+              )
+              .form-text Leave blank to auto-translate with OpenAI.
 
             // 2. Author
             if lockedAuthor
@@ -52,7 +66,7 @@ block layout-content
                   type="text",
                   id="author",
                   name="author",
-                  value="",
+                  value=(formData && formData.author) || "",
                   placeholder="Optional if no author is selected above",
                   autocomplete="off"
                 )
@@ -79,7 +93,19 @@ block layout-content
                 rows="10",
                 placeholder="Write your full article here...",
                 autocomplete="off"
-              )
+              )= (formData && formData.text) || ""
+
+            .mb-3
+              label.form-label(for="arabic-article-text") Arabic Article Text
+              .form-text.mb-2 Optional manual Arabic body. Leave blank to auto-translate with OpenAI.
+              textarea.form-control(
+                id="arabic-article-text",
+                name="arabicText",
+                rows="10",
+                dir="rtl",
+                placeholder="اكتب النص العربي هنا...",
+                autocomplete="off"
+              )= (formData && formData.arabicText) || ""
 
             // 6. FAQs (optional)
             .mb-4
@@ -92,14 +118,16 @@ block layout-content
                       input.form-control(
                         type="text",
                         name="faqQuestions",
-                        placeholder="e.g., What is the best way to embed a YouTube video?"
+                        placeholder="e.g., What is the best way to embed a YouTube video?",
+                        value=(formData && formData.faqQuestions && formData.faqQuestions[0]) || ""
                       )
                     .col-md-6
                       label.form-label.small FAQ Answer
                       input.form-control(
                         type="text",
                         name="faqAnswers",
-                        placeholder="e.g., Use the YouTube embed code (iframe) in your article text."
+                        placeholder="e.g., Use the YouTube embed code (iframe) in your article text.",
+                        value=(formData && formData.faqAnswers && formData.faqAnswers[0]) || ""
                       )
               button#add-more-faqs.btn.btn-outline-secondary.btn-sm(type="button")
                 | + Add Another Question
@@ -115,14 +143,16 @@ block layout-content
                       input.form-control(
                         type="text",
                         name="sourceTitles",
-                        placeholder="e.g., World Bank Report 2026"
+                        placeholder="e.g., World Bank Report 2026",
+                        value=(formData && formData.sourceTitles && formData.sourceTitles[0]) || ""
                       )
                     .col-md-6
                       label.form-label.small Source URL
                       input.form-control(
                         type="url",
                         name="sourceUrls",
-                        placeholder="https://example.com/report"
+                        placeholder="https://example.com/report",
+                        value=(formData && formData.sourceUrls && formData.sourceUrls[0]) || ""
                       )
               button#add-more-sources.btn.btn-outline-secondary.btn-sm(type="button")
                 | + Add Another Source
@@ -133,7 +163,7 @@ block layout-content
               select.form-select(id="cat", name="categoryId", required)
                 option(value="") Select a category
                 each cat in categories
-                  option(value=cat._id)= cat.name
+                  option(value=cat._id, selected=String((formData && formData.categoryId) || "") === String(cat._id))= cat.name
 
             // 5. Image & Caption Upload Section
             .mb-4
@@ -157,7 +187,8 @@ block layout-content
                       input.form-control(
                         type="text",
                         name="alt",
-                        placeholder="e.g., Photo by Unsplash"
+                        placeholder="e.g., Photo by Unsplash",
+                        value=(formData && formData.alt && formData.alt[0]) || ""
                       )
               
               // Button to dynamically add more image/caption blocks
@@ -171,15 +202,16 @@ block layout-content
                 type="text",
                 id="embedVideo",
                 name="embedVideo",
-                placeholder="Paste YouTube embed URL or iframe src..."
+                placeholder="Paste YouTube embed URL or iframe src...",
+                value=(formData && formData.embedVideo) || ""
               )
 
             // 5.2. Video Position (Optional)
             .mb-3
               label.form-label(for="embedVideoPosition") Video Position
               select.form-select(id="embedVideoPosition", name="embedVideoPosition")
-                option(value="inline" selected) Inline (inside article)
-                option(value="hero") Hero (replace hero image)
+                option(value="inline" selected=(((formData && formData.embedVideoPosition) || "inline") === "inline")) Inline (inside article)
+                option(value="hero" selected=((formData && formData.embedVideoPosition) === "hero")) Hero (replace hero image)
 
             // 6. Buttons
             .d-flex.justify-content-end.gap-2.mt-4
@@ -354,9 +386,11 @@ block layout-content
 
       const collectDraft = () => ({
         title: document.getElementById('title')?.value || '',
+        arabicTitle: document.getElementById('arabicTitle')?.value || '',
         authorId: document.getElementById('authorId')?.value || '',
         author: document.getElementById('author')?.value || '',
         text: document.getElementById('article-text')?.value || '',
+        arabicText: document.getElementById('arabic-article-text')?.value || '',
         categoryId: document.getElementById('cat')?.value || '',
         embedVideo: document.getElementById('embedVideo')?.value || '',
         embedVideoPosition: document.getElementById('embedVideoPosition')?.value || 'inline',
@@ -392,9 +426,11 @@ block layout-content
           ensureBlockCount(imageContainer, addImageBtn, '.image-block', Math.max(1, data.imageBlockCount || (data.alt || []).length || 1));
 
           if (document.getElementById('title')) document.getElementById('title').value = data.title || '';
+          if (document.getElementById('arabicTitle')) document.getElementById('arabicTitle').value = data.arabicTitle || '';
           if (document.getElementById('authorId')) document.getElementById('authorId').value = data.authorId || '';
           if (document.getElementById('author')) document.getElementById('author').value = data.author || '';
           if (document.getElementById('article-text')) document.getElementById('article-text').value = data.text || '';
+          if (document.getElementById('arabic-article-text')) document.getElementById('arabic-article-text').value = data.arabicText || '';
           if (document.getElementById('cat')) document.getElementById('cat').value = data.categoryId || '';
           if (document.getElementById('embedVideo')) document.getElementById('embedVideo').value = data.embedVideo || '';
           if (document.getElementById('embedVideoPosition')) document.getElementById('embedVideoPosition').value = data.embedVideoPosition || 'inline';

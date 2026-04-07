@@ -13,11 +13,15 @@ block layout-content
                         //- Category name field
                         .mb-3
                             label.form-label(for="name") Category Name
-                            input.form-control(type="text", id="name", name="name", placeholder="Category Name", required)
+                            input.form-control(type="text", id="name", name="name", placeholder="Category Name", required, value=(formData && formData.name) || "")
+                        .mb-3
+                            label.form-label(for="arabicName") Arabic Category Name
+                            input.form-control(type="text", id="arabicName", name="arabicName", dir="rtl", placeholder="Arabic Category Name", value=(formData && formData.arabicName) || "")
+                            .form-text Leave blank to auto-translate with OpenAI.
                         //- Order field
                         .mb-3
                             label.form-label(for="order") Order
-                            input.form-control(type="number", id="order", name="order", placeholder="Order", min="0")
+                            input.form-control(type="number", id="order", name="order", placeholder="Order", min="0", value=(formData && formData.order) || "")
                        
                         //- Submit and cancel buttons
                         .d-flex.justify-content-end.gap-2.mt-4

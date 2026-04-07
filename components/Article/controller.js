@@ -736,13 +736,65 @@ const buildFrontendSearchConditions = (search) => {
   };
 };
 
-const attachArabicTranslation = async (articleData) => {
-  const arabicTranslation = await translateArticleToArabic(articleData);
+const cleanOptionalText = (value = "") => String(value || "").trim();
+
+const buildManualArabicTranslation = (manualArabic = {}, existingArabic = {}) => {
+  const title = cleanOptionalText(manualArabic.title);
+  const text = String(manualArabic.text || "").trim();
+  const hasManualArabic = Boolean(title || text);
+
+  if (!hasManualArabic) {
+    return null;
+  }
+
+  return {
+    ...existingArabic,
+    title: title || existingArabic?.title || "",
+    slug: cleanOptionalText(manualArabic.slug) || title || existingArabic?.slug || "",
+    text: text || existingArabic?.text || "",
+    faqs: Array.isArray(existingArabic?.faqs) ? existingArabic.faqs : [],
+    sources: Array.isArray(existingArabic?.sources) ? existingArabic.sources : [],
+    imageAlts: Array.isArray(existingArabic?.imageAlts) ? existingArabic.imageAlts : [],
+    translatedAt: new Date(),
+    model: "manual"
+  };
+};
+
+const attachArabicTranslation = async (articleData, manualArabic = {}, existingArabic = null) => {
+  const manualArabicTranslation = buildManualArabicTranslation(manualArabic, existingArabic || {});
+  const needsAutomaticTranslation = !manualArabicTranslation || !manualArabicTranslation.title || !manualArabicTranslation.text;
+
+  if (needsAutomaticTranslation && !isArabicTranslationConfigured()) {
+    throw new Error("Arabic translation is not configured. Set OPENAI_API_KEY or provide manual Arabic content.");
+  }
+
+  let arabicTranslation = manualArabicTranslation;
+
+  if (needsAutomaticTranslation) {
+    const automaticArabicTranslation = await translateArticleToArabic(articleData);
+    arabicTranslation = {
+      ...automaticArabicTranslation,
+      ...(manualArabicTranslation || {}),
+      title: manualArabicTranslation?.title || automaticArabicTranslation.title,
+      slug: manualArabicTranslation?.slug || automaticArabicTranslation.slug,
+      text: manualArabicTranslation?.text || automaticArabicTranslation.text,
+      faqs: Array.isArray(manualArabicTranslation?.faqs) && manualArabicTranslation.faqs.length > 0
+        ? manualArabicTranslation.faqs
+        : automaticArabicTranslation.faqs,
+      sources: Array.isArray(manualArabicTranslation?.sources) && manualArabicTranslation.sources.length > 0
+        ? manualArabicTranslation.sources
+        : automaticArabicTranslation.sources,
+      imageAlts: Array.isArray(manualArabicTranslation?.imageAlts) && manualArabicTranslation.imageAlts.length > 0
+        ? manualArabicTranslation.imageAlts
+        : automaticArabicTranslation.imageAlts,
+      model: manualArabicTranslation ? "manual+openai" : automaticArabicTranslation.model
+    };
+  }
 
   return {
     ...articleData,
     translations: {
-      ar: arabicTranslation
+      ar: arabicTranslation || existingArabic || {}
     }
   };
 };
@@ -999,11 +1051,12 @@ const addArticleForm = async (request, response) => {
 // 🌟 UPDATED: Save a new article to the database (with author)
 const addNewArticle = async (request, response) => {
   try {
-    if (!isArabicTranslationConfigured()) {
-      return response.status(500).send("Arabic translation is not configured. Set OPENAI_API_KEY first.");
-    }
     // Extracted author, embedVideo, embedVideoPosition from req.body
     const { title, text, categoryId, authorId, author, embedVideo, embedVideoPosition } = request.body; 
+    const manualArabic = {
+      title: request.body.arabicTitle,
+      text: request.body.arabicText
+    };
     const lockedAuthor = await getLockedAuthorForRequest(request);
     const selectedAuthor = lockedAuthor?._id
       ? await authorModel.getAuthorById(lockedAuthor._id)
@@ -1075,7 +1128,7 @@ const addNewArticle = async (request, response) => {
       embedVideoPosition,
       faqs,
       sources
-    });
+    }, manualArabic);
 
     // Added author, embedVideo, embedVideoPosition, faqs, sources to the payload sent to the model
     const result = await articleModel.addArticle(articlePayload);
@@ -1086,7 +1139,18 @@ const addNewArticle = async (request, response) => {
 
   } catch (err) {
     console.error("Error adding article with Sharp:", err);
-    return response.status(500).send("Failed to process images.");
+    const categories = await categoryModel.getCategories();
+    const authors = await authorModel.getActiveAuthors();
+    const lockedAuthor = await getLockedAuthorForRequest(request);
+    return response.render("article/article-add", {
+      title: "Article Add",
+      categories,
+      authors,
+      lockedAuthor,
+      currentPath: request.originalUrl.split('?')[0],
+      err: err.message || "Failed to process article.",
+      formData: request.body
+    });
   }
 };
 
@@ -1133,11 +1197,12 @@ const editArticleForm = async (request, response) => {
 // 🌟 UPDATED: Update an article in the database (with author)
 const editArticle = async (request, response) => {
   try {
-    if (!isArabicTranslationConfigured()) {
-      return response.status(500).send("Arabic translation is not configured. Set OPENAI_API_KEY first.");
-    }
     // Extracted author from req.body
     const { articleId, title, text, categoryId, authorId, author, embedVideo, embedVideoPosition, existingImageKeys, existingImageAlts } = request.body;
+    const manualArabic = {
+      title: request.body.arabicTitle,
+      text: request.body.arabicText
+    };
     const lockedAuthor = await getLockedAuthorForRequest(request);
     const selectedAuthor = lockedAuthor?._id
       ? await authorModel.getAuthorById(lockedAuthor._id)
@@ -1226,9 +1291,12 @@ const editArticle = async (request, response) => {
     }
 
     updateData.images = [...currentImages, ...newImages];
-    updateData.translations = {
-      ar: await translateArticleToArabic(updateData)
-    };
+    const translatedUpdateData = await attachArabicTranslation(
+      updateData,
+      manualArabic,
+      existingArticle?.translations?.ar || null
+    );
+    updateData.translations = translatedUpdateData.translations;
 
     const result = await articleModel.editArticlebyId(articleId, updateData);
 
@@ -1242,7 +1310,32 @@ const editArticle = async (request, response) => {
     
   } catch (error) {
     console.error("Error editing article with Sharp:", error);
-    return response.render("article/article-list", { err: "Unexpected error updating article" });
+    const articleId = request.body.articleId;
+    const editArticle = await articleModel.getArticleById(articleId);
+    const categories = await categoryModel.getCategories();
+    const authors = await authorModel.getActiveAuthors();
+    const lockedAuthor = await getLockedAuthorForRequest(request);
+    if (editArticle) {
+      editArticle.title = request.body.title || editArticle.title;
+      editArticle.text = request.body.text || editArticle.text;
+      editArticle.embedVideo = request.body.embedVideo ?? editArticle.embedVideo;
+      editArticle.embedVideoPosition = request.body.embedVideoPosition || editArticle.embedVideoPosition;
+      editArticle.translations = editArticle.translations || {};
+      editArticle.translations.ar = {
+        ...(editArticle.translations.ar || {}),
+        title: request.body.arabicTitle || editArticle.translations?.ar?.title || "",
+        text: request.body.arabicText || editArticle.translations?.ar?.text || ""
+      };
+    }
+    return response.render("article/article-edit", {
+      title: "Article Edit",
+      editArticle,
+      categories,
+      authors,
+      lockedAuthor,
+      currentPath: request.originalUrl.split('?')[0],
+      err: error.message || "Unexpected error updating article"
+    });
   }
 };
 

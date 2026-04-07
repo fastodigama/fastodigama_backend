@@ -131,10 +131,22 @@ const AddCategoryForm = (request, response) => {
 
 // Save a new category to the database
 const addNewCategory = async (request, response) => {
-    if (!isArabicCategoryTranslationConfigured()) {
-        return response.render("category/category-add", { err: "Arabic category translation is not configured" });
+    const manualArabicName = String(request.body.arabicName || "").trim();
+    let arabicTranslation = null;
+
+    if (manualArabicName) {
+        arabicTranslation = { name: manualArabicName, slug: manualArabicName };
+    } else {
+        if (!isArabicCategoryTranslationConfigured()) {
+            return response.render("category/category-add", {
+                err: "Enter an Arabic category name or configure OpenAI translation.",
+                formData: request.body,
+                currentPath: request.originalUrl.split('?')[0]
+            });
+        }
+        arabicTranslation = await translateCategoryToArabic(request.body.name);
     }
-    const arabicTranslation = await translateCategoryToArabic(request.body.name);
+
     // Try to add the category
     let result = await categoryModel.addCategory({
         ...request.body,
@@ -150,7 +162,11 @@ const addNewCategory = async (request, response) => {
         response.redirect("/admin/category");
     }else {
         // Error: show error message on the form
-        response.render("category/category-add", {err: "error adding category"});
+        response.render("category/category-add", {
+            err: "error adding category",
+            formData: request.body,
+            currentPath: request.originalUrl.split('?')[0]
+        });
     }
 };
 
@@ -164,10 +180,32 @@ const updateCategoryForm = async (request, response) => {
 
 // Handle the edit form submission to update category name
 const updateCategory = async (request, response) => {
-    if (!isArabicCategoryTranslationConfigured()) {
-        return response.render("category/category-edit", { err: "Arabic category translation is not configured" });
+    const manualArabicName = String(request.body.arabicName || "").trim();
+    let arabicTranslation = null;
+
+    if (manualArabicName) {
+        arabicTranslation = { name: manualArabicName, slug: manualArabicName };
+    } else {
+        if (!isArabicCategoryTranslationConfigured()) {
+            const oldCategoryId = await categoryModel.getCategoryById(request.body.categoryId);
+            return response.render("category/category-edit", {
+                err: "Enter an Arabic category name or configure OpenAI translation.",
+                oldCategoryId: {
+                    ...(oldCategoryId?.toObject ? oldCategoryId.toObject() : oldCategoryId),
+                    name: request.body.name,
+                    order: request.body.order,
+                    translations: {
+                        ar: {
+                            name: request.body.arabicName || oldCategoryId?.translations?.ar?.name || ""
+                        }
+                    }
+                },
+                currentPath: request.originalUrl.split('?')[0]
+            });
+        }
+        arabicTranslation = await translateCategoryToArabic(request.body.name);
     }
-    const arabicTranslation = await translateCategoryToArabic(request.body.name);
+
     // Send the category ID, new name, and order to the database
     let result = await categoryModel.updateCategoryById(
         request.body.categoryId,
@@ -183,7 +221,21 @@ const updateCategory = async (request, response) => {
         response.redirect("/admin/category")
     } else {
         // Error: show error message on edit form
-        response.render("category/category-edit", {err: "error updating category"});
+        const oldCategoryId = await categoryModel.getCategoryById(request.body.categoryId);
+        response.render("category/category-edit", {
+            err: "error updating category",
+            oldCategoryId: {
+                ...(oldCategoryId?.toObject ? oldCategoryId.toObject() : oldCategoryId),
+                name: request.body.name,
+                order: request.body.order,
+                translations: {
+                    ar: {
+                        name: request.body.arabicName || oldCategoryId?.translations?.ar?.name || ""
+                    }
+                }
+            },
+            currentPath: request.originalUrl.split('?')[0]
+        });
     }
 }
 

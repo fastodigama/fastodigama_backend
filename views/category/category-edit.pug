@@ -22,6 +22,10 @@ block layout-content
                         .mb-3
                             label.form-label(for="name") New Category Name
                             input.form-control(type="text", id="name", name="name", placeholder="Enter new category name", required, value=oldCategoryId.name)
+                        .mb-3
+                            label.form-label(for="arabicName") Arabic Category Name
+                            input.form-control(type="text", id="arabicName", name="arabicName", dir="rtl", placeholder="Arabic Category Name", value=(oldCategoryId && oldCategoryId.translations && oldCategoryId.translations.ar && oldCategoryId.translations.ar.name) || "")
+                            .form-text Leave blank to auto-translate with OpenAI.
                         //- Order field
                         .mb-3
                             label.form-label(for="order") Order
