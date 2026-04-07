@@ -8,9 +8,27 @@ function generateSlug(title) {
   return String(title)
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+}
+
+async function ensureUniqueSlug(baseTitle, locale = "en", excludeId = null) {
+  const baseSlug = generateSlug(baseTitle) || `article-${Date.now()}`;
+  const slugPath = locale === "ar" ? "translations.ar.slug" : "slug";
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (
+    await ArticleModel.exists({
+      [slugPath]: slug,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {})
+    })
+  ) {
+    slug = `${baseSlug}-${counter++}`;
+  }
+
+  return slug;
 }
 
 // ===== ARTICLE MODEL =====
@@ -72,6 +90,33 @@ const ArticleSchema = new mongoose.Schema(
         url: { type: String }
       }
     ],
+    translations: {
+      ar: {
+        slug: { type: String, default: "" },
+        title: { type: String, default: "" },
+        text: { type: String, default: "" },
+        faqs: [
+          {
+            question: { type: String, default: "" },
+            answer: { type: String, default: "" }
+          }
+        ],
+        sources: [
+          {
+            title: { type: String, default: "" },
+            url: { type: String, default: "" }
+          }
+        ],
+        imageAlts: [
+          {
+            key: { type: String, default: "" },
+            alt: { type: String, default: "" }
+          }
+        ],
+        translatedAt: { type: Date, default: null },
+        model: { type: String, default: "" }
+      }
+    }
   },
   { timestamps: true },
 );
@@ -95,8 +140,13 @@ async function getArticleById(id) {
 };
 
 // Get one article by slug
-async function getArticleBySlug(slug) {
-  return await ArticleModel.findOne({ slug }).populate("categoryId").populate("authorId");
+async function getArticleBySlug(slug, locale = "en") {
+  const query =
+    locale === "ar"
+      ? { "translations.ar.slug": slug }
+      : { slug };
+
+  return await ArticleModel.findOne(query).populate("categoryId").populate("authorId");
 }
 
 // Count all Articles
@@ -191,14 +241,10 @@ async function addArticle(newArticle) {
       alt: img.alt && img.alt.trim() !== "" ? img.alt : String(newArticle.title)
     }));
 
-    // Generate slug from title
-    let baseSlug = generateSlug(newArticle.title);
-    let slug = baseSlug;
-    let counter = 1;
-    // Ensure slug is unique
-    while (await ArticleModel.exists({ slug })) {
-      slug = `${baseSlug}-${counter++}`;
-    }
+    const slug = await ensureUniqueSlug(newArticle.title, "en");
+    const arabicSlug = newArticle.translations?.ar?.slug
+      ? await ensureUniqueSlug(newArticle.translations.ar.slug, "ar")
+      : "";
 
     let article = new ArticleModel({
       title: String(newArticle.title),
@@ -211,7 +257,27 @@ async function addArticle(newArticle) {
       embedVideo: newArticle.embedVideo || "",
       embedVideoPosition: newArticle.embedVideoPosition || "inline",
       faqs: Array.isArray(newArticle.faqs) ? newArticle.faqs : [],
-      sources: Array.isArray(newArticle.sources) ? newArticle.sources : []
+      sources: Array.isArray(newArticle.sources) ? newArticle.sources : [],
+      translations: newArticle.translations?.ar
+        ? {
+            ar: {
+              slug: arabicSlug,
+              title: String(newArticle.translations.ar.title || ""),
+              text: String(newArticle.translations.ar.text || ""),
+              faqs: Array.isArray(newArticle.translations.ar.faqs)
+                ? newArticle.translations.ar.faqs
+                : [],
+              sources: Array.isArray(newArticle.translations.ar.sources)
+                ? newArticle.translations.ar.sources
+                : [],
+              imageAlts: Array.isArray(newArticle.translations.ar.imageAlts)
+                ? newArticle.translations.ar.imageAlts
+                : [],
+              translatedAt: newArticle.translations.ar.translatedAt || null,
+              model: String(newArticle.translations.ar.model || "")
+            }
+          }
+        : undefined
     });
 
     const result = await article.save();
@@ -262,6 +328,20 @@ async function editArticlebyId(id, articleData) {
         const normalizedEmbedVideoPosition = hasEmbedVideoPosition
             ? (articleData.embedVideoPosition || "inline")
             : (existingArticle.embedVideoPosition || "inline");
+
+        if (Object.prototype.hasOwnProperty.call(articleData, "title")) {
+            articleData.slug = await ensureUniqueSlug(articleData.title, "en", existingArticle._id);
+        }
+
+        if (articleData.translations?.ar?.slug) {
+            articleData.translations = {
+                ...articleData.translations,
+                ar: {
+                    ...articleData.translations.ar,
+                    slug: await ensureUniqueSlug(articleData.translations.ar.slug, "ar", existingArticle._id)
+                }
+            };
+        }
 
         // 1. Update the Database FIRST
         const result = await ArticleModel.updateOne({ _id: id }, { $set: {
@@ -382,5 +462,6 @@ export default {
   countByCategoryAndSearch,
   getByCategoryAndSearchPaginated,
   countArticlesByDate,
-  getArticlesByDate
+  getArticlesByDate,
+  ensureUniqueSlug
 }

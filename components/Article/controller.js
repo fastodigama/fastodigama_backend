@@ -402,6 +402,7 @@ const getAtomFeed = async (request, response) => {
 const getArticleBySlugApiResponse = async (request, response) => {
  
   try {
+    const locale = getRequestedLocale(request);
     const slug = request.params.slug;
     const userAgent = getEffectiveUserAgent(request);
     const rawUserAgent = request.get("User-Agent") || "";
@@ -411,7 +412,7 @@ const getArticleBySlugApiResponse = async (request, response) => {
     console.log(
       `[API] Fetching article by slug: ${slug} | User-Agent: ${userAgent}${rawUserAgent && rawUserAgent !== userAgent ? ` | Raw-User-Agent: ${rawUserAgent}` : ""}${clientIp ? ` | Client-IP: ${clientIp}` : ""}${clientCountry ? ` | Country: ${clientCountry}` : ""}${forwardedForHeader ? ` | Forwarded-For: ${forwardedForHeader}` : ""}`
     );
-    let article = await articleModel.getArticleBySlug(slug);
+    let article = await articleModel.getArticleBySlug(slug, locale);
     if (!article) {
       console.warn(`[API] Article not found for slug: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
@@ -430,19 +431,6 @@ const getArticleBySlugApiResponse = async (request, response) => {
     try {
       commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
     } catch (e) {}
-    // Ensure all image URLs use CDN domain
-    if (article && Array.isArray(article.images)) {
-      article.images = article.images.map(img => {
-        let filename = img.key || img.url || img;
-        if (filename.startsWith('http')) {
-          filename = filename.split('/').pop();
-        }
-        return {
-          ...img,
-          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
-        };
-      });
-    }
     // Use Like collection for like count and likedByCurrentUser
     const { Like } = await import("../Like/model.js");
     const userId =
@@ -474,24 +462,13 @@ const getArticleBySlugApiResponse = async (request, response) => {
       relatedArticles = relatedArticles.filter(a => String(a._id) !== String(article._id));
       // Map image URLs for related articles and limit fields
       relatedArticles = relatedArticles.map(a => {
-        let images = Array.isArray(a.images)
-          ? a.images.map(img => {
-              let filename = img.key || img.url || img;
-              if (filename.startsWith('http')) {
-                filename = filename.split('/').pop();
-              }
-              return {
-                ...img,
-                url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
-              };
-            })
-          : [];
-        const obj = a.toObject ? a.toObject() : a;
+        const obj = localizeArticleObject(a, locale);
         return {
           _id: obj._id,
           title: obj.title,
+          text: obj.text,
           slug: obj.slug,
-          images,
+          images: obj.images,
           author: obj.author,
           categoryId: obj.categoryId,
           createdAt: obj.createdAt
@@ -501,7 +478,7 @@ const getArticleBySlugApiResponse = async (request, response) => {
       relatedArticles = [];
     }
 
-    const articleObj = article.toObject ? article.toObject() : article;
+    const articleObj = localizeArticleObject(article, locale);
     response.json({
       article: {
         ...articleObj,
@@ -512,7 +489,8 @@ const getArticleBySlugApiResponse = async (request, response) => {
         likedByCurrentUser: !!likedByCurrentUser,
         likedAt: likedAt
       },
-      relatedArticles
+      relatedArticles,
+      lang: locale
     });
   } catch (error) {
     console.error(error);
@@ -527,6 +505,7 @@ const likeArticleApi = async (request, response) => {
       body: request.body,
       user: request.user
     });
+    const locale = getRequestedLocale(request);
     const slug = request.params.slug;
     // Get userId only from request.body
     const userId = request.body && request.body.userId;
@@ -534,7 +513,7 @@ const likeArticleApi = async (request, response) => {
       console.warn("[LIKE API] Missing userId in request body");
       return response.status(400).json({ message: "Missing userId" });
     }
-    const article = await articleModel.getArticleBySlug(slug);
+    const article = await articleModel.getArticleBySlug(slug, locale);
     if (!article) {
       console.warn(`[LIKE API] Article not found: ${slug}`);
       return response.status(404).json({ message: "Article not found" });
@@ -561,10 +540,11 @@ const likeArticleApi = async (request, response) => {
 // Unlike an article
 const unlikeArticleApi = async (request, response) => {
   try {
+    const locale = getRequestedLocale(request);
     const slug = request.params.slug;
     const userId = request.body.userId;
     if (!userId) return response.status(400).json({ message: "Missing userId" });
-    const article = await articleModel.getArticleBySlug(slug);
+    const article = await articleModel.getArticleBySlug(slug, locale);
     if (!article) return response.status(404).json({ message: "Article not found" });
     const articleId = article._id;
     // Remove like from Like collection using Mongoose model
@@ -587,10 +567,14 @@ import userModel from "../User/model.js";
 import commentModel from "../Comment/model.js";
 import { marked } from "marked";
 import multer from "multer";
-import { buildArticleUrl, queueIndexNowSubmission } from "../config/indexNow.js";
+import { buildArticleUrl, buildLocalizedArticleUrl, queueIndexNowSubmission } from "../config/indexNow.js";
 import { s3 } from "../config/r2.js";
 import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  isArabicTranslationConfigured,
+  translateArticleToArabic
+} from "./translationService.js";
 
 const upload = multer({
   storage: multer.memoryStorage(), 
@@ -638,17 +622,129 @@ const buildArticleOwnershipQuery = (lockedAuthor) => {
   return { author: lockedAuthor.name };
 };
 
-const queueArticleIndexNow = (slug, action) => {
-  const articleUrl = buildArticleUrl(slug);
+const queueArticleIndexNow = (articleRecord, action) => {
+  const englishUrl = buildArticleUrl(articleRecord?.slug);
+  const arabicUrl = buildLocalizedArticleUrl(articleRecord?.translations?.ar?.slug, "ar");
+  const urlList = [englishUrl, arabicUrl].filter(Boolean);
 
-  if (!articleUrl) {
+  if (urlList.length === 0) {
     console.warn(
-      `[IndexNow] Skipping article ${action}: unable to build public URL for slug="${slug || ""}"`
+      `[IndexNow] Skipping article ${action}: unable to build public URL for slug="${articleRecord?.slug || ""}"`
     );
     return;
   }
 
-  queueIndexNowSubmission([articleUrl], `article ${action}`);
+  queueIndexNowSubmission(urlList, `article ${action}`);
+};
+
+const getRequestedLocale = (request) =>
+  String(request.query?.lang || "").trim().toLowerCase() === "ar" ? "ar" : "en";
+
+const buildPublicImageUrl = (image) => {
+  let filename = image?.key || image?.url || image;
+  if (!filename) {
+    return "";
+  }
+
+  filename = String(filename);
+  if (filename.startsWith("http")) {
+    filename = filename.split("/").pop();
+  }
+
+  return `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`;
+};
+
+const localizeArticleImages = (articleObj, locale) => {
+  const imageAltMap = new Map(
+    (articleObj?.translations?.ar?.imageAlts || [])
+      .filter((entry) => entry?.key)
+      .map((entry) => [String(entry.key), entry.alt || ""])
+  );
+
+  return Array.isArray(articleObj?.images)
+    ? articleObj.images.map((image) => ({
+        ...image,
+        url: buildPublicImageUrl(image),
+        alt:
+          locale === "ar" && imageAltMap.has(String(image.key))
+            ? imageAltMap.get(String(image.key))
+            : image.alt
+      }))
+    : [];
+};
+
+const localizeArticleObject = (article, locale = "en") => {
+  const articleObj = article?.toObject ? article.toObject() : { ...(article || {}) };
+  const arabicTranslation = articleObj?.translations?.ar;
+  const localizedCategory =
+    locale === "ar" &&
+    articleObj?.categoryId &&
+    typeof articleObj.categoryId === "object" &&
+    articleObj.categoryId?.translations?.ar?.name
+      ? {
+          ...(articleObj.categoryId.toObject ? articleObj.categoryId.toObject() : articleObj.categoryId),
+          baseSlug: articleObj.categoryId.slug,
+          slug: articleObj.categoryId.translations.ar.slug || articleObj.categoryId.slug,
+          name: articleObj.categoryId.translations.ar.name || articleObj.categoryId.name,
+        }
+      : articleObj.categoryId;
+  const hasArabicTranslation = Boolean(
+    arabicTranslation &&
+      (arabicTranslation.title || arabicTranslation.text || arabicTranslation.translatedAt)
+  );
+
+  const localizedFaqs =
+    locale === "ar" && Array.isArray(arabicTranslation?.faqs) && arabicTranslation.faqs.length > 0
+      ? arabicTranslation.faqs
+      : Array.isArray(articleObj.faqs)
+        ? articleObj.faqs
+        : [];
+  const localizedSources =
+    locale === "ar" && Array.isArray(arabicTranslation?.sources) && arabicTranslation.sources.length > 0
+      ? arabicTranslation.sources
+      : Array.isArray(articleObj.sources)
+        ? articleObj.sources
+        : [];
+
+  return {
+    ...articleObj,
+    baseSlug: articleObj.slug,
+    title: locale === "ar" && arabicTranslation?.title ? arabicTranslation.title : articleObj.title,
+    slug: locale === "ar" && arabicTranslation?.slug ? arabicTranslation.slug : articleObj.slug,
+    text: locale === "ar" && arabicTranslation?.text ? arabicTranslation.text : articleObj.text,
+    categoryId: localizedCategory,
+    faqs: localizedFaqs,
+    sources: localizedSources,
+    images: localizeArticleImages(articleObj, locale),
+    locale: locale === "ar" && hasArabicTranslation ? "ar" : "en",
+    hasArabicTranslation
+  };
+};
+
+const buildFrontendSearchConditions = (search) => {
+  if (!search) {
+    return {};
+  }
+
+  return {
+    $or: [
+      { title: { $regex: search, $options: "i" } },
+      { text: { $regex: search, $options: "i" } },
+      { "translations.ar.title": { $regex: search, $options: "i" } },
+      { "translations.ar.text": { $regex: search, $options: "i" } }
+    ]
+  };
+};
+
+const attachArabicTranslation = async (articleData) => {
+  const arabicTranslation = await translateArticleToArabic(articleData);
+
+  return {
+    ...articleData,
+    translations: {
+      ar: arabicTranslation
+    }
+  };
 };
 
 
@@ -657,6 +753,7 @@ const queueArticleIndexNow = (slug, action) => {
 // Get all Articles and return as JSON (for frontend API)
 const getArticlesApiResponse = async (request, response) => {
   try {
+    const locale = getRequestedLocale(request);
     const page = parseInt(request.query.page) || 1;
     const limit = parseInt(request.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -665,14 +762,7 @@ const getArticlesApiResponse = async (request, response) => {
     const category = request.query.category || "";
     const lockedAuthor = await getLockedAuthorForRequest(request);
     const ownershipQuery = buildArticleOwnershipQuery(lockedAuthor);
-    const searchConditions = search
-      ? {
-          $or: [
-            { title: { $regex: search, $options: "i" } },
-            { text: { $regex: search, $options: "i" } }
-          ]
-        }
-      : {};
+    const searchConditions = buildFrontendSearchConditions(search);
     const categoryCondition = category ? { categoryId: category } : {};
     const articleQuery = {
       ...ownershipQuery,
@@ -695,22 +785,11 @@ const getArticlesApiResponse = async (request, response) => {
     const commentModel = (await import("../Comment/model.js")).default;
     const { Like } = await import("../Like/model.js");
     const mappedArticles = await Promise.all(articles.map(async article => {
+      const localizedArticle = localizeArticleObject(article, locale);
       let commentsCount = 0;
       try {
         commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
       } catch (e) {}
-      if (Array.isArray(article.images)) {
-        article.images = article.images.map(img => {
-          let filename = img.key || img.url || img;
-          if (filename.startsWith('http')) {
-            filename = filename.split('/').pop();
-          }
-          return {
-            ...img,
-            url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
-          };
-        });
-      }
       // Use Like collection for like count and likedByCurrentUser
       const userId =
         (request.user && request.user._id) ||
@@ -723,14 +802,14 @@ const getArticlesApiResponse = async (request, response) => {
         likedByCurrentUser = await (await import("../Like/model.js")).isArticleLikedByUser(userId, article._id);
       }
       return {
-        ...article.toObject ? article.toObject() : article,
-        views: article.views || 0,
+        ...localizedArticle,
+        views: localizedArticle.views || 0,
         commentsCount,
         likes,
         likedByCurrentUser: !!likedByCurrentUser
       };
     }));
-    response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category });
+    response.json({ articles: mappedArticles, page, totalPages, totalArticles, search, category, lang: locale });
 
   } catch (error) {
     console.error(error);
@@ -791,6 +870,7 @@ const getAllArticles = async (request, response) => {
 // Get single article by ID
 const getArticleByIdApiResponse = async (request, response) => {
   try {
+    const locale = getRequestedLocale(request);
     const id = request.params.id;
     const userAgent = getEffectiveUserAgent(request);
     const rawUserAgent = request.get("User-Agent") || "";
@@ -816,19 +896,6 @@ const getArticleByIdApiResponse = async (request, response) => {
     try {
       commentsCount = await commentModel.getCommentsByArticle(article._id).then(comments => comments.length);
     } catch (e) {}
-    // Ensure all image URLs use CDN domain
-    if (article && Array.isArray(article.images)) {
-      article.images = article.images.map(img => {
-        let filename = img.key || img.url || img;
-        if (filename.startsWith('http')) {
-          filename = filename.split('/').pop();
-        }
-        return {
-          ...img,
-          url: `${process.env.ARTICLE_IMAGE_BASE}/${encodeURIComponent(filename)}`
-        };
-      });
-    }
     // Use Like collection for like count and likedByCurrentUser
     const { Like } = await import("../Like/model.js");
     const userId =
@@ -849,13 +916,14 @@ const getArticleByIdApiResponse = async (request, response) => {
     }
     response.json({
       article: {
-        ...article.toObject ? article.toObject() : article,
+        ...localizeArticleObject(article, locale),
         views: article.views || 0,
         commentsCount,
         likes,
         likedByCurrentUser: !!likedByCurrentUser,
         likedAt: likedAt
-      }
+      },
+      lang: locale
     });
   } catch (error) {
     console.error(error);
@@ -931,6 +999,9 @@ const addArticleForm = async (request, response) => {
 // 🌟 UPDATED: Save a new article to the database (with author)
 const addNewArticle = async (request, response) => {
   try {
+    if (!isArabicTranslationConfigured()) {
+      return response.status(500).send("Arabic translation is not configured. Set OPENAI_API_KEY first.");
+    }
     // Extracted author, embedVideo, embedVideoPosition from req.body
     const { title, text, categoryId, authorId, author, embedVideo, embedVideoPosition } = request.body; 
     const lockedAuthor = await getLockedAuthorForRequest(request);
@@ -993,8 +1064,7 @@ const addNewArticle = async (request, response) => {
       }));
     }
 
-    // Added author, embedVideo, embedVideoPosition, faqs, sources to the payload sent to the model
-    const result = await articleModel.addArticle({
+    const articlePayload = await attachArabicTranslation({
       title,
       text,
       categoryId,
@@ -1006,8 +1076,11 @@ const addNewArticle = async (request, response) => {
       faqs,
       sources
     });
+
+    // Added author, embedVideo, embedVideoPosition, faqs, sources to the payload sent to the model
+    const result = await articleModel.addArticle(articlePayload);
     if (result) {
-      queueArticleIndexNow(result.slug, "create");
+      queueArticleIndexNow(result, "create");
       return response.redirect("/admin/article");
     }
 
@@ -1022,7 +1095,7 @@ const deleteArticle = async (request, response) => {
   const existingArticle = await articleModel.getArticleById(request.query.articleId);
   let result = await articleModel.deleteArticleById(request.query.articleId);
   if (result?.deletedCount === 1) {
-    queueArticleIndexNow(existingArticle?.slug, "delete");
+    queueArticleIndexNow(existingArticle, "delete");
     response.redirect("/admin/article");
   } else {
     response.render("article/article-list", {
@@ -1060,6 +1133,9 @@ const editArticleForm = async (request, response) => {
 // 🌟 UPDATED: Update an article in the database (with author)
 const editArticle = async (request, response) => {
   try {
+    if (!isArabicTranslationConfigured()) {
+      return response.status(500).send("Arabic translation is not configured. Set OPENAI_API_KEY first.");
+    }
     // Extracted author from req.body
     const { articleId, title, text, categoryId, authorId, author, embedVideo, embedVideoPosition, existingImageKeys, existingImageAlts } = request.body;
     const lockedAuthor = await getLockedAuthorForRequest(request);
@@ -1150,12 +1226,15 @@ const editArticle = async (request, response) => {
     }
 
     updateData.images = [...currentImages, ...newImages];
+    updateData.translations = {
+      ar: await translateArticleToArabic(updateData)
+    };
 
     const result = await articleModel.editArticlebyId(articleId, updateData);
 
     if (result) {
       const updatedArticle = await articleModel.getArticleById(articleId);
-      queueArticleIndexNow(updatedArticle?.slug, "update");
+      queueArticleIndexNow(updatedArticle, "update");
       return response.redirect("/admin/article");
     }
 

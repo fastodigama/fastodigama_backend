@@ -21,7 +21,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon ./index.js",
-    "migrate:article-authors": "node ./scripts/migrate-article-authors.js"
+    "migrate:article-authors": "node ./scripts/migrate-article-authors.js",
+    "translate:articles:ar": "node ./scripts/translate-articles-ar.js",
+    "translate:categories:ar": "node ./scripts/translate-categories-ar.js",
+    "fill:article-ar-slugs": "node ./scripts/fill-missing-ar-article-slugs.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",

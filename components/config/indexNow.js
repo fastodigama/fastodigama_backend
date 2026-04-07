@@ -38,13 +38,20 @@ const toUniqueUrls = (urlList = []) =>
   [...new Set(urlList.map((url) => String(url || "").trim()).filter(Boolean))];
 
 export const buildArticleUrl = (slug) => {
+  return buildLocalizedArticleUrl(slug, "en");
+};
+
+export const buildLocalizedArticleUrl = (slug, locale = "en") => {
   const config = getIndexNowConfig();
 
   if (!config || !slug) {
     return null;
   }
 
-  return `${config.siteUrl}/article/${encodeURIComponent(String(slug).trim())}`;
+  const normalizedSlug = encodeURIComponent(String(slug).trim());
+  return locale === "ar"
+    ? `${config.siteUrl}/ar/article/${normalizedSlug}`
+    : `${config.siteUrl}/article/${normalizedSlug}`;
 };
 
 export const submitIndexNowUrls = async (urlList, context = "unknown") => {

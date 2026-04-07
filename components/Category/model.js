@@ -1,5 +1,15 @@
 import mongoose from "mongoose";
 
+function generateSlug(value) {
+    return String(value)
+        .toLowerCase()
+        .trim()
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
 // ===== CATEGORY MODEL =====
 // Defines the database schema and functions to interact with Categories collection
 
@@ -9,19 +19,19 @@ const CategorySchema = new mongoose.Schema(
         name: {type: String, required: true},
         slug: {type: String, required: true, unique: true, index: true},
         order: {type: Number, default: 0},
+        translations: {
+            ar: {
+                name: { type: String, default: "" },
+                slug: { type: String, default: "" }
+            }
+        }
     }
 );
 
 // Pre-save hook to auto-generate slug from name if not provided
 CategorySchema.pre('validate', function(next) {
     if (!this.slug && this.name) {
-        this.slug = this.name
-            .toString()
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '')
-            .replace(/-+/g, '-')
-            .replace(/^-+|-+$/g, '');
+        this.slug = generateSlug(this.name);
     }
     next();
 });
@@ -29,10 +39,29 @@ CategorySchema.pre('validate', function(next) {
 // Create the Category model for database operations
 const CategoryModel = mongoose.model("Category", CategorySchema);
 
+async function ensureUniqueCategorySlug(baseValue, locale = "en", excludeId = null) {
+    const baseSlug = generateSlug(baseValue) || `category-${Date.now()}`;
+    const slugPath = locale === "ar" ? "translations.ar.slug" : "slug";
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (
+        await CategoryModel.exists({
+            [slugPath]: slug,
+            ...(excludeId ? { _id: { $ne: excludeId } } : {})
+        })
+    ) {
+        slug = `${baseSlug}-${counter++}`;
+    }
+
+    return slug;
+}
+
 // ===== DATABASE FUNCTIONS =====
 // Get one category by slug (case-insensitive)
-async function getCategoryBySlug(slug) {
-    return await CategoryModel.findOne({ slug: { $regex: new RegExp(`^${slug}$`, 'i') } });
+async function getCategoryBySlug(slug, locale = "en") {
+    const slugPath = locale === "ar" ? "translations.ar.slug" : "slug";
+    return await CategoryModel.findOne({ [slugPath]: { $regex: new RegExp(`^${slug}$`, 'i') } });
 };
 // Get all categories sorted by order
 async function getCategoriesSortedByOrder() {
@@ -69,9 +98,22 @@ async function initializeCategories() {
 // Save a new category to database
 async function addCategory(newCategory) {
     try {
+        const slug = await ensureUniqueCategorySlug(newCategory.name, "en");
+        const arabicSlug = newCategory.translations?.ar?.name
+            ? await ensureUniqueCategorySlug(newCategory.translations.ar.slug || newCategory.translations.ar.name, "ar")
+            : "";
         // Create new category object with form data
         let category = new CategoryModel({
             name: String(newCategory.name),
+            slug,
+            translations: newCategory.translations?.ar
+                ? {
+                    ar: {
+                        name: String(newCategory.translations.ar.name || ""),
+                        slug: arabicSlug
+                    }
+                }
+                : undefined
         });
         // Save to database
         const result = await category.save();
@@ -88,9 +130,20 @@ async function addCategory(newCategory) {
 
 async function updateCategoryById(id, newName) {
     // Find the category by ID and update the name and order fields
-    let updateObj = { name: newName };
+    let updateObj = {
+        name: newName,
+        slug: await ensureUniqueCategorySlug(newName, "en", id)
+    };
     if (arguments.length > 2) {
         updateObj.order = arguments[2];
+    }
+    if (arguments.length > 3 && arguments[3]) {
+        updateObj["translations"] = {
+            ar: {
+                name: String(arguments[3].name || ""),
+                slug: await ensureUniqueCategorySlug(arguments[3].slug || arguments[3].name, "ar", id)
+            }
+        };
     }
     let result = await CategoryModel.findByIdAndUpdate(id, updateObj);
     if (result){
@@ -125,7 +178,8 @@ export default {
     addCategory,
     updateCategoryById,
     deleteCategoryByName,
-    getCategoriesSortedByOrder
+    getCategoriesSortedByOrder,
+    ensureUniqueCategorySlug
 }
 
 
