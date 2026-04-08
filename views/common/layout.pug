@@ -5,6 +5,10 @@ html(lang="en")
         //- Page metadata and styling setup
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        if robotsMeta
+            meta(name="robots", content=robotsMeta)
+        if canonicalUrl
+            link(rel="canonical", href=canonicalUrl)
         link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
         //- Load Bootstrap CSS for styling
         link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")

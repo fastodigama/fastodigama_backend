@@ -182,6 +182,33 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const siteUrl = String(process.env.SITE_URL || "").trim().replace(/\/+$/, "");
+  const cleanPath = req.path || "/";
+  const canonicalUrl = siteUrl
+    ? `${siteUrl}${cleanPath === "/" ? "" : cleanPath}`
+    : cleanPath;
+  const shouldNoindex =
+    req.method === "GET" &&
+    !req.path.startsWith("/api/") &&
+    (
+      req.path === "/login" ||
+      req.path === "/register" ||
+      req.path === "/user" ||
+      req.path.startsWith("/admin")
+    );
+
+  res.locals.siteUrl = siteUrl;
+  res.locals.canonicalUrl = canonicalUrl;
+  res.locals.robotsMeta = shouldNoindex ? "noindex,follow" : "index,follow";
+
+  if (shouldNoindex) {
+    res.set("X-Robots-Tag", "noindex,follow");
+  }
+
+  next();
+});
+
 // ===== API ROUTES =====
 app.get("/rss.xml", articles.getRssFeed);
 app.get("/atom.xml", articles.getAtomFeed);
