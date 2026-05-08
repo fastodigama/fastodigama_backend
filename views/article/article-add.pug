@@ -216,6 +216,8 @@ block layout-content
             // 6. Buttons
             .d-flex.justify-content-end.gap-2.mt-4
               a.btn.btn-secondary(href="/admin/article") Cancel
+              button#clear-fields-btn.btn.btn-outline-danger(type="button")
+                | Clear Fields
               
               // Submit button with hidden spinner
               button#submit-btn.btn.btn-dark(type="submit")
@@ -365,6 +367,7 @@ block layout-content
       const submitBtn = document.getElementById('submit-btn');
       const submitSpinner = document.getElementById('submit-spinner');
       const submitText = document.getElementById('submit-text');
+      const clearFieldsBtn = document.getElementById('clear-fields-btn');
 
       const ensureBlockCount = (container, addButton, selector, desiredCount) => {
         if (!container || !addButton) return;
@@ -402,15 +405,107 @@ block layout-content
         imageBlockCount: imageContainer ? imageContainer.querySelectorAll('.image-block').length : 1
       });
 
+      const isDraftEmpty = (draft) => {
+        const fields = [
+          draft.title,
+          draft.arabicTitle,
+          draft.text,
+          draft.arabicText,
+          draft.categoryId,
+          draft.embedVideo,
+          draft.faqQuestions,
+          draft.faqAnswers,
+          draft.sourceTitles,
+          draft.sourceUrls,
+          draft.alt
+        ].flat();
+
+        return fields.every((value) => !String(value || '').trim()) &&
+          (!draft.embedVideoPosition || draft.embedVideoPosition === 'inline') &&
+          (!draft.imageBlockCount || draft.imageBlockCount === 1);
+      };
+
       const saveDraft = () => {
+        const data = collectDraft();
+        if (isDraftEmpty(data)) {
+          clearDraft();
+          return;
+        }
+
         localStorage.setItem(draftKey, JSON.stringify({
           savedAt: Date.now(),
-          data: collectDraft()
+          data
         }));
       };
 
       const clearDraft = () => {
         localStorage.removeItem(draftKey);
+      };
+
+      const resetRepeatedBlocks = (container, selector, resetFirstBlock) => {
+        if (!container) return;
+
+        const blocks = Array.from(container.querySelectorAll(selector));
+        blocks.slice(1).forEach((block) => block.remove());
+        if (blocks[0]) {
+          resetFirstBlock(blocks[0]);
+        }
+      };
+
+      const clearFields = () => {
+        Array.from(form.elements).forEach((field) => {
+          if (!field.name || field.type === 'hidden' || field.type === 'submit' || field.type === 'button' || field.readOnly) {
+            return;
+          }
+
+          if (field.type === 'checkbox' || field.type === 'radio') {
+            field.checked = field.defaultChecked;
+            return;
+          }
+
+          if (field.tagName === 'SELECT') {
+            field.selectedIndex = 0;
+            return;
+          }
+
+          field.value = '';
+        });
+
+        resetRepeatedBlocks(faqContainer, '.faq-block', (block) => {
+          block.querySelectorAll('input').forEach((input) => input.value = '');
+          const label = block.querySelector('.faq-question-label');
+          if (label) {
+            label.textContent = 'FAQ Question 1';
+            label.classList.add('text-primary', 'fw-bold');
+          }
+        });
+
+        resetRepeatedBlocks(sourcesContainer, '.source-block', (block) => {
+          block.querySelectorAll('input').forEach((input) => input.value = '');
+          const label = block.querySelector('.source-title-label');
+          if (label) {
+            label.textContent = 'Source Title 1';
+            label.classList.add('text-primary', 'fw-bold');
+          }
+        });
+
+        resetRepeatedBlocks(imageContainer, '.image-block', (block) => {
+          block.querySelectorAll('input').forEach((input) => {
+            input.value = '';
+            if (input.type === 'file') {
+              input.setAttribute('required', 'required');
+            }
+          });
+          const label = block.querySelector('.image-upload-label');
+          if (label) {
+            label.textContent = 'Upload Image 1 (Hero Image) *';
+            label.classList.add('text-primary', 'fw-bold');
+          }
+        });
+
+        imageCount = 1;
+        clearDraft();
+        document.getElementById('title')?.focus();
       };
 
       const restoreDraft = () => {
@@ -465,6 +560,14 @@ block layout-content
         submitText.textContent = 'Optimizing & Uploading...';
         clearDraft();
       });
+
+      if (clearFieldsBtn) {
+        clearFieldsBtn.addEventListener('click', function() {
+          if (confirm('Clear all article fields?')) {
+            clearFields();
+          }
+        });
+      }
 
       window.addEventListener('beforeunload', saveDraft);
 
