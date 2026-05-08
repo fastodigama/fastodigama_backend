@@ -115,3 +115,63 @@ export async function translateArticleToArabic(article) {
     model: translationModel
   };
 }
+
+export async function translateArticleToEnglish(article) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is required to generate English article translations.");
+  }
+
+  const translationModel = process.env.OPENAI_TRANSLATION_MODEL || "gpt-4.1-mini";
+  const sourcePayload = buildTranslationPrompt(article);
+
+  const response = await axios.post(
+    OPENAI_API_URL,
+    {
+      model: translationModel,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "You translate article content from Arabic into natural English. Preserve markdown, HTML, URLs, and overall meaning. Return only valid JSON."
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            instruction:
+              "Translate the following article fields into English. Also create an English SEO slug from the translated title. Keep URLs unchanged. Return the exact JSON shape: { slug, title, text, faqs, sources, imageAlts }.",
+            article: sourcePayload
+          })
+        }
+      ]
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      timeout: 60000
+    }
+  );
+
+  const rawContent =
+    response.data?.choices?.[0]?.message?.content ||
+    response.data?.choices?.[0]?.text ||
+    "";
+  const parsed = JSON.parse(stripCodeFence(rawContent));
+
+  return {
+    slug: cleanString(parsed?.slug),
+    title: cleanString(parsed?.title) || sourcePayload.title,
+    text: String(parsed?.text || sourcePayload.text),
+    faqs: normalizeFaqs(parsed?.faqs),
+    sources: normalizeSources(parsed?.sources).map((source, index) => ({
+      title: source.title,
+      url: source.url || sourcePayload.sources[index]?.url || ""
+    })),
+    imageAlts: normalizeImageAlts(parsed?.imageAlts),
+    translatedAt: new Date(),
+    model: translationModel
+  };
+}

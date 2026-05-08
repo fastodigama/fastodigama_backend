@@ -573,7 +573,8 @@ import sharp from "sharp";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import {
   isArabicTranslationConfigured,
-  translateArticleToArabic
+  translateArticleToArabic,
+  translateArticleToEnglish
 } from "./translationService.js";
 
 const upload = multer({
@@ -737,6 +738,19 @@ const buildFrontendSearchConditions = (search) => {
 };
 
 const cleanOptionalText = (value = "") => String(value || "").trim();
+const hasArabicCharacters = (value = "") => /[\u0600-\u06FF]/u.test(String(value || ""));
+
+const buildUploadNameSlug = (title = "", fallback = "article") => {
+  const slug = String(title || fallback)
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return slug || "article";
+};
 
 const buildManualArabicTranslation = (manualArabic = {}, existingArabic = {}) => {
   const title = cleanOptionalText(manualArabic.title);
@@ -795,6 +809,68 @@ const attachArabicTranslation = async (articleData, manualArabic = {}, existingA
     ...articleData,
     translations: {
       ar: arabicTranslation || existingArabic || {}
+    }
+  };
+};
+
+const attachArticleTranslations = async (articleData, manualArabic = {}, existingArabic = null) => {
+  const manualArabicTitle = cleanOptionalText(manualArabic.title);
+  const manualArabicText = String(manualArabic.text || "").trim();
+  const hasManualArabic = Boolean(manualArabicTitle || manualArabicText);
+  const mainLooksArabic =
+    hasArabicCharacters(articleData.title) || hasArabicCharacters(articleData.text);
+  const mainTitle = cleanOptionalText(articleData.title);
+  const mainText = String(articleData.text || "").trim();
+  const isArabicFirst =
+    (hasManualArabic && (!mainTitle || !mainText)) ||
+    (!hasManualArabic && mainLooksArabic);
+
+  if (!isArabicFirst) {
+    return attachArabicTranslation(articleData, manualArabic, existingArabic);
+  }
+
+  if (!isArabicTranslationConfigured()) {
+    throw new Error("English translation is not configured. Set OPENAI_API_KEY or provide English title and article text.");
+  }
+
+  const arabicSource = {
+    ...articleData,
+    title: manualArabicTitle || articleData.title,
+    text: manualArabicText || articleData.text
+  };
+  const englishTranslation = await translateArticleToEnglish(arabicSource);
+  const translatedFaqs = Array.isArray(englishTranslation.faqs) && englishTranslation.faqs.length > 0
+    ? englishTranslation.faqs
+    : articleData.faqs;
+  const translatedSources = Array.isArray(englishTranslation.sources) && englishTranslation.sources.length > 0
+    ? englishTranslation.sources
+    : articleData.sources;
+  const arabicImageAlts =
+    mainLooksArabic && Array.isArray(articleData.images)
+      ? articleData.images.map((image) => ({
+          key: cleanOptionalText(image?.key),
+          alt: cleanOptionalText(image?.alt)
+        }))
+      : (existingArabic?.imageAlts || []);
+
+  return {
+    ...articleData,
+    title: englishTranslation.title,
+    text: englishTranslation.text,
+    faqs: translatedFaqs,
+    sources: translatedSources,
+    translations: {
+      ar: {
+        ...(existingArabic || {}),
+        title: arabicSource.title,
+        slug: manualArabicTitle || arabicSource.title,
+        text: arabicSource.text,
+        faqs: mainLooksArabic && Array.isArray(articleData.faqs) ? articleData.faqs : (existingArabic?.faqs || []),
+        sources: mainLooksArabic && Array.isArray(articleData.sources) ? articleData.sources : (existingArabic?.sources || []),
+        imageAlts: arabicImageAlts,
+        translatedAt: new Date(),
+        model: `ar-to-en:${englishTranslation.model}`
+      }
     }
   };
 };
@@ -1094,7 +1170,7 @@ const addNewArticle = async (request, response) => {
     if (request.files && request.files.length > 0) {
       images = await Promise.all(request.files.map(async (file, index) => {
         // Sanitize slug: remove spaces and special characters
-        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        const projectNameSlug = buildUploadNameSlug(title, manualArabic.title || "article");
         const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
 
         const buffer = await sharp(file.buffer)
@@ -1117,7 +1193,7 @@ const addNewArticle = async (request, response) => {
       }));
     }
 
-    const articlePayload = await attachArabicTranslation({
+    const articlePayload = await attachArticleTranslations({
       title,
       text,
       categoryId,
@@ -1267,7 +1343,7 @@ const editArticle = async (request, response) => {
 
       newImages = await Promise.all(request.files.map(async (file, index) => {
         // Sanitize slug: remove spaces and special characters
-        const projectNameSlug = title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        const projectNameSlug = buildUploadNameSlug(title, manualArabic.title || existingArticle?.title || "article");
         const fileName = `${projectNameSlug}-${Date.now()}-${index}.webp`;
 
         const buffer = await sharp(file.buffer)
@@ -1291,7 +1367,7 @@ const editArticle = async (request, response) => {
     }
 
     updateData.images = [...currentImages, ...newImages];
-    const translatedUpdateData = await attachArabicTranslation(
+    const translatedUpdateData = await attachArticleTranslations(
       updateData,
       manualArabic,
       existingArticle?.translations?.ar || null

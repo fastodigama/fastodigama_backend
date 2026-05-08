@@ -20,8 +20,9 @@ block layout-content
                                 id="title",
                                 name="title",
                                 value=editArticle.title,
-                                required
+                                placeholder="English title, or leave blank if writing Arabic below"
                             )
+                            .form-text If you write the article in Arabic below, this can be left blank and will be translated to English.
 
                         .mb-3
                             label.form-label(for="arabicTitle") Arabic Title
@@ -33,7 +34,7 @@ block layout-content
                                 value=(editArticle && editArticle.translations && editArticle.translations.ar && editArticle.translations.ar.title) || "",
                                 placeholder="Optional Arabic title"
                             )
-                            .form-text Leave blank to auto-translate with OpenAI.
+                            .form-text Write Arabic here to translate it to English, or leave blank to auto-translate English to Arabic.
 
                         //- 🌟 NEW: Author field
                         if lockedAuthor
@@ -83,18 +84,17 @@ block layout-content
                                         button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bullets") Bullets
                                         button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="numbered") Numbered List
                                         button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="table") Table
-                            .form-text.mb-2 Use Markdown for formatting like bold, italics, quotes, headings, links, and lists.
+                            .form-text.mb-2 Use Markdown for formatting. Leave blank if the Arabic body below is your source article.
                             textarea.form-control(
                                 id="article-text",
                                 name="text",
                                 rows="10",
-                                autocomplete="off",
-                                required
+                                autocomplete="off"
                             )= editArticle.text
 
                         .mb-3
                             label.form-label(for="arabic-article-text") Arabic Article Text
-                            .form-text.mb-2 Optional manual Arabic body. Leave blank to auto-translate with OpenAI.
+                            .form-text.mb-2 Write Arabic here to translate it to English, or leave blank to auto-translate English to Arabic.
                             textarea.form-control(
                                 id="arabic-article-text",
                                 name="arabicText",

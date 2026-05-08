@@ -17,11 +17,11 @@ block layout-content
                 type="text",
                 id="title",
                 name="title",
-                placeholder="Add hook title",
+                placeholder="English title, or leave blank if writing Arabic below",
                 autocomplete="off",
-                required,
                 value=(formData && formData.title) || ""
               )
+              .form-text If you write the article in Arabic below, this can be left blank and will be translated to English.
 
             .mb-3
               label.form-label(for="arabicTitle") Arabic Title
@@ -34,7 +34,7 @@ block layout-content
                 autocomplete="off",
                 value=(formData && formData.arabicTitle) || ""
               )
-              .form-text Leave blank to auto-translate with OpenAI.
+              .form-text Write Arabic here to translate it to English, or leave blank to auto-translate English to Arabic.
 
             // 2. Author
             if lockedAuthor
@@ -86,7 +86,7 @@ block layout-content
                     button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="bullets") Bullets
                     button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="numbered") Numbered List
                     button.btn.btn-outline-secondary.btn-sm(type="button", data-md-action="table") Table
-              .form-text.mb-2 Use Markdown for formatting like bold, italics, quotes, headings, links, and lists.
+              .form-text.mb-2 Use Markdown for formatting. Leave blank if the Arabic body below is your source article.
               textarea.form-control(
                 id="article-text",
                 name="text",
@@ -97,7 +97,7 @@ block layout-content
 
             .mb-3
               label.form-label(for="arabic-article-text") Arabic Article Text
-              .form-text.mb-2 Optional manual Arabic body. Leave blank to auto-translate with OpenAI.
+              .form-text.mb-2 Write Arabic here to translate it to English, or leave blank to auto-translate English to Arabic.
               textarea.form-control(
                 id="arabic-article-text",
                 name="arabicText",
