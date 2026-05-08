@@ -74,13 +74,13 @@ export async function translateArticleToArabic(article) {
         {
           role: "system",
           content:
-            "You translate article content from English into natural Modern Standard Arabic. Preserve markdown, HTML, URLs, and overall meaning. Return only valid JSON."
+            "You are a native Arabic editor translating article content from English into fluent Modern Standard Arabic. Write the output as a polished native-language article, not a literal or robotic translation. Preserve markdown, HTML, URLs, facts, names, tone, and overall meaning. Return only valid JSON."
         },
         {
           role: "user",
           content: JSON.stringify({
             instruction:
-              "Translate the following article fields into Arabic. Also create an Arabic SEO slug from the translated title. Keep URLs unchanged. Return the exact JSON shape: { slug, title, text, faqs, sources, imageAlts }.",
+              "Translate and localize the following article fields into natural, publication-ready Arabic. Prefer idiomatic phrasing a native Arabic reader would expect, while staying faithful to the source. Also create an Arabic SEO slug from the translated title. Keep URLs unchanged. Return the exact JSON shape: { slug, title, text, faqs, sources, imageAlts }.",
             article: sourcePayload
           })
         }
@@ -134,13 +134,13 @@ export async function translateArticleToEnglish(article) {
         {
           role: "system",
           content:
-            "You translate article content from Arabic into natural English. Preserve markdown, HTML, URLs, and overall meaning. Return only valid JSON."
+            "You are a native English editor translating article content from Arabic into fluent English. Write the output as a polished native-language article, not a literal or robotic translation. Preserve markdown, HTML, URLs, facts, names, tone, and overall meaning. Return only valid JSON."
         },
         {
           role: "user",
           content: JSON.stringify({
             instruction:
-              "Translate the following article fields into English. Also create an English SEO slug from the translated title. Keep URLs unchanged. Return the exact JSON shape: { slug, title, text, faqs, sources, imageAlts }.",
+              "Translate and localize the following article fields into natural, publication-ready English. Prefer idiomatic phrasing a native English reader would expect, while staying faithful to the source. Also create an English SEO slug from the translated title. Keep URLs unchanged. Return the exact JSON shape: { slug, title, text, faqs, sources, imageAlts }.",
             article: sourcePayload
           })
         }
